@@ -2636,9 +2636,10 @@ export async function sendGuestReport(params: {
   const subScores = (reportData.subScores && typeof reportData.subScores === "object")
     ? (reportData.subScores as Record<string, number>)
     : {};
-  const valuation = (reportData.valuation && typeof reportData.valuation === "object")
-    ? (reportData.valuation as { lowAud?: number; midAud?: number; highAud?: number; method?: string })
-    : null;
+  // V04a (D22): the guest report's valuation was derived from the SVI (deep
+  // valuation lenses); it is never e-mailed — the band reads "not estimable".
+  const { valuationNotEstimable } = await import("@/lib/valuation/not-estimable");
+  const notEstimable = valuationNotEstimable();
   const actionPlan: { title: string; detail?: string; impact?: string }[] =
     Array.isArray(reportData.actionPlan) ? (reportData.actionPlan as { title: string; detail?: string; impact?: string }[]) : [];
 
@@ -2660,9 +2661,6 @@ export async function sendGuestReport(params: {
     })
     .join("");
 
-  const valBand = valuation
-    ? `${fmtAud(valuation.lowAud)} – ${fmtAud(valuation.midAud)} – ${fmtAud(valuation.highAud)}`
-    : null;
 
   const topActions = actionPlan.slice(0, 3);
   const actionRows = topActions
@@ -2707,12 +2705,11 @@ export async function sendGuestReport(params: {
         ${stageLabel ? `<p style="margin:8px 0 0;color:#4b5563;font-size:14px;">${escapeHtml(stageLabel)}</p>` : ""}
       </div>` : ""}
 
-      ${valBand ? `
       <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
-        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Estimated Valuation Band</p>
-        <p style="margin:0;color:#0b0f1a;font-size:22px;font-weight:700;">${escapeHtml(valBand)}</p>
-        ${valuation?.method ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">${escapeHtml(valuation.method)}</p>` : ""}
-      </div>` : ""}
+        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Company value</p>
+        <p style="margin:0;color:#0b0f1a;font-size:18px;font-weight:700;">${escapeHtml(notEstimable.label)}</p>
+        <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">${escapeHtml(notEstimable.line)}</p>
+      </div>
 
       ${dimRows ? `
       <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
@@ -2894,7 +2891,7 @@ export async function sendGuestCheckoutRecovery(params: {
 // ---------- Free 5-page summary — the first rung of the funnel --------------
 //
 // Sent once per analysis, from `POST /api/analyses/[id]/free-summary`, after
-// the founder has already seen their score and valuation range on screen and
+// the founder has already seen their score on screen and
 // then chosen to ask for the written version. Never a sequence: the caller
 // claims `analyses.summary_requested_at` with a conditional UPDATE before it
 // gets here, so a retry or a double-click sends nothing.
@@ -2926,8 +2923,6 @@ export async function sendFreeSummary(params: {
   /** What the run scored, for the subject line and the recap block. */
   svi: number;
   stageLabel: string;
-  valuationLow: number;
-  valuationHigh: number;
   /** Best-known name for the company. Optional — the copy works without it. */
   startupName?: string | null;
   /** Permalink back to the on-screen run, so the email is not the only copy. */
@@ -2939,8 +2934,6 @@ export async function sendFreeSummary(params: {
     pdf,
     svi,
     stageLabel,
-    valuationLow,
-    valuationHigh,
     startupName,
     analysisUrl,
     analysisId,
@@ -2956,7 +2949,9 @@ export async function sendFreeSummary(params: {
   const name = (startupName ?? "").trim();
   const subjectName = name.length > 0 ? name : "your startup";
   const score = Math.round(svi);
-  const range = `${fmtAud(valuationLow)} – ${fmtAud(valuationHigh)}`;
+  // V04a (D22): the SVI is never turned into a dollar range.
+  const { valuationNotEstimable } = await import("@/lib/valuation/not-estimable");
+  const valuation = valuationNotEstimable();
   const pageCount = FREE_SUMMARY_PAGES.length;
 
   const pageRows = FREE_SUMMARY_PAGES.map(
@@ -2989,9 +2984,9 @@ export async function sendFreeSummary(params: {
                   <p style="margin:6px 0 0;color:#4b5563;font-size:13px;">${escapeHtml(stageLabel)} stage</p>
                 </td>
                 <td style="vertical-align:top;text-align:right;">
-                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Valuation range</p>
-                  <p style="margin:0;color:#0b0f1a;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
-                  <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">Indicative, not a formal valuation</p>
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Company value</p>
+                  <p style="margin:0;color:#0b0f1a;font-size:17px;font-weight:700;">${escapeHtml(valuation.label)}</p>
+                  <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">${escapeHtml(valuation.hint)}</p>
                 </td>
               </tr>
             </table>
@@ -3114,7 +3109,9 @@ export async function sendFirstAnalysisReportEmail(params: {
 
   const name = (company ?? "").trim() || "your startup";
   const score = Math.round(report.svi.total);
-  const range = `${fmtAud(report.valuation.lowAud)} – ${fmtAud(report.valuation.highAud)}`;
+  // V04a (D22): the SVI is never turned into a dollar range.
+  const { valuationNotEstimable } = await import("@/lib/valuation/not-estimable");
+  const valuation = valuationNotEstimable();
   const ceo = report.agents.ceo;
   const ceoLine = ceo ? ceo.body.split(/\n\s*\n/)[0]?.trim() ?? "" : "";
   const firstStep = report.actionPlan.thisWeek?.title ?? report.actionPlan.steps[1]?.title ?? null;
@@ -3143,9 +3140,9 @@ export async function sendFirstAnalysisReportEmail(params: {
                   <p style="margin:6px 0 0;color:#4b5563;font-size:13px;">${escapeHtml(report.svi.stageLabel)} stage</p>
                 </td>
                 <td style="vertical-align:top;text-align:right;">
-                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Indicative valuation</p>
-                  <p style="margin:0;color:#0b0f1a;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
-                  <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">${report.valuation.basis === "revenue" ? "Anchored on the revenue figure you gave" : "SVI-based — no revenue figure was provided"}</p>
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Company value</p>
+                  <p style="margin:0;color:#0b0f1a;font-size:17px;font-weight:700;">${escapeHtml(valuation.label)}</p>
+                  <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">${escapeHtml(valuation.hint)}</p>
                 </td>
               </tr>
             </table>

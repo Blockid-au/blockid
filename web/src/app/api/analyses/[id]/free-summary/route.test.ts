@@ -201,12 +201,13 @@ describe("the happy path", () => {
     expect(String(body.maskedEmail)).toContain("@example.com");
   });
 
-  it("passes the run's real score and range to the sender", async () => {
+  it("passes the run's real score to the sender — never an SVI-derived range (V04a)", async () => {
     await POST(req({ email: "founder@example.com" }), ctx(ID));
     const args = sendMock.mock.calls[0][0];
     expect(typeof args.svi).toBe("number");
     expect(args.svi).toBeGreaterThan(0);
-    expect(args.valuationLow).toBeLessThan(args.valuationHigh as number);
+    expect(args).not.toHaveProperty("valuationLow");
+    expect(args).not.toHaveProperty("valuationHigh");
     expect(String(args.analysisUrl)).toContain(ID);
   });
 });

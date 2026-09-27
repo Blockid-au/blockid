@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
@@ -149,12 +150,11 @@ async function POST_handler(request: Request) {
   const shareholders = capTableRes.data ?? [];
   const prevRevaluation = prevRevalRes.data;
 
-  // Build estimated valuation range using SVI and revenue multiples
-  const sviMultiplier = currentSVI ? currentSVI / 1000 : 0.3; // 0 to 1 scale
-  const baseMultiple = arr > 0 ? Math.max(2, Math.min(30, sviMultiplier * 25)) : 0;
-  const lowValuation = arr > 0 ? arr * Math.max(1, baseMultiple * 0.6) : sviMultiplier * 500000;
-  const midValuation = arr > 0 ? arr * baseMultiple : sviMultiplier * 1000000;
-  const highValuation = arr > 0 ? arr * baseMultiple * 1.5 : sviMultiplier * 2000000;
+  // V04a (founder decision D22): no valuation is derived from the SVI. The
+  // old range multiplied the SVI into a revenue multiple (or straight into
+  // dollars pre-revenue). The review reports progress; the company value is
+  // "not estimable" until a CFO method has qualified inputs.
+  const notEstimable = valuationNotEstimable();
 
   // Journal summary
   const entryCounts: Record<string, number> = {};
@@ -167,7 +167,7 @@ async function POST_handler(request: Request) {
 Startup: ${startupName}
 Industry: ${industry}
 Quarter: ${quarterLabel}
-Current SVI Score: ${currentSVI ?? "N/A"}/1000
+Current SVI index: ${currentSVI ?? "N/A"} (an uncapped index, not a score out of a fixed maximum and not a dollar figure)
 SVI Change: ${sviStart} -> ${sviEnd} (${(sviEnd ?? 0) - (sviStart ?? 0)} points)
 
 Financial Metrics:
@@ -180,26 +180,22 @@ Activity:
 - Journal entries: ${journalEntries.length} (${Object.entries(entryCounts).map(([k, v]) => `${v} ${k}`).join(", ") || "none"})
 - Shareholders: ${shareholders.length}
 
-Estimated Valuation Range:
-- Conservative: $${Math.round(lowValuation).toLocaleString()} AUD
-- Mid: $${Math.round(midValuation).toLocaleString()} AUD
-- Optimistic: $${Math.round(highValuation).toLocaleString()} AUD
-- Revenue multiple used: ${baseMultiple.toFixed(1)}x ARR
+Company value: NOT ESTIMABLE. ${notEstimable.line} Do not state, estimate or imply a valuation, a valuation range, a revenue multiple for this company or a price; never convert the SVI into dollars.
 
 ${prevRevaluation ? `Previous revaluation notes: ${(prevRevaluation.content as string)?.slice(0, 300)}...` : "No previous revaluation on record."}
 
 Write a quarterly revaluation report with these sections:
-1. **Valuation Summary** — State the estimated valuation range and the methodology used (SVI score + revenue multiples + comparable Australian startups).
-2. **Key Drivers** — What moved the valuation up or down this quarter? Reference specific SVI changes, revenue, and evidence.
-3. **Risk Factors** — 2-3 risks that could affect valuation. Be specific, not generic.
-4. **Quarter Ahead Outlook** — What should the founder focus on to increase valuation next quarter?
+1. **Progress Summary** — What changed this quarter (SVI index movement, revenue, evidence). Say plainly that the company value is not estimable yet and which verified input would unlock a valuation method.
+2. **Key Drivers** — What moved the SVI index up or down this quarter? Reference specific SVI changes, revenue, and evidence.
+3. **Risk Factors** — 2-3 risks to the business. Be specific, not generic.
+4. **Quarter Ahead Outlook** — What should the founder focus on next quarter?
 5. **Recommendation** — One clear recommendation (e.g., "Focus on unit economics before raising", "Ready for pre-seed conversations").
 
 Use Australian English. Be data-driven and reference the actual numbers. Keep each section to 2-4 sentences. Format with **bold** section headers.`;
 
   try {
     const result = await callAI({ providerPolicy: "deepinfra-only",
-      system: "You are a CFA-qualified startup valuation analyst specialising in Australian early-stage companies. You use SVI (Startup Viability Index), revenue multiples, and comparable exits to estimate pre-revenue and early-revenue startup valuations.",
+      system: "You are a CFA-qualified analyst writing a quarterly progress review for an Australian early-stage company. The Startup Value Index (SVI) is an uncapped evidence index, not a valuation: never turn it into dollars, and never state a valuation for the company.",
       user: prompt,
       maxTokens: 1200,
     });
@@ -221,10 +217,7 @@ Use Australian English. Be data-driven and reference the actual numbers. Keep ea
           sviEnd,
           arr,
           prevArr,
-          lowValuation: Math.round(lowValuation),
-          midValuation: Math.round(midValuation),
-          highValuation: Math.round(highValuation),
-          revenueMultiple: Math.round(baseMultiple * 10) / 10,
+          valuationStatus: notEstimable.status,
           evidenceCount,
           journalEntries: journalEntries.length,
           shareholderCount: shareholders.length,
@@ -243,14 +236,7 @@ Use Australian English. Be data-driven and reference the actual numbers. Keep ea
     return NextResponse.json({
       ok: true,
       entry,
-      valuation: {
-        low: Math.round(lowValuation),
-        mid: Math.round(midValuation),
-        high: Math.round(highValuation),
-        revenueMultiple: Math.round(baseMultiple * 10) / 10,
-        arr,
-        svi: currentSVI,
-      },
+      valuation: { ...notEstimable, arr, svi: currentSVI },
     });
   } catch (err) {
     console.error("[revaluation] AI error", err);

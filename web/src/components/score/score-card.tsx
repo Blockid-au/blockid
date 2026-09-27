@@ -64,7 +64,7 @@ export function ScoreCard({
           </span>
         </div>
         <p className="mt-1 text-sm text-ink-600">
-          Top quartile for AU seed-stage SaaS · Sector median 71
+          Investor-Ready Score, 0–100 scale (not the uncapped SVI index)
         </p>
 
         <div className="mt-6 space-y-3">

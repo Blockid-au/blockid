@@ -9,6 +9,7 @@
 // plan) land first, then one agent section at a time. `progress` says what
 // is being written right now so the page can be honest about it.
 
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import type { InputEcho } from "@/lib/analyses/input-echo";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { ReportMeta } from "./meta";
@@ -216,52 +217,52 @@ export interface SviSection {
   }[];
 }
 
-export interface ValuationMethodRow {
-  name: string;
-  lowAud: number;
-  midAud: number;
-  highAud: number;
-  /** 0–1 */
-  weight: number;
-  rationale: string;
-  assumptions: string[];
-}
-
+/**
+ * V04a (founder decision D22): the first analysis never prices the company.
+ * The SVI is an uncapped index, not a dollar valuation, and the intake has
+ * no qualified input (connected revenue, financial statements, a priced
+ * round) a CFO method could run on — so the section is always "not
+ * estimable" plus what would unlock a method. Figures the founder stated
+ * (revenue, SAFE cap, ask) are reported as read, never turned into a value.
+ *
+ * Reports stored before V04a carry a legacy `{lowAud, midAud, highAud,
+ * method, basis, methods}` range derived from the SVI; `readValuationSection`
+ * maps any stored value onto this shape so no reader prints those numbers.
+ */
 export interface ValuationSection {
-  lowAud: number;
-  midAud: number;
-  highAud: number;
-  /** The blend label, e.g. "Berkus (50%) + Scorecard (50%)". */
-  method: string;
-  /** 0–100 */
-  confidence: number;
-  /**
-   * `revenue` when a real revenue figure from the input drove a multiple;
-   * `svi_based` when no revenue was provided and the range rests on the
-   * SVI-mapped methods with stated assumptions. Never a fabricated number.
-   */
-  basis: "revenue" | "svi_based";
-  /** Every assumption behind the number, in plain words. */
+  status: "not_estimable";
+  /** Evidence that would unlock a CFO valuation method. */
+  unlock: string[];
+  /** What we read from the input that bears on value — reported as read. */
   assumptions: string[];
-  methods: ValuationMethodRow[];
-  /** The one-line honesty note printed under the range. */
+  /** The one-line "not estimable — add … to unlock" sentence. */
   note: string;
   /** The round the founder said they are raising, AUD, when stated. */
   askAud?: number;
   /** A founder-stated SAFE cap / pre-money, AUD, when stated. */
   statedCapAud?: number;
-  /**
-   * How the indicative range sits against the founder's own cap. Reported
-   * alongside the range; never used to set it.
-   */
-  capCrossCheck?: {
-    kind: "cap" | "pre_money" | "post_money" | "valuation";
-    /** Indicative mid ÷ stated. */
-    ratio: number;
-    verdict: "consistent" | "indicative_above" | "indicative_below";
-    /** e.g. "Your stated cap A$6.0M · indicative A$4.1M–A$8.7M → consistent". */
-    note: string;
+  statedCapKind?: "cap" | "pre_money" | "post_money" | "valuation";
+}
+
+/** Any stored `valuation` value → the not-estimable section (legacy ranges dropped). */
+export function readValuationSection(raw: unknown): ValuationSection {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const ne = valuationNotEstimable();
+  const unlock = Array.isArray(r.unlock) && r.unlock.every((u) => typeof u === "string") && r.unlock.length > 0 ? (r.unlock as string[]) : ne.unlock;
+  const current = r.status === "not_estimable";
+  const out: ValuationSection = {
+    status: "not_estimable",
+    unlock,
+    // A legacy section's assumptions describe how the SVI-based range was
+    // built — they are dropped with it.
+    assumptions: current && Array.isArray(r.assumptions) ? (r.assumptions as unknown[]).filter((a): a is string => typeof a === "string") : [],
+    note: current && typeof r.note === "string" && r.note.trim() ? r.note : valuationNotEstimable({ unlock }).line,
   };
+  if (typeof r.askAud === "number" && Number.isFinite(r.askAud) && r.askAud > 0) out.askAud = r.askAud;
+  if (typeof r.statedCapAud === "number" && Number.isFinite(r.statedCapAud) && r.statedCapAud > 0) out.statedCapAud = r.statedCapAud;
+  const kind = r.statedCapKind ?? (r.capCrossCheck && typeof r.capCrossCheck === "object" ? (r.capCrossCheck as { kind?: unknown }).kind : undefined);
+  if (kind === "cap" || kind === "pre_money" || kind === "post_money" || kind === "valuation") out.statedCapKind = kind;
+  return out;
 }
 
 export interface ActionPlanItem {

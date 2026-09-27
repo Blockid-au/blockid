@@ -21,7 +21,7 @@ import { FOCUS_RING } from "@/components/marketing/template/primitives";
 
 export const metadata: Metadata = pageMetadata({
   title: "Startup Listings · Startup Value Index",
-  description: "Ranked listing of every AU startup analysed by BlockID. Filter by sector, stage, revenue status — sort by SVI, weekly delta, valuation.",
+  description: "Ranked listing of every AU startup analysed by BlockID. Filter by sector, stage, revenue status — sort by SVI, weekly delta, stage.",
   path: "/startup-index/listings",
 });
 
@@ -34,14 +34,6 @@ const CHIP_OFF = "bg-surface text-secondary border-line-subtle hover:border-line
 
 const SECTOR_OPTS = ["all", "saas", "fintech", "ai", "healthtech", "marketplace", "deeptech", "ecommerce"];
 const STAGE_OPTS = ["all", "0", "1", "2", "3", "4", "5", "6", "7"];
-
-function fmtAud(v: number): string {
-  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-  if (v <= 0) return "—";
-  return `A$${Math.round(v).toLocaleString("en-AU")}`;
-}
 
 function MiniSparkline({ data }: { data: number[] }) {
   if (data.length < 2) return <span className="text-muted text-xs">—</span>;
@@ -255,7 +247,6 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                   {sortHeader({ field: "stage", label: "Stage" })}
                   {sortHeader({ field: "svi", label: "SVI", align: "right" })}
                   {sortHeader({ field: "delta", label: "Δ 7d", align: "right" })}
-                  {sortHeader({ field: "valuation", label: "Valuation", align: "right" })}
                   <th className="py-2 px-2 text-xs uppercase tracking-wider font-semibold text-muted text-right">Trend</th>
                   <th className="py-2 px-2 text-xs uppercase tracking-wider font-semibold text-muted text-right">Analyses</th>
                 </tr>
@@ -283,7 +274,6 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                     </td>
                     <td className="py-2 px-2 text-xs font-bold text-right tabular-nums text-primary">{row.svi}</td>
                     <td className="py-2 px-2 text-right"><DeltaCell delta={row.deltaWeek} newLabel={newLabel} newTitle={newTitle} /></td>
-                    <td className="py-2 px-2 text-xs text-right font-mono tabular-nums text-primary">{fmtAud(row.valuationAud)}</td>
                     <td className="py-2 px-2 text-right">
                       <div className="flex justify-end"><MiniSparkline data={row.sparkline} /></div>
                     </td>

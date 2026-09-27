@@ -11,7 +11,7 @@
 //
 // The Supabase read order here is the order the route's colocated FIFO
 // stub replays — keep it when editing:
-//   svi_accounts → svi_analyses → startup_metrics → svi_snapshots →
+//   svi_accounts → svi_analyses → startup_metrics →
 //   shareholders → svi_evidence → data_rooms (upsert) → data_room_documents.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -21,7 +21,6 @@ import {
   documentCompleteness,
   type DataRoom,
 } from "@/lib/data-room";
-import { computeValuation, type ValuationInput } from "@/lib/valuation";
 
 export interface CompileDataRoomScope {
   /** The caller — shown as the compiler on the company summary. */
@@ -47,13 +46,6 @@ export interface CompileDataRoomResult {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, any, any>;
-
-function mapStage(numericStage: number): string {
-  if (numericStage <= 1) return "idea";
-  if (numericStage <= 2) return "validation";
-  if (numericStage <= 4) return "mvp";
-  return "growth";
-}
 
 /**
  * The project's existing room, if any — keyed the way the generator upserts
@@ -134,49 +126,10 @@ export async function compileDataRoom(supabase: Db, scope: CompileDataRoomScope)
   }
 
   // ── Valuation ─────────────────────────────────────────────────────────
-  let valuation: { low: number; mid: number; high: number } | null = null;
-  if (sviAccount) {
-    let dimensions: Record<string, number> | undefined;
-    const { data: snapshot } = await supabase
-      .from("svi_snapshots")
-      .select("dimension_scores")
-      .eq("account_id", sviAccount.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (snapshot?.dimension_scores) {
-      dimensions = snapshot.dimension_scores as Record<string, number>;
-    }
-
-    const input: ValuationInput = {
-      sviScore: (sviAccount.current_svi as number) ?? 100,
-      stage: mapStage((sviAccount.current_stage as number) ?? 0),
-      mrrAud: metrics?.find((m) => m.metricType === "mrr")?.value,
-      arrAud: metrics?.find((m) => m.metricType === "arr")?.value,
-      revenueGrowthPct: metrics?.find((m) => m.metricType === "revenue_growth")?.value,
-      burnRateAud: metrics?.find((m) => m.metricType === "burn_rate")?.value,
-      runwayMonths: metrics?.find((m) => m.metricType === "runway")?.value,
-      dimensions: dimensions
-        ? {
-            ftv: dimensions.ftv,
-            mpc: dimensions.mpc,
-            ptd: dimensions.ptd,
-            tre: dimensions.tre,
-            cgh: dimensions.cgh,
-            iri: dimensions.iri,
-            lco: dimensions.lco,
-            svm: dimensions.svm,
-          }
-        : undefined,
-    };
-
-    try {
-      const result = computeValuation(input);
-      valuation = { low: result.lowAud, mid: result.midAud, high: result.highAud };
-    } catch {
-      // Valuation computation failed — continue without it
-    }
-  }
+  // V04a (D22): the room never carries a figure derived from the SVI (the old
+  // Berkus/Scorecard blend of the dimension scores). A valuation document
+  // appears only when a CFO method with qualified inputs produces one.
+  const valuation: { low: number; mid: number; high: number } | null = null;
 
   // ── Section 5: Team — cap table shareholders (owner + project) ────────
   let capTable: { shareholders: Array<{ name: string; role: string; shares_held: number }> } | null = null;

@@ -8,14 +8,15 @@ import {
   SVI_BENCHMARKS,
   SVI_STAGE_LABELS,
 } from "@/lib/svi-analysis";
-import { estimateValuation, formatAUD, valuationMetricsFromSignals } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { apiRoute } from "@/lib/audit/api-route";
 
 /**
  * Anonymous instant-value endpoint for the marketing hero.
  *
  * Given a free-text business/idea description, returns a Startup Value
- * Index preview + AUD valuation range + top upgrade actions. No auth,
+ * Index preview + top upgrade actions (the valuation is "not estimable":
+ * V04a / D22 — the SVI is never turned into dollars). No auth,
  * no persistence, no PII collected — this is the "vào là thấy giá trị
  * ngay" surface. Deterministic (no LLM) so it never exceeds ~50ms and
  * cannot fail from provider outages.
@@ -68,12 +69,7 @@ async function POST_handler(request: Request) {
     analysis.dimensionScores ??
     Object.fromEntries(analysis.subs.map((s) => [s.key, s.value]));
 
-  const valuation = estimateValuation(
-    analysis.totalSVI,
-    analysis.stage,
-    valuationMetricsFromSignals(analysis.signals, sectorKey ?? undefined),
-    dimensionScores,
-  );
+  const valuation = valuationNotEstimable();
 
   const topActions = analysis.nextActions.slice(0, 3).map((a) => ({
     priority: a.priority,
@@ -120,14 +116,10 @@ async function POST_handler(request: Request) {
       },
     },
     valuation: {
-      lowAud: valuation.low,
-      midAud: valuation.mid,
-      highAud: valuation.high,
-      lowLabel: formatAUD(valuation.low),
-      midLabel: formatAUD(valuation.mid),
-      highLabel: formatAUD(valuation.high),
-      method: valuation.method,
-      confidence: valuation.confidence,
+      status: valuation.status,
+      label: valuation.label,
+      line: valuation.line,
+      unlock: valuation.unlock,
     },
     sector: sectorKey
       ? { key: sectorKey, label: sectorLabel }

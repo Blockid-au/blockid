@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
-import {
-  selectValuationMethod,
-  inferTractionFromTreScore,
-} from "@/lib/svi/valuation-method-selector";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import type { StreamValuation } from "@/lib/svi/stream-valuation";
 import { CanonicalValuation } from "./canonical-valuation";
 import { cn } from "@/lib/utils";
@@ -98,6 +94,7 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
   // the previous render" on it. Hooks first, then bail.
   if (scored.length === 0 && !running) return null;
   const showValuation = scored.length >= 3 && valuationStatus === undefined;
+  const notEstimable = valuationNotEstimable();
 
   const band: "strong" | "developing" | "early" | "pending" =
     scored.length === 0 ? "pending" : rawTotal >= 70 ? "strong" : rawTotal >= 40 ? "developing" : "early";
@@ -194,84 +191,15 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
       )}
 
       {valuationStatus === "available" && valuation && <CanonicalValuation valuation={valuation} />}
-      {showValuation && (() => {
-        const v = computeThreeCaseValuation(rawTotal, stage, industry);
-        const treDim = dims.find((d) => d.key === "tre");
-        const traction = inferTractionFromTreScore(treDim?.score ?? null);
-        const normStage = (s: string | null | undefined): "idea" | "pre_seed" | "seed" | "series_a" | "series_b" | "growth" => {
-          if (!s) return "seed";
-          const l = s.toLowerCase().replace(/[-\s]/g, "_");
-          if (l.startsWith("idea") || l === "pre_launch") return "idea";
-          if (l.startsWith("pre_seed") || l === "preseed") return "pre_seed";
-          if (l.startsWith("seed")) return "seed";
-          if (l === "a" || l.includes("series_a")) return "series_a";
-          if (l === "b" || l.includes("series_b")) return "series_b";
-          return "growth";
-        };
-        const methodSel = selectValuationMethod(normStage(stage), rawTotal, traction);
-        return (
-          <div className="mt-4 border-t border-ink-200/60 pt-3">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-600">
-                Directional pre-money valuation
-              </p>
-              <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50/60 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
-                {methodSel.meta.shortLabel}
-              </span>
-            </div>
-            <p className="text-[10px] text-ink-500 mb-2">
-              {v.stage.replace("_", " ")} · {v.sector}
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <ValCell tone="worst" label="Worst" mid={v.worst.mid} low={v.worst.low} high={v.worst.high} />
-              <ValCell tone="avg" label="Average" mid={v.average.mid} low={v.average.low} high={v.average.high} />
-              <ValCell tone="best" label="Best" mid={v.best.mid} low={v.best.low} high={v.best.high} />
-            </div>
-          </div>
-        );
-      })()}
-    </div>
-  );
-}
-
-function ValCell({
-  tone,
-  label,
-  mid,
-  low,
-  high,
-}: {
-  tone: "worst" | "avg" | "best";
-  label: string;
-  mid: number;
-  low: number;
-  high: number;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-lg border px-2.5 py-2",
-        tone === "worst" && "border-red-200 bg-red-50/40",
-        tone === "avg" && "border-brand-200 bg-brand-50/60",
-        tone === "best" && "border-emerald-200 bg-emerald-50/50",
+      {showValuation && (
+        // V04a (D22): no directional range is derived from the running SVI —
+        // the company value is "not estimable" until a CFO method can run.
+        <div className="mt-4 border-t border-ink-200/60 pt-3" data-testid="running-svi-valuation-not-estimable">
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-600">Company value</p>
+          <p className="mt-1 text-sm font-bold text-ink-800">{notEstimable.label}</p>
+          <p className="mt-0.5 text-[11px] text-ink-500">{notEstimable.line}</p>
+        </div>
       )}
-    >
-      <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-600">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-0.5 text-sm font-bold tabular-nums leading-tight",
-          tone === "worst" && "text-red-700",
-          tone === "avg" && "text-brand-700",
-          tone === "best" && "text-emerald-700",
-        )}
-      >
-        {formatAud(mid)}
-      </p>
-      <p className="text-[10px] tabular-nums text-ink-500">
-        {formatAud(low)}–{formatAud(high)}
-      </p>
     </div>
   );
 }

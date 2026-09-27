@@ -21,6 +21,7 @@
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { noBenchmarkYetLine, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
 import type { DeepValuationAnalysis } from "@/lib/agents/deep-valuation";
+import { valuationNotEstimable, type ValuationNotEstimable } from "@/lib/valuation/not-estimable";
 
 export type ScnLayerCode = "validation" | "position" | "value" | "direction" | "capital";
 export type LayerStatus = "complete" | "in_progress" | "gap";
@@ -59,11 +60,14 @@ export interface ScnActionPlan {
     sviScore: number;
     sviLabel: string;             // "Pre-investable", "Investable", etc.
     sviPercentileLabel: string;   // "top 35% of AU pre-seed — benchmark (n = 47)" / "vs AU pre-seed — no cohort benchmark yet (n = 3)"
-    valuationMidAud: number;
-    valuationLowAud: number;
-    valuationHighAud: number;
-    valuationConfidence: "low" | "medium" | "high";
-    headline: string;             // "Your number: A$2.4M (early-validated)"
+    /**
+     * V04a (D22): the SCN plan never prices the company. The SVI is an
+     * uncapped index, not a dollar figure; a valuation comes only from a CFO
+     * method with qualified inputs, so this is always "not estimable" plus
+     * the evidence that unlocks a method.
+     */
+    valuation: ValuationNotEstimable;
+    headline: string;             // "Your number: SVI 118 (early-validated)"
     plainEnglish: string;         // 2-3 sentence explanation
   };
   layers: ScnLayer[];
@@ -71,7 +75,8 @@ export interface ScnActionPlan {
   milestones: MilestoneCheckpoint[];
   valuationLevers: Array<{
     lever: string;
-    upliftAud: string;             // "+A$500K – A$1.2M" range
+    /** What the lever changes — evidence / method unlocked, never a dollar uplift (V04a). */
+    effect: string;
     effort: "low" | "medium" | "high";
     timeframe: string;
   }>;
@@ -100,13 +105,6 @@ export function percentileLabel(stageLabel: string, cohort: SVIAnalysis["cohortP
   if (!published) return `vs AU ${stage} — ${noBenchmarkYetLine(cohort?.cohortSize ?? 0).toLowerCase()}`;
   const top = Math.max(1, 100 - published.percentile);
   return `top ${top}% of AU ${stage} — ${published.label}`;
-}
-
-function fmtAud(v: number): string {
-  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-  return `A$${Math.round(v).toLocaleString("en-AU")}`;
 }
 
 // ─── Layer status detection ─────────────────────────────────────────────
@@ -143,13 +141,14 @@ function detectLayerStatus(args: {
 
   // Value: valuation + unit economics
   const tre = analysis.subs.find((s) => s.key === "tre")?.value ?? 0;
-  const valueStatus: LayerStatus = dv && dv.blendedValuation.confidence === "high" && tre >= 60 ? "complete"
-    : dv && dv.blendedValuation.midAud > 1_000_000 ? "in_progress" : "gap";
-  const valueReason = valueStatus === "complete"
-    ? `Blended valuation ${dv ? fmtAud(dv.blendedValuation.midAud) : "—"} with high confidence + traction evidence (TRE ${tre}/100)`
-    : valueStatus === "in_progress"
-    ? `Initial valuation triangulated (${dv ? fmtAud(dv.blendedValuation.midAud) : "—"}); needs revenue evidence to firm up`
-    : `Pre-revenue — valuation is directional only, anchored to AU stage-medians`;
+  // V04a (D22): the Value layer is never "complete" off the SVI — a
+  // valuation needs a CFO method with qualified inputs (connected revenue,
+  // financial statements or a priced round), which this plan cannot see.
+  void dv;
+  const valueStatus: LayerStatus = hasRevenue && tre >= 60 ? "in_progress" : "gap";
+  const valueReason = valueStatus === "in_progress"
+    ? `Revenue signals present (TRE ${tre}/100) — ${valuationNotEstimable().line}`
+    : valuationNotEstimable().line;
 
   // Direction: clear next-best-actions
   const hasActions = analysis.nextActions && analysis.nextActions.length > 0;
@@ -436,35 +435,35 @@ function buildValuationLevers(ctx: ActionContext): ScnActionPlan["valuationLever
   if (!ctx.hasRevenue) {
     levers.push({
       lever: "Reach A$1 of first revenue",
-      upliftAud: "+50-100% on mid-band",
+      effect: "First revenue evidence — the precondition for a revenue-based valuation method",
       effort: "high",
       timeframe: "60 days",
     });
   } else {
     levers.push({
       lever: "Push MRR to A$10K (seed gate)",
-      upliftAud: "+A$1M – A$3M on mid-band",
+      effect: "Connect Stripe or Xero so the MRR is verified — unlocks the revenue-multiple method",
       effort: "high",
       timeframe: "90 days",
     });
   }
   levers.push({
     lever: "Close ESOP pool + sign founder vesting",
-    upliftAud: "+A$300K – A$800K (governance discount removed)",
+    effect: "Clears a governance question investors raise in diligence",
     effort: "low",
     timeframe: "this week",
   });
   if (ctx.sviScore < 80) {
     levers.push({
       lever: "Add 3 evidence items to lift SVI to 80+",
-      upliftAud: "+A$200K – A$600K",
+      effect: "Raises the SVI index and evidence confidence (the index is not a dollar figure)",
       effort: "medium",
       timeframe: "30 days",
     });
   }
   levers.push({
     lever: "Land 1 anchor customer with case study",
-    upliftAud: "+A$500K – A$1.5M",
+    effect: "Verified customer evidence for traction (TRE)",
     effort: "high",
     timeframe: "90 days",
   });
@@ -472,7 +471,7 @@ function buildValuationLevers(ctx: ActionContext): ScnActionPlan["valuationLever
     const topPeer = ctx.dv.peerComparables[0];
     levers.push({
       lever: `Move similarity vs ${topPeer.name} from ${topPeer.similarityScore}% to 80%`,
-      upliftAud: `Up to mid of peer band (${fmtAud(topPeer.estValuationLowAud)}+)`,
+      effect: `Closer comparability with ${topPeer.name} for positioning (not a valuation)`,
       effort: "high",
       timeframe: "12-18 months",
     });
@@ -484,28 +483,24 @@ function buildValuationLevers(ctx: ActionContext): ScnActionPlan["valuationLever
 
 function buildPlainEnglish(
   sviScore: number,
-  valuation: ScnActionPlan["yourNumber"]["valuationMidAud"],
-  confidence: "low" | "medium" | "high",
   hasRevenue: boolean,
   sector: string,
   isEstablished?: boolean,
 ): string {
-  const valFmt = fmtAud(valuation);
-  const conf = confidence === "high" ? "high-confidence" : confidence === "medium" ? "medium-confidence" : "directional";
-
+  const ne = valuationNotEstimable();
   // Established-company override: be honest that we cannot price a public/scale-up
   // from scraping alone, and steer the user to connect financial data.
   if (isEstablished) {
-    return `We've detected this is an established company. The ${valFmt} figure is anchored to scraping signals only — for an accurate market price, connect your Stripe/Xero data or upload your latest financials. Treat this number as directional, not as a target valuation.`;
+    return `We've detected this is an established company. BlockID does not price a company from public-page signals — connect your Stripe/Xero data or upload your latest financials to unlock a valuation method. The SVI of ${sviScore} is an index, not a dollar figure.`;
   }
 
   if (sviScore < 50) {
-    return `Your number is ${valFmt} — but treat it as ${conf}. At an SVI of ${sviScore}, you're pre-validated, which means the valuation is anchored to ${sector} stage-medians rather than your own evidence. Get to A$1 of revenue + 60+ SVI and the number can double.`;
+    return `Your SVI is ${sviScore} — you're pre-validated, so the ${sector} evidence is still thin. ${ne.line} Get to A$1 of revenue and a 60+ SVI first.`;
   }
   if (sviScore < 90) {
-    return `Your number is ${valFmt} (${conf}). Your SVI of ${sviScore} places you in the early-validated band — meaningful signals are present (${hasRevenue ? "revenue, " : ""}market clarity, product evidence) but more proof is needed for VC mid-band pricing. Hitting your next two milestones lifts you cleanly into investable territory.`;
+    return `Your SVI of ${sviScore} places you in the early-validated band — meaningful signals are present (${hasRevenue ? "revenue, " : ""}market clarity, product evidence) but more proof is needed. ${ne.line}`;
   }
-  return `Your number is ${valFmt} with ${conf} support. SVI ${sviScore} puts you in the investable zone — fundamentals, traction and governance all clear the thresholds AU institutional investors look for. The action plan below is about converting evidence into term-sheet velocity.`;
+  return `SVI ${sviScore} puts you in the investable zone — fundamentals, traction and governance all clear the thresholds AU institutional investors look for. ${ne.line}`;
 }
 
 // ─── Main entry ────────────────────────────────────────────────────────
@@ -560,7 +555,7 @@ export function buildScnActionPlan(input: ScnActionPlanInput): ScnActionPlan {
       question: "What is my number — and why?",
       status: statuses.value.status,
       statusReason: statuses.value.reason,
-      unlockCriteria: "Blended valuation high-confidence + TRE ≥ 60",
+      unlockCriteria: "Connected revenue, financial statements or a priced round (a CFO valuation method can run) + TRE ≥ 60",
       actions: actionsForValue(ctx),
     },
     {
@@ -591,22 +586,14 @@ export function buildScnActionPlan(input: ScnActionPlanInput): ScnActionPlan {
     ?? allActions.find((a) => a.priority === "P0")
     ?? allActions[0];
 
-  const blended = deepValuation?.blendedValuation;
-  const valuationMid = blended?.midAud ?? 500_000;
-  const valuationLow = blended?.lowAud ?? 200_000;
-  const valuationHigh = blended?.highAud ?? 1_200_000;
-  const valuationConfidence = blended?.confidence ?? "low";
 
   const yourNumber: ScnActionPlan["yourNumber"] = {
     sviScore,
     sviLabel: sviLabel(sviScore),
     sviPercentileLabel: percentileLabel(analysis.stageLabel ?? "early stage", analysis.cohortPercentile),
-    valuationMidAud: valuationMid,
-    valuationLowAud: valuationLow,
-    valuationHighAud: valuationHigh,
-    valuationConfidence,
-    headline: `Your number: ${fmtAud(valuationMid)} (${sviLabel(sviScore).split(" — ")[0].toLowerCase()})`,
-    plainEnglish: buildPlainEnglish(sviScore, valuationMid, valuationConfidence, hasRevenue, sector, analysis.maturitySignal?.isEstablished),
+    valuation: valuationNotEstimable(),
+    headline: `Your number: SVI ${sviScore} (${sviLabel(sviScore).split(" — ")[0].toLowerCase()})`,
+    plainEnglish: buildPlainEnglish(sviScore, hasRevenue, sector, analysis.maturitySignal?.isEstablished),
   };
 
   return {

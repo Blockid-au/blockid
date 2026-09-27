@@ -1,8 +1,8 @@
 // Investor Dossier — block 2 · Valuation (BA spec §A.3 block 2, S-R4).
 //
 // Server component reading `DossierValuationBlock` (built from
-// ReportV2.valuation — the CFO 5-method chapter the pipeline persisted, or
-// the adapter's three-case lift, labelled as such). The range bars are the
+// ReportV2.valuation — the CFO 5-method chapter the pipeline persisted or
+// stored on the snapshot; V04a: never an SVI-derived lift). The range bars are the
 // report's own `range_bars` VisualSpecV2 rendered inline (same SVG as the
 // TBR / PDF), with the assessor's "my valuation view" overlaid as an extra
 // row when block 4 carries one. Nothing is recomputed here.
@@ -33,7 +33,7 @@ export function ValuationBlock({ block, fullReportHref }: { block: DossierValuat
       <div className="flex flex-wrap items-center gap-2 text-xs text-ink-500">
         <span className="rounded-full border border-surface-200 bg-surface-50 px-2 py-0.5 font-mono uppercase">CFO</span>
         <span>consensus confidence {Math.round(c.confidence * 100)}%</span>
-        <span data-testid="valuation-source">· {block.source === "pipeline" ? "5-method run persisted at snapshot time" : "lifted from the stored snapshot (three-case model)"}</span>
+        <span data-testid="valuation-source">· {block.source === "pipeline" ? "5-method run persisted at snapshot time" : "CFO run read from the stored snapshot"}</span>
       </div>
       <dl className="mt-3 grid grid-cols-3 gap-3" data-testid="valuation-consensus">
         {(["lowAud", "midAud", "highAud"] as const).map((k) => (

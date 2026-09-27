@@ -5,11 +5,11 @@
 // (see lib/pdf/svi-report-pdf.tsx, lib/pdf/investor-pack.tsx).
 //
 // Layout (in page order):
-//   1. Cover              — project name, SVI grade, valuation range, date
+//   1. Cover              — project name, SVI grade, company value status, date
 //   2. One-page summary   — headline + snapshot grid + narrative
 //   3. SVI radar / dims   — table of dimension scores
 //   4. Fundraise checklist — snapshot grouped by category
-//   5. Valuation & ask    — valuation methods + raise + use-of-funds
+//   5. Valuation & ask    — company value status (V04a: never from the SVI) + raise + use-of-funds
 //   6. AU comparables     — sector- + stage-matched raises
 //   7. Team + cap-table   — snapshot of both, with "Not yet on file" fallbacks
 //   8. Contact + AFSL     — disclaimer, entity footer, contact block
@@ -386,7 +386,7 @@ function CoverPage({ data }: { data: InvestorPackData }) {
           <Text style={s.gradeScore}>SVI {svi.total}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={s.label}>Valuation range</Text>
+          <Text style={s.label}>Company value</Text>
           <Text
             style={{
               fontSize: 18,
@@ -395,10 +395,10 @@ function CoverPage({ data }: { data: InvestorPackData }) {
               marginTop: 6,
             }}
           >
-            {formatAud(valuation.lowAud)} – {formatAud(valuation.highAud)}
+            {valuation.label}
           </Text>
           <Text style={{ fontSize: 9, color: C.ink500, marginTop: 4 }}>
-            Midpoint {formatAud(valuation.midAud)} · {valuation.method}
+            {valuation.hint}
           </Text>
         </View>
       </View>
@@ -433,14 +433,12 @@ function SummaryPage({ data }: { data: InvestorPackData }) {
             {svi.grade}
             <Text style={{ fontSize: 10, color: C.ink500 }}> · {svi.total}</Text>
           </Text>
-          <Text style={s.statSub}>Base 100 · higher is stronger</Text>
+          <Text style={s.statSub}>Uncapped index · higher is stronger</Text>
         </View>
         <View style={s.statTile}>
-          <Text style={s.label}>Valuation midpoint</Text>
-          <Text style={s.statValue}>{formatAud(valuation.midAud)}</Text>
-          <Text style={s.statSub}>
-            {formatAud(valuation.lowAud)} – {formatAud(valuation.highAud)}
-          </Text>
+          <Text style={s.label}>Company value</Text>
+          <Text style={s.statValue}>{valuation.label}</Text>
+          <Text style={s.statSub}>{valuation.hint}</Text>
         </View>
         <View style={s.statTile}>
           <Text style={s.label}>Ask</Text>
@@ -463,9 +461,7 @@ function SummaryPage({ data }: { data: InvestorPackData }) {
       <Text style={s.bodyPara}>
         {project.name} is a{project.sector ? ` ${project.sector} ` : " "}
         Australian startup currently indexed at SVI {svi.total} ({svi.grade}).
-        The BlockID valuation blend places pre-money value in the{" "}
-        {formatAud(valuation.lowAud)} – {formatAud(valuation.highAud)} band, with
-        a midpoint of {formatAud(valuation.midAud)} using {valuation.method}.
+        The SVI is an index, not a valuation: {valuation.line}
       </Text>
 
       <Text style={s.bodyPara}>
@@ -618,31 +614,19 @@ function ValuationAskPage({ data }: { data: InvestorPackData }) {
   return (
     <Page size="A4" style={s.page}>
       <HeaderBar />
-      <Text style={s.h1}>Valuation range & ask</Text>
-      <Text style={s.h1Sub}>Blended AUD range with the founder&apos;s current ask</Text>
+      <Text style={s.h1}>Valuation & ask</Text>
+      <Text style={s.h1Sub}>Company value status with the founder&apos;s current ask</Text>
 
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
         <View style={s.statTile}>
-          <Text style={s.label}>Low</Text>
-          <Text style={s.statValue}>{formatAud(valuation.lowAud)}</Text>
-        </View>
-        <View style={s.statTile}>
-          <Text style={s.label}>Mid</Text>
-          <Text style={[s.statValue, { color: C.brand700 }]}>
-            {formatAud(valuation.midAud)}
-          </Text>
-        </View>
-        <View style={s.statTile}>
-          <Text style={s.label}>High</Text>
-          <Text style={s.statValue}>{formatAud(valuation.highAud)}</Text>
+          <Text style={s.label}>Company value</Text>
+          <Text style={[s.statValue, { color: C.brand700 }]}>{valuation.label}</Text>
+          <Text style={s.statSub}>{valuation.hint}</Text>
         </View>
       </View>
 
       <Text style={s.bodyPara}>
-        <Text style={{ fontFamily: "Helvetica-Bold" }}>Method: </Text>
-        {valuation.method}. Ranges are indicative pre-money in AUD and blend a
-        Berkus / Scorecard / Revenue-multiple model calibrated against 2024–2025
-        AU raises.
+        {valuation.line} {valuation.why}
       </Text>
 
       <Text style={s.h2}>The ask</Text>

@@ -8,7 +8,6 @@
 
 import Link from "next/link";
 import type { PublishedRow } from "@/lib/publish/store";
-import { formatAud } from "@/lib/publish/profile";
 import { SECTOR_LABELS } from "@/lib/svi-analysis";
 
 export interface ProfileCardProps {
@@ -17,7 +16,6 @@ export interface ProfileCardProps {
 
 export function ProfileCard({ row }: ProfileCardProps) {
   const sectorLabel = SECTOR_LABELS[row.sector] ?? row.sector;
-  const valuation = row.svi?.valuation;
   return (
     <li className="rounded-2xl border border-line-subtle bg-surface-raised p-4 transition-colors hover:bg-surface-hover sm:p-5">
       <div className="flex items-start justify-between gap-3">
@@ -47,14 +45,6 @@ export function ProfileCard({ row }: ProfileCardProps) {
       <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-secondary">
         {row.one_liner}
       </p>
-      {valuation && valuation.mid > 0 && (
-        <p className="mt-3 border-t border-line-subtle pt-3 text-xs text-secondary">
-          Indicative valuation{" "}
-          <span className="font-medium text-primary">
-            {formatAud(valuation.low)} – {formatAud(valuation.high)}
-          </span>
-        </p>
-      )}
     </li>
   );
 }

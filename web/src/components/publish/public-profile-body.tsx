@@ -12,7 +12,6 @@
 
 import Link from "next/link";
 import {
-  formatAud,
   formatAuDate,
   type ProfileDimension,
   type PublicProfile,
@@ -179,42 +178,15 @@ export function PublicProfileBody({ profile, preview = false }: PublicProfileBod
           )}
         </Panel>
 
-        {/* ── Valuation ──────────────────────────────────────────── */}
-        {p.valuation && (
-          <Panel id="valuation" title="Indicative valuation">
-            <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
-              <p className="font-display text-3xl font-semibold text-strong sm:text-4xl">
-                {formatAud(p.valuation.low)} – {formatAud(p.valuation.high)}
-              </p>
-              <p className="text-sm text-secondary">
-                midpoint {formatAud(p.valuation.mid)}
-              </p>
-            </div>
-            {p.valuation.methods.length > 0 && (
-              <div className="mt-4">
-                <p className="text-xs uppercase tracking-wider text-tertiary">
-                  Methods used
-                </p>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {p.valuation.methods.map((m) => (
-                    <li
-                      key={m}
-                      className="rounded-full border border-line px-3 py-1 text-xs font-medium text-primary"
-                    >
-                      {m}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <p className="mt-4 text-xs leading-relaxed text-secondary">
-              Evidence confidence {p.valuation.confidencePct}%. This is a
-              modelled range for orientation, not a price, an offer, or
-              financial advice. A real round is priced by what an investor will
-              pay on the day.
-            </p>
-          </Panel>
-        )}
+        {/* ── Valuation (V04a / D22): never derived from the SVI ─── */}
+        <Panel id="valuation" title="Company value">
+          <p className="font-display text-2xl font-semibold text-strong">{p.valuation.label}</p>
+          <p className="mt-2 text-sm leading-relaxed text-secondary">{p.valuation.line}</p>
+          <p className="mt-4 text-xs leading-relaxed text-secondary">
+            {p.valuation.why} Nothing on this page is a price, an offer, or
+            financial advice.
+          </p>
+        </Panel>
 
         {/* ── Next steps ─────────────────────────────────────────── */}
         {p.nextActions.length > 0 && (

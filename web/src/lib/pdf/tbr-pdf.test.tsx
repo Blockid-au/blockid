@@ -490,12 +490,14 @@ describe("renderTbrPdf — valuation chapter variants (G19-S42)", () => {
     expect(text).not.toContain("Ask: ");
   }, 60_000);
 
-  it("adapter fallback: no method table, one honest line + the connectors path", async () => {
+  // V04a (D22): the adapter fallback no longer lifts a three-case SVI band —
+  // the chapter is one "not estimable" line naming what unlocks a method.
+  it("adapter fallback: no method table, one honest not-estimable line", async () => {
     const report = fromSnapshot({ snapshotId: "s", stageLabel: "Seed", stage: 2, sviTotal: 100, dimStates: { tre: { score: 40 }, mpc: { score: 55 } }, tier: "standard" });
     const { buffer } = await renderTbrPdf(report);
     const text = await fullText(buffer);
-    expect(text).toContain("No valuation method ran on this snapshot");
-    expect(text).toContain("/workspace/evidence/connectors");
+    expect(text).toContain("Not estimable — add connected revenue (Stripe or Xero)");
+    expect(text).toContain("not a dollar figure");
     expect(text).not.toContain("Inputs & assumptions");
     expect(text).not.toMatch(/Berkus OK \d+ %/);
   }, 60_000);

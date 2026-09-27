@@ -163,7 +163,11 @@ describe("buildScnActionPlan — layer statuses", () => {
     expect(plan.layers.find((l) => l.code === "position")?.status).toBe("gap");
   });
 
-  it("value: complete requires deepValuation + high confidence + tre>=60", () => {
+  // V04a (D22): the Value layer used to read the deep-valuation blend (an
+  // SVI→dollar figure): "complete" at high confidence, "in_progress" above
+  // A$1M. It now never completes off the SVI — revenue signals + TRE ≥ 60 is
+  // "in_progress" (a CFO method still needs verified inputs), else "gap".
+  it("value: never complete off the deep-valuation blend, even at high confidence", () => {
     const dv = makeDv({ confidence: "high", midAud: 2_000_000 });
     const plan = buildScnActionPlan({
       analysis: makeAnalysis({
@@ -171,18 +175,20 @@ describe("buildScnActionPlan — layer statuses", () => {
       }),
       deepValuation: dv,
     });
-    expect(plan.layers.find((l) => l.code === "value")?.status).toBe("complete");
+    const value = plan.layers.find((l) => l.code === "value")!;
+    expect(value.status).toBe("gap");
+    expect(value.statusReason).toMatch(/^Not estimable — add /);
+    expect(value.statusReason).not.toMatch(/A\$\s?\d/);
   });
 
-  it("value: in_progress when deepValuation mid>1M but confidence not high", () => {
-    const dv = makeDv({ confidence: "medium", midAud: 2_000_000 });
+  it("value: in_progress with revenue-stage signals and TRE >= 60 — still no dollar figure", () => {
     const plan = buildScnActionPlan({
-      analysis: makeAnalysis({
-        subs: [sub("mpc", 0), sub("tre", 0), sub("iri", 0), sub("cgh", 0)],
-      }),
-      deepValuation: dv,
+      analysis: makeAnalysis({ stage: 4, subs: [sub("mpc", 0), sub("tre", 70), sub("iri", 0), sub("cgh", 0)] }),
+      deepValuation: makeDv({ confidence: "medium", midAud: 2_000_000 }),
     });
-    expect(plan.layers.find((l) => l.code === "value")?.status).toBe("in_progress");
+    const value = plan.layers.find((l) => l.code === "value")!;
+    expect(value.status).toBe("in_progress");
+    expect(value.statusReason).not.toMatch(/A\$\s?\d/);
   });
 
   it("value: gap when no deepValuation at all", () => {
@@ -331,21 +337,17 @@ describe("buildScnActionPlan — thisWeekFocus", () => {
 });
 
 describe("buildScnActionPlan — yourNumber", () => {
-  it("uses default fallback valuation band when no deepValuation is supplied", () => {
-    const plan = buildScnActionPlan({ analysis: makeAnalysis() });
-    expect(plan.yourNumber.valuationMidAud).toBe(500_000);
-    expect(plan.yourNumber.valuationLowAud).toBe(200_000);
-    expect(plan.yourNumber.valuationHighAud).toBe(1_200_000);
-    expect(plan.yourNumber.valuationConfidence).toBe("low");
-  });
-
-  it("passes through the deepValuation blended band when supplied", () => {
-    const dv = makeDv({ lowAud: 900_000, midAud: 2_500_000, highAud: 5_000_000, confidence: "high" });
-    const plan = buildScnActionPlan({ analysis: makeAnalysis(), deepValuation: dv });
-    expect(plan.yourNumber.valuationMidAud).toBe(2_500_000);
-    expect(plan.yourNumber.valuationLowAud).toBe(900_000);
-    expect(plan.yourNumber.valuationHighAud).toBe(5_000_000);
-    expect(plan.yourNumber.valuationConfidence).toBe("high");
+  // V04a (D22): yourNumber used to carry the deep-valuation blend (or an
+  // invented A$200K–1.2M default). It now carries "not estimable".
+  it("carries no dollar valuation — not estimable, with or without a deepValuation", () => {
+    for (const plan of [
+      buildScnActionPlan({ analysis: makeAnalysis() }),
+      buildScnActionPlan({ analysis: makeAnalysis(), deepValuation: makeDv({ lowAud: 900_000, midAud: 2_500_000, highAud: 5_000_000, confidence: "high" }) }),
+    ]) {
+      expect(plan.yourNumber.valuation.status).toBe("not_estimable");
+      expect(plan.yourNumber).not.toHaveProperty("valuationMidAud");
+      expect(JSON.stringify(plan.yourNumber)).not.toMatch(/A\$\s?\d/);
+    }
   });
 
   it("labels sviScore < 50 as 'Pre-validated'", () => {
@@ -401,25 +403,12 @@ describe("buildScnActionPlan — yourNumber", () => {
     expect(plan.yourNumber.sviPercentileLabel).toBe("top 1% of AU seed — benchmark (n = 47)");
   });
 
-  it("formats headline valuation with M suffix and the lowercased pre-em-dash label", () => {
-    const dv = makeDv({ midAud: 2_500_000 });
+  it("headline names the SVI index and the lowercased pre-em-dash label — never a dollar figure", () => {
     const plan = buildScnActionPlan({
       analysis: makeAnalysis({ totalSVI: 55 }),
-      deepValuation: dv,
+      deepValuation: makeDv({ midAud: 2_500_000 }),
     });
-    expect(plan.yourNumber.headline).toBe("Your number: A$2.50M (early-validated)");
-  });
-
-  it("formats headline valuation with K suffix for sub-A$1M", () => {
-    const plan = buildScnActionPlan({ analysis: makeAnalysis({ totalSVI: 30 }) });
-    // default midAud=500_000 → A$500K
-    expect(plan.yourNumber.headline).toContain("A$500K");
-  });
-
-  it("formats headline valuation with B suffix for A$1B+", () => {
-    const dv = makeDv({ midAud: 2_500_000_000 });
-    const plan = buildScnActionPlan({ analysis: makeAnalysis({ totalSVI: 150 }), deepValuation: dv });
-    expect(plan.yourNumber.headline).toContain("A$2.50B");
+    expect(plan.yourNumber.headline).toBe("Your number: SVI 55 (early-validated)");
   });
 });
 
@@ -518,6 +507,9 @@ describe("buildScnActionPlan — valuation levers", () => {
     ]);
     const plan = buildScnActionPlan({ analysis: makeAnalysis({ totalSVI: 85 }), deepValuation: dv });
     expect(plan.valuationLevers.some((l) => /Canva/.test(l.lever))).toBe(true);
+    // V04a: levers describe what they unlock, never a dollar uplift.
+    expect(plan.valuationLevers.every((l) => !/A\$\s?\d/.test(l.effect))).toBe(true);
+    expect(plan.valuationLevers[0]).not.toHaveProperty("upliftAud");
   });
 
   it("caps valuation levers at 5", () => {

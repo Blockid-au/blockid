@@ -1,7 +1,7 @@
 // Per-profile OG card for /listings/[slug].
 //
-// Real data per page — company name, index value, stage, sector and the
-// valuation range — rather than one shared template with a swapped name. A
+// Real data per page — company name, index value, stage and sector (never a
+// valuation: V04a / D22) — rather than one shared template with a swapped name. A
 // slug that is not published renders the neutral directory card instead of
 // leaking that the id exists.
 //
@@ -12,7 +12,7 @@
 
 import { ImageResponse } from "next/og";
 import { getPublishedBySlug } from "@/lib/publish/store";
-import { buildPublicProfile, formatAud } from "@/lib/publish/profile";
+import { buildPublicProfile } from "@/lib/publish/profile";
 
 export const runtime = "nodejs";
 export const alt = "Startup Value Index profile — BlockID.au";
@@ -138,24 +138,6 @@ export default async function OpenGraphImage({
               {profile.sviTotal}
             </span>
           </div>
-          {profile.valuation && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                background: SUNKEN,
-                borderRadius: 20,
-                padding: "22px 30px",
-              }}
-            >
-              <span style={{ fontSize: 20, color: INK_FAINT, letterSpacing: 1.5 }}>
-                INDICATIVE VALUATION
-              </span>
-              <span style={{ fontSize: 46, color: INK, fontWeight: 700 }}>
-                {formatAud(profile.valuation.low)} – {formatAud(profile.valuation.high)}
-              </span>
-            </div>
-          )}
           <div
             style={{
               display: "flex",

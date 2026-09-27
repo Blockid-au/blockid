@@ -25,7 +25,7 @@ export function renderScoreRing(data: ScoreRingData, opts: RenderOpts): string {
   const body =
     track +
     arc +
-    text(cx, cy + 6, num(value, 0), { size: Math.round(size * 0.26), anchor: "middle", weight: 700, fill: colour }) +
+    text(cx, cy + 6, data.display && data.display.trim() ? truncate(data.display.trim(), 8) : num(value, 0), { size: Math.round(size * 0.26), anchor: "middle", weight: 700, fill: colour }) +
     (data.label ? text(cx, cy + 6 + size * 0.16, truncate(data.label, 18), { size: 9, anchor: "middle", fill: INK.muted }) : "") +
     (data.sublabel ? text(cx, size - 4, truncate(data.sublabel, 22), { size: 8, anchor: "middle", fill: INK.faint }) : "");
   return frame(

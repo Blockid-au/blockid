@@ -46,7 +46,7 @@ export interface InvestorPreferences {
   stages: StageBand[];      // e.g. ["seed","series_a"]
   geos: string[];           // ISO country codes e.g. ["AU","NZ","US"]
   cheque_band: ChequeBand;  // single band
-  min_svi: number | null;   // 0-100 floor, null = any
+  min_svi: number | null;   // SVI index floor — uncapped (SV1 / D22), null = any
   updated_at: string | null;
   /**
    * Public-facing card fields shown to matching founders once the investor
@@ -285,7 +285,10 @@ export async function getDealFlow(
 
   const prefs = await getInvestorPreferences(userId);
   const limit = Math.min(filters.limit ?? 50, 200);
-  const minScore = filters.minScore ?? prefs.min_svi ?? 0;
+  // `scores.total_score` is the 0–100 Investor-Ready Score, not the uncapped
+  // SVI index: an SVI floor above 100 is bounded to that scale here so the
+  // deal-flow feed never silently empties (SV1 — the pref itself is uncapped).
+  const minScore = Math.min(100, filters.minScore ?? prefs.min_svi ?? 0);
 
   // Base query — scores table. Latest 500 CONSENTED rows above minScore.
   //
@@ -545,7 +548,8 @@ export function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPrefere
     ? (p.stages.filter((s): s is StageBand => typeof s === "string" && (STAGE_BANDS as readonly string[]).includes(s)).slice(0, 6))
     : [];
   const geos = tagList(p.geos, 20);
-  const minSvi = typeof p.min_svi === "number" && Number.isFinite(p.min_svi) ? Math.max(0, Math.min(100, p.min_svi)) : null;
+  // SV1 (D22): the SVI is an uncapped index — the floor is never clamped to 100.
+  const minSvi = typeof p.min_svi === "number" && Number.isFinite(p.min_svi) ? Math.max(0, p.min_svi) : null;
   const savedViews = normaliseSavedViews(p.saved_views);
   return {
     sectors: tagList(p.sectors, 20),

@@ -1,5 +1,6 @@
 import { withSvg } from "@/lib/report-visuals";
 import { isValuationAvailable } from "./schema";
+import { VALUATION_NOT_ESTIMABLE, valuationNotEstimable } from "@/lib/valuation/not-estimable";
 // G19-S47 — executive summary structure, pure and client-safe.
 //
 //   structureExecutive(thesis, chapters, valuation, phase, opts)
@@ -738,7 +739,10 @@ function suppressExecutiveValuationProse(report: ReportV2): ReportV2 {
     verdict: { ...block.verdict, ...(block.verdict.condition ? { condition: scrub(block.verdict.condition) } : {}) },
     actions: block.actions.map((item) => ({ ...item, title: scrub(item.title), detail: scrub(item.detail) })),
   } : undefined;
-  const worth = report.locale === "vi" ? "Chưa có định giá doanh nghiệp." : "Business valuation unavailable.";
+  // V04a (D22): "not estimable" names what unlocks a CFO method.
+  const worth = report.valuation.reason === VALUATION_NOT_ESTIMABLE
+    ? valuationNotEstimable({ locale: report.locale }).short
+    : report.locale === "vi" ? "Chưa có định giá doanh nghiệp." : "Business valuation unavailable.";
   return { ...report,
     cover: { ...report.cover, threeQuestions: { ...report.cover.threeQuestions, worth }, visuals: report.cover.visuals.map((visual) => visual.kind === "three_questions_strip" ? withSvg({ ...visual, data: { ...visual.data, worth }, a11y: {
       title: visual.a11y.title, description: worth,

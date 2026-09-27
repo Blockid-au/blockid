@@ -177,6 +177,17 @@ function pickStronger(a: ConfidenceLevel | null, b: ConfidenceLevel | null): Con
   return BADGE_LEVELS.indexOf(a) >= BADGE_LEVELS.indexOf(b) ? a : b;
 }
 
+/** Band of the weighted mean of the assessed dimension scores (0–100 each); "pending" when none is assessed. */
+export function profileBand(dimensions: readonly AssessmentLedgerDimension[]): Band {
+  const assessed = dimensions.filter((d) => d.assessed && Number.isFinite(d.score));
+  const w = assessed.reduce((a, d) => a + (Number.isFinite(d.weight) && d.weight > 0 ? d.weight : 0), 0);
+  if (assessed.length === 0) return "pending";
+  const mean = w > 0
+    ? assessed.reduce((a, d) => a + d.score * (Number.isFinite(d.weight) && d.weight > 0 ? d.weight : 0), 0) / w
+    : assessed.reduce((a, d) => a + d.score, 0) / assessed.length;
+  return bandFor(Math.round(mean));
+}
+
 /** The pure builder every surface calls. */
 export function buildAssessmentCard(project: AssessmentProjectInput, ledger: AssessmentLedgerInput, evidence: AssessmentEvidenceInput, snapshot: AssessmentSnapshotInput): AssessmentCardData {
   const pendingDims = ledger.dimensions.filter((d) => !d.assessed).length;
@@ -191,7 +202,10 @@ export function buildAssessmentCard(project: AssessmentProjectInput, ledger: Ass
   return {
     startupName: project.name.trim() || "Startup",
     svi,
-    sviBand: svi === null ? "pending" : bandFor(Math.min(100, svi)),
+    // SV1 (D22): the SVI is an uncapped index, so the 40/70 band is never
+    // read off it (every index ≥ 70 used to be "strong"). The band describes
+    // the weighted profile of the assessed dimensions, each a 0–100 score.
+    sviBand: svi === null ? "pending" : profileBand(ledger.dimensions),
     evidenceConfidence: ec,
     verification: verificationLabel(project.verificationLevel ?? 0),
     stageLabel: (project.stageLabel ?? "").trim() || "Stage not set",

@@ -2,8 +2,8 @@
 //
 // THE ORDER OF EVENTS THIS ENDPOINT EXISTS TO PRESERVE
 //
-// The founder has already run the analysis and already seen the score and the
-// valuation range on screen. Nothing was asked of them to get that far, and
+// The founder has already run the analysis and already seen the score on
+// screen. Nothing was asked of them to get that far, and
 // nothing here retrospectively walls it. This endpoint is the *continuation*:
 // they liked what they saw, they want the written version, so they give us an
 // address. Value first, ask second — which is also why the offer is never
@@ -51,7 +51,6 @@ import { canSendEmail } from "@/lib/email-preferences";
 import { sendFreeSummary } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
-import { estimateValuation, valuationMetricsFromSignals } from "@/lib/valuation";
 import { extractProjectName } from "@/lib/project-name-extractor";
 import { savedAnalysisUrl } from "@/lib/analyses/summary";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -162,15 +161,6 @@ async function POST_handler(
     const svi: SVIAnalysis = computeSVI(
       signals as Parameters<typeof computeSVI>[0],
     );
-    const dims =
-      svi.dimensionScores ??
-      Object.fromEntries((svi.subs ?? []).map((sub) => [sub.key, sub.value]));
-    const valuation = estimateValuation(
-      svi.totalSVI,
-      svi.stage,
-      valuationMetricsFromSignals(svi.signals, svi.sector ?? svi.signals?.sector),
-      dims,
-    );
 
     const rawText = typeof (intake as { rawText?: unknown }).rawText === "string"
       ? ((intake as { rawText: string }).rawText)
@@ -198,8 +188,6 @@ async function POST_handler(
       pdf,
       svi: svi.totalSVI,
       stageLabel: svi.stageLabel,
-      valuationLow: valuation.low,
-      valuationHigh: valuation.high,
       startupName,
       analysisUrl: savedAnalysisUrl(id, siteOrigin(request)),
       analysisId: id,

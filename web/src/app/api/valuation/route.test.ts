@@ -1,11 +1,12 @@
-// Colocated tests for GET /api/valuation — S17-B connected-revenue bridge.
+// Colocated tests for /api/valuation — V04a (founder decision D22, 2026-09-27).
 //
-// Pins that the route reads connected MRR (via loadConnectedRevenueSignals)
-// and that the bridge's method / note / label propagate into the response:
-//   - no signals        → valuationMethod "svi", methodNote null, range = engine
-//   - disagreeing MRR   → "svi+arr_multiple" + DISAGREEMENT_NOTE, widened range
-//   - stale MRR         → "svi" + stale note, range unchanged
-//   - loader receives the user / project / account scope
+// The route used to run `computeValuation` (Berkus + Scorecard over the SVI
+// dimension scores) and bridge it with connected MRR; those suites pinned an
+// SVI→dollar path the founder retired and were replaced by these pins:
+//   - GET answers "not estimable" + the unlock list, never a dollar range;
+//   - the engine and the connected-revenue loader are never called;
+//   - member access (S18-A) still reads the OWNER's account;
+//   - POST computes nothing and charges no credits.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,11 +16,14 @@ const mocks = vi.hoisted(() => ({
   getProjectIdFromRequest: vi.fn(),
   findSVIAccountWithFallback: vi.fn(),
   loadConnectedRevenueSignals: vi.fn(),
+  computeValuation: vi.fn(),
+  spendCredits: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
-vi.mock("@/lib/credits", () => ({ canAfford: vi.fn(), spendCredits: vi.fn() }));
+vi.mock("@/lib/credits", () => ({ canAfford: vi.fn(), spendCredits: (...a: unknown[]) => mocks.spendCredits(...a) }));
+vi.mock("@/lib/valuation", () => ({ computeValuation: (...a: unknown[]) => mocks.computeValuation(...a) }));
 // S18-A — member-aware scope on top of the existing project spy.
 const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
 vi.mock("@/lib/projects", async () => {
@@ -36,135 +40,76 @@ vi.mock("@/lib/connected-revenue", () => ({
   loadConnectedRevenueSignals: (...args: unknown[]) => mocks.loadConnectedRevenueSignals(...args),
 }));
 
-import { GET } from "./route";
-import { computeValuation } from "@/lib/valuation";
-import { DISAGREEMENT_NOTE } from "@/lib/valuation-mrr-bridge";
+import { GET, POST } from "./route";
 
 const USER = { id: "u-1", email: "founder@example.com" };
 const ACCOUNT = { id: "acc-1", current_svi: 120, current_stage: 3 };
-
-function makeSb() {
-  const builder = (data: unknown) => {
-    const b: Record<string, unknown> = {};
-    const chain = () => b;
-    b.select = chain;
-    b.eq = chain;
-    b.order = chain;
-    b.limit = chain;
-    b.maybeSingle = vi.fn(async () => ({ data }));
-    return b;
-  };
-  const from = vi.fn((table: string) => {
-    if (table === "svi_snapshots") return builder({ dimension_scores: { ftv: 60, mpc: 55, ptd: 50, tre: 40, cgh: 50, iri: 45, lco: 50, svm: 55 } });
-    if (table === "startup_metrics") return builder(null);
-    throw new Error(`unexpected table ${table}`);
-  });
-  return { from };
-}
 
 async function body() {
   const res = await GET();
   return { status: res.status, json: (await res.json()) as Record<string, any> }; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-describe("GET /api/valuation — connected revenue bridge", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.getCurrentUser.mockResolvedValue(USER);
-    mocks.getSupabaseAdmin.mockReturnValue(makeSb());
-    mocks.getProjectIdFromRequest.mockResolvedValue("p-1");
-    mocks.findSVIAccountWithFallback.mockResolvedValue(ACCOUNT);
-    mocks.loadConnectedRevenueSignals.mockResolvedValue([]);
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  scopeRole.value = "owner";
+  mocks.getCurrentUser.mockResolvedValue(USER);
+  mocks.getSupabaseAdmin.mockReturnValue({ from: vi.fn(() => { throw new Error("no table read expected"); }) });
+  mocks.getProjectIdFromRequest.mockResolvedValue("p-1");
+  mocks.findSVIAccountWithFallback.mockResolvedValue(ACCOUNT);
+});
 
+describe("GET /api/valuation — not estimable (V04a / D22)", () => {
   it("401 when unauthenticated", async () => {
     mocks.getCurrentUser.mockResolvedValue(null);
     expect((await body()).status).toBe(401);
   });
 
-  it("no connected signals → engine range untouched, method 'svi'", async () => {
+  it("answers not estimable with the unlock list — no dollar figure, no engine, no MRR bridge", async () => {
     const { status, json } = await body();
     expect(status).toBe(200);
-    expect(json.valuation.valuationMethod).toBe("svi");
-    expect(json.valuation.methodNote).toBeNull();
-    expect(json.valuation.connectedRevenue).toBeNull();
-    expect(json.valuation.lowAud).toBe(json.valuation.sviRange.lowAud);
-    expect(json.valuation.highAud).toBe(json.valuation.sviRange.highAud);
-    expect(mocks.loadConnectedRevenueSignals).toHaveBeenCalledWith(
-      expect.anything(),
-      { userId: "u-1", projectId: "p-1", accountId: "acc-1" },
-    );
+    expect(json.valuation.status).toBe("not_estimable");
+    expect(json.valuation.line).toMatch(/^Not estimable — add .* to unlock a valuation method\.$/);
+    expect(json.valuation.unlock.length).toBeGreaterThan(0);
+    expect(json.valuation).not.toHaveProperty("midAud");
+    expect(JSON.stringify(json)).not.toMatch(/A\$\s?\d/);
+    expect(json.sviScore).toBe(120);
+    expect(mocks.computeValuation).not.toHaveBeenCalled();
+    expect(mocks.loadConnectedRevenueSignals).not.toHaveBeenCalled();
   });
 
-  it("disagreeing connected MRR → widened range + method note + label propagate", async () => {
-    // Engine range for this fixture is single-digit millions; A$500k MRR →
-    // A$6M ARR × default 4–6× = 24M–36M, disjoint from the SVI range.
-    mocks.loadConnectedRevenueSignals.mockResolvedValue([
-      { provider: "stripe", mrrAud: 500_000, capturedAt: new Date().toISOString() },
-    ]);
-    const { status, json } = await body();
-    expect(status).toBe(200);
-    const engine = computeValuation({ sviScore: 120, stage: "mvp", dimensions: { ftv: 60, mpc: 55, ptd: 50, tre: 40, cgh: 50, iri: 45, lco: 50, svm: 55 } });
-    expect(json.valuation.sviRange).toEqual({ lowAud: engine.lowAud, midAud: engine.midAud, highAud: engine.highAud });
-    expect(json.valuation.valuationMethod).toBe("svi+arr_multiple");
-    expect(json.valuation.methodNote).toBe(DISAGREEMENT_NOTE);
-    expect(json.valuation.method).toContain("connected ARR multiple cross-check");
-    expect(json.valuation.lowAud).toBe(engine.lowAud);
-    expect(json.valuation.highAud).toBe(36_000_000);
-    expect(json.valuation.connectedRevenue).toMatchObject({
-      provider: "stripe",
-      mrrAud: 500_000,
-      arrAud: 6_000_000,
-      relation: "disjoint",
-      label: "Includes connected revenue (A$500K MRR from Stripe)",
-    });
-  });
-
-  it("stale connected MRR → ignored with a note, range unchanged", async () => {
-    mocks.loadConnectedRevenueSignals.mockResolvedValue([
-      { provider: "xero", mrrAud: 500_000, capturedAt: "2025-01-01T00:00:00Z" },
-    ]);
-    const { json } = await body();
-    expect(json.valuation.valuationMethod).toBe("svi");
-    expect(json.valuation.methodNote).toContain("older than 90 days");
-    expect(json.valuation.connectedRevenue).toBeNull();
-    expect(json.valuation.lowAud).toBe(json.valuation.sviRange.lowAud);
+  it("404 when there is no SVI account", async () => {
+    mocks.findSVIAccountWithFallback.mockResolvedValue(null);
+    expect((await body()).status).toBe(404);
   });
 });
 
-// S18-A — member access (read: viewer+)
 describe("GET /api/valuation — member access (S18-A)", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    scopeRole.value = "owner";
-    mocks.getCurrentUser.mockResolvedValue(USER);
-    mocks.getSupabaseAdmin.mockReturnValue(makeSb());
-    mocks.getProjectIdFromRequest.mockResolvedValue("p-1");
-    mocks.findSVIAccountWithFallback.mockResolvedValue(ACCOUNT);
-    mocks.loadConnectedRevenueSignals.mockResolvedValue([]);
-  });
-
-  it("viewer: allowed; account under the OWNER's email, fallback bound to the caller; signals keyed on the owner's user_id", async () => {
+  it("viewer: allowed; account under the OWNER's email, fallback bound to the caller", async () => {
     scopeRole.value = "viewer";
     const { status } = await body();
     expect(status).toBe(200);
     expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith(
       "owner@x.test", "p-1", "id, current_svi, current_stage", { callerEmail: "founder@example.com" },
     );
-    expect(mocks.loadConnectedRevenueSignals).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ userId: "owner-1", projectId: "p-1" }),
-    );
   });
 
-  it("owner: own email + own user_id", async () => {
+  it("owner: own email", async () => {
     await body();
     expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith(
       "founder@example.com", "p-1", "id, current_svi, current_stage", { callerEmail: "founder@example.com" },
     );
-    expect(mocks.loadConnectedRevenueSignals).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ userId: "u-1" }),
-    );
+  });
+});
+
+describe("POST /api/valuation — no SVI scenario, no charge", () => {
+  it("returns not estimable and never spends credits", async () => {
+    const res = await POST(new Request("http://x/api/valuation", { method: "POST", body: JSON.stringify({ sviScore: 140, stage: "mvp" }) }));
+    const json = (await res.json()) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect(res.status).toBe(200);
+    expect(json.valuation.status).toBe("not_estimable");
+    expect(json.charged).toBe(false);
+    expect(mocks.spendCredits).not.toHaveBeenCalled();
+    expect(mocks.computeValuation).not.toHaveBeenCalled();
   });
 });

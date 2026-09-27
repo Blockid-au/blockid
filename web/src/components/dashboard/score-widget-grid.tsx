@@ -27,26 +27,10 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import type { StartupAISummary } from "@/lib/analysis/aggregate-startup-summary";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { NAV_PHASE_NAMES } from "@/lib/nav/founder-phase-shared";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 
-/* ─── Estimated valuation from SVI (was inline on the landing) ─────────────── */
-
-export function estimateValuation(sviScore: number | null): { value: string; raw: number } {
-  if (sviScore == null || sviScore < 10) return { value: "—", raw: 0 };
-  // Idea (0-30): $10K-$100K | Validation (30-50): $50K-$500K
-  // Build (50-70): $200K-$2M | Pre-fundraise (70-85): $500K-$5M
-  // Traction (85-120): $1M-$10M | Growth (120+): $5M+
-  let raw: number;
-  if (sviScore < 30) raw = Math.round(sviScore * 3000);
-  else if (sviScore <= 50) raw = Math.round(50_000 + (sviScore - 30) * 22_500);
-  else if (sviScore <= 70) raw = Math.round(500_000 + (sviScore - 50) * 75_000);
-  else if (sviScore <= 85) raw = Math.round(2_000_000 + (sviScore - 70) * 200_000);
-  else if (sviScore <= 120) raw = Math.round(5_000_000 + (sviScore - 85) * 142_857);
-  else raw = Math.round(10_000_000 + (sviScore - 120) * 250_000);
-
-  if (raw >= 1_000_000) return { value: `A$${(raw / 1_000_000).toFixed(1)}M`, raw };
-  if (raw >= 1_000) return { value: `A$${(raw / 1_000).toFixed(0)}K`, raw };
-  return { value: `A$${raw.toLocaleString()}`, raw };
-}
+/* V04a (D22): no dollar figure is derived from the SVI. The "Company value"
+   card shows "not estimable" and the evidence that unlocks a CFO method. */
 
 function MetricCard({ title, value, subtitle, trend, icon: Icon }: { title: string; value: string | number; subtitle?: string; trend?: number; icon: LucideIcon }) {
   return (
@@ -88,7 +72,7 @@ export interface ScoreWidgetGridProps {
 export function ScoreWidgetGrid(p: ScoreWidgetGridProps) {
   const phaseName = NAV_PHASE_NAMES[p.phase] ?? NAV_PHASE_NAMES[0];
   const readiness = Math.min(100, Math.round(p.sviScore * 0.8 + p.evidenceCount * 2));
-  const valuation = estimateValuation(p.sviScore);
+  const valuation = valuationNotEstimable();
   return (
     <WidgetGrid>
       {p.projectId && (
@@ -98,8 +82,8 @@ export function ScoreWidgetGrid(p: ScoreWidgetGridProps) {
       )}
 
       <div data-widget-id="metrics" className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <MetricCard title="Company Value" value={valuation.value} trend={p.delta ? Math.round((p.delta * (valuation.raw / (p.sviScore || 1))) / 1000) : undefined} icon={BarChart3} />
-        <MetricCard title="SVI Score" value={p.sviScore} trend={p.delta ?? undefined} icon={TrendingUp} />
+        <MetricCard title="Company value" value={valuation.label} subtitle={valuation.hint} icon={BarChart3} />
+        <MetricCard title="SVI index" value={p.sviScore} trend={p.delta ?? undefined} icon={TrendingUp} />
         <MetricCard title="Current Phase" value={phaseName} icon={Target} />
         <MetricCard title="Credits" value={p.creditBalance % 1 === 0 ? p.creditBalance : p.creditBalance.toFixed(2)} subtitle="remaining" icon={Zap} />
         <MetricCard title="Investor Ready" value={`${readiness}%`} icon={ShieldCheck} />

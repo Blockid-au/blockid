@@ -1,5 +1,6 @@
 import { publicResearchSchema, type PublicResearchResult } from "@/lib/research/public-source-contract";
 import { marketResearchSchema, type MarketResearchResult } from "@/lib/research/market-research-contract";
+import { VALUATION_NOT_ESTIMABLE, valuationNotEstimable } from "@/lib/valuation/not-estimable";
 // ReportV2 — the one JSON contract every Trusted Business Report surface
 // renders from (web, PDF, DOCX, Investor Dossier, email).
 //
@@ -414,8 +415,13 @@ export type ValuationChapter = AvailableValuationChapter | UnavailableValuationC
 export function isValuationAvailable(v: ValuationChapter): v is AvailableValuationChapter {
   return v.status !== "unavailable";
 }
-export function unavailableValuation(reason: string, at: string, missingInputs: string[] = []): UnavailableValuationChapter {
-  const narrative = reason === "missing_or_invalid_revenue"
+export function unavailableValuation(reason: string, at: string, missingInputs: string[] = [], locale?: string | null): UnavailableValuationChapter {
+  // V04a (D22): "not_estimable" = no CFO method could run on qualified
+  // inputs; the narrative names the evidence that unlocks one (never an
+  // SVI-derived range).
+  const narrative = reason === VALUATION_NOT_ESTIMABLE
+    ? (() => { const ne = valuationNotEstimable({ locale, unlock: missingInputs }); return `${ne.line} ${ne.why}`; })()
+    : reason === "missing_or_invalid_revenue"
     ? "Business value is unavailable. Add current revenue information or financial statements before a valuation can be calculated."
     : reason === "valuation_failed" ? "Business value is unavailable because the valuation could not be calculated." : reason;
   return { status: "unavailable", reason, missingInputs, currency: "AUD", narrative,

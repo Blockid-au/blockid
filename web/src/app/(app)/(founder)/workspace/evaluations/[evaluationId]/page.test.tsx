@@ -276,7 +276,23 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toContain("Humans make the decision.");
   });
 
+  // V04a (D22): block 2 renders a stored CFO valuation chapter — a snapshot
+  // without one no longer lifts a three-case SVI band on read.
   it("S-R4: block 2 valuation from ReportV2, block 5 progress radar, header mandate fit + since last view (assessor)", async () => {
+    const { fromSnapshot } = await import("@/lib/report-v2/adapter");
+    const rows = state.tables.svi_snapshots as Row[];
+    rows[0] = { ...rows[0], report_v2: fromSnapshot({ snapshotId: "s-2", projectId: "p-1", startupName: "Acme Robotics", stage: 3, sviTotal: 62, dimStates: { tre: { score: 61 } }, tier: "standard", vc: {
+      blended: { lowAud: 1_000_000, midAud: 2_000_000, highAud: 3_000_000, confidence: 60 },
+      scenarios: { bear: 700_000, base: 2_000_000, bull: 3_900_000 },
+      methods: [
+        { method: "revenue_multiple", lowAud: 1e6, midAud: 2e6, highAud: 3e6, weight: 0.35, rationale: "rm" },
+        { method: "berkus", lowAud: 8e5, midAud: 1.5e6, highAud: 2e6, weight: 0.1, rationale: "b" },
+        { method: "dcf_proxy", lowAud: 9e5, midAud: 1.8e6, highAud: 2.8e6, weight: 0.25, rationale: "d" },
+        { method: "comparables", lowAud: 1.1e6, midAud: 2.1e6, highAud: 3.1e6, weight: 0.15, rationale: "c" },
+        { method: "risk_factor_summation", lowAud: 1e6, midAud: 1.9e6, highAud: 2.9e6, weight: 0.15, rationale: "r" },
+        { method: "scorecard", lowAud: 1e6, midAud: 1.7e6, highAud: 2.4e6, weight: 0, rationale: "s" },
+      ],
+    } }) };
     const out = await html();
     const b2 = out.slice(out.indexOf('data-testid="dossier-block-2"'), out.indexOf('data-testid="dossier-block-3"'));
     expect(b2).toContain('data-testid="valuation-consensus"');
@@ -285,7 +301,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect((b2.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);
     expect(b2).toContain('data-testid="valuation-methods"');
     for (const m of ["Revenue multiple", "Berkus", "Adjusted ARR multiple (heuristic)", "Sector/growth ARR multiple", "Tax-adjusted ARR multiple (heuristic)", "Scorecard"]) expect(b2).toContain(m);
-    expect(b2).toContain("lifted from the stored snapshot");
+    expect(b2).toContain("CFO run read from the stored snapshot");
     expect(b2).toContain('href="/tbr/tok-abc"');
     const b5 = out.slice(out.indexOf('data-testid="dossier-block-5"'), out.indexOf('data-testid="dossier-block-6"'));
     expect(b5).toContain('data-testid="progress-svi"');

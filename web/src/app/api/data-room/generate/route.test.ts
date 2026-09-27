@@ -2,8 +2,8 @@
 //
 // Covers the One-click Data Room Generator route — the founder-facing entry
 // point that spends 3.00 credits to compile a structured investor-ready
-// data room from svi_accounts + svi_analyses + startup_metrics + svi_snapshots
-// + shareholders + svi_evidence. Route was previously untested; this pins
+// data room from svi_accounts + svi_analyses + startup_metrics + shareholders
+// + svi_evidence. Route was previously untested; this pins
 // every branch a paying founder hits so a silent regression can't ship the
 // wrong section shape, drop the credit charge, or leak cross-tenant reads.
 //
@@ -23,20 +23,13 @@
 //   - dropping the .eq("account_id", user.id) filter on shareholders — the
 //     ONLY tenancy boundary preventing a founder's cap-table row leaking to
 //     someone else's data room;
-//   - flipping mapStage() cutoffs — the valuation engine keys off the stage
-//     string (idea/validation/mvp/growth), so a wrong bucket picks the wrong
-//     Berkus multiplier and mis-values the whole raise conversation;
-//   - dropping the try/catch around computeValuation — a valuation throw
-//     would 500 the whole generate, wasting the founder's 3 credits;
+//   - re-adding an SVI-derived valuation (V04a / D22) — the room must pass
+//     valuation: null and never call computeValuation;
 //   - dropping the metrics null-coercion — a Supabase numeric NULL would
 //     land as NaN in the response and break the /workspace chart render;
-//   - dropping the ?? 100 / ?? 0 fallback on current_svi / current_stage in
-//     the valuation input — an uninitialised SVI account would 0-value the
-//     whole ladder or throw NaN into scorecardMethod.
 //
 // Every dependency is mocked so the test asserts pure route wiring — the
-// data-room composition contract lives in data-room.test.ts, valuation in
-// valuation.test.ts.
+// data-room composition contract lives in data-room.test.ts.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -51,12 +44,13 @@ vi.mock("@/lib/feature-gate", () => ({
 //   1) .from("svi_accounts").select().eq().eq()|.is().maybeSingle()
 //   2) .from("svi_analyses").select().eq().order().limit().maybeSingle()
 //   3) .from("startup_metrics").select().eq().order().limit().maybeSingle()
-//   4) .from("svi_snapshots").select().eq().order().limit().maybeSingle()
-//   5) .from("shareholders").select().eq().order()                 (thenable)
-//   6) .from("svi_evidence").select().eq().order().limit()         (thenable)
+//   4) .from("shareholders").select().eq().order()                 (thenable)
+//   5) .from("svi_evidence").select().eq().order().limit()         (thenable)
+// (V04a / D22: svi_snapshots is no longer read — the room carries no
+// SVI-derived valuation.)
 //
-// When sviAccount is null, chains 2/3/4/6 are skipped (route branch); chain
-// 5 (shareholders) still runs.
+// When sviAccount is null, chains 2/3/5 are skipped (route branch); chain
+// 4 (shareholders) still runs.
 type Response = { data: unknown; error: { message: string } | null };
 interface FakeState {
   fromCalls: string[];
@@ -491,7 +485,7 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
     expect(state.fromCalls).toEqual(["svi_accounts", "shareholders", "data_rooms"]);
   });
 
-  it("scopes svi_analyses / startup_metrics / svi_snapshots / svi_evidence on .eq('account_id', sviAccount.id) — never user.id", async () => {
+  it("scopes svi_analyses / startup_metrics / svi_evidence on .eq('account_id', sviAccount.id) — never user.id", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     getProjectIdFromRequestMock.mockResolvedValue(null);
@@ -500,13 +494,12 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
       { data: { id: "svi-99", current_svi: 500, current_stage: 3, startup_name: "Acme" }, error: null },
       { data: { total_svi: 500, analysis_json: { x: 1 } }, error: null },
       { data: null, error: null }, // startup_metrics empty
-      { data: { dimension_scores: { ftv: 80 } }, error: null },
       { data: [], error: null }, // shareholders
       { data: [], error: null }, // svi_evidence
     ];
     computeValuationMock.mockReturnValue({ lowAud: 1, midAud: 2, highAud: 3 });
     await POST();
-    for (const t of ["svi_analyses", "startup_metrics", "svi_snapshots", "svi_evidence"]) {
+    for (const t of ["svi_analyses", "startup_metrics", "svi_evidence"]) {
       const eq = state.eqCalls.find((c) => c.table === t);
       expect(eq, `expected an eq for ${t}`).toEqual({
         table: t,
@@ -516,14 +509,13 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
     }
   });
 
-  it("orders svi_analyses / startup_metrics / svi_snapshots newest-first with limit(1)", async () => {
+  it("orders svi_analyses / startup_metrics newest-first with limit(1)", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     getProjectIdFromRequestMock.mockResolvedValue(null);
     spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
     state.responses = [
       { data: { id: "svi-1", current_svi: 100, current_stage: 0, startup_name: null }, error: null },
-      { data: null, error: null },
       { data: null, error: null },
       { data: null, error: null },
       { data: [], error: null },
@@ -537,9 +529,8 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
       const limit = state.limitCalls.find((c) => c.table === t);
       expect(limit?.n).toBe(1);
     }
-    // svi_snapshots pins created_at ordering
-    const snapOrder = state.orderCalls.find((c) => c.table === "svi_snapshots");
-    expect(snapOrder?.col).toBe("created_at");
+    // V04a: svi_snapshots is no longer read at all.
+    expect(state.fromCalls).not.toContain("svi_snapshots");
   });
 
   it("orders shareholders by created_at ascending (founder-first cap-table render)", async () => {
@@ -567,7 +558,6 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
       { data: { id: "svi-1", current_svi: 100, current_stage: 0, startup_name: null }, error: null },
       { data: null, error: null },
       { data: null, error: null },
-      { data: null, error: null },
       { data: [], error: null },
       { data: [], error: null },
     ];
@@ -575,53 +565,6 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
     await POST();
     const limit = state.limitCalls.find((c) => c.table === "svi_evidence");
     expect(limit?.n).toBe(200);
-  });
-});
-
-describe("POST /api/data-room/generate — mapStage() cutoffs (observed via computeValuation input)", () => {
-  async function runWithStage(stage: number) {
-    resetState();
-    computeValuationMock.mockReset();
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: { id: "svi-1", current_svi: 500, current_stage: stage, startup_name: null }, error: null },
-      { data: null, error: null }, // svi_analyses
-      { data: null, error: null }, // startup_metrics
-      { data: null, error: null }, // svi_snapshots
-      { data: [], error: null },   // shareholders
-      { data: [], error: null },   // svi_evidence
-    ];
-    computeValuationMock.mockReturnValue({ lowAud: 1, midAud: 2, highAud: 3 });
-    await POST();
-    return computeValuationMock.mock.calls[0]?.[0] as { stage: string };
-  }
-
-  it("stage 0 → 'idea'", async () => {
-    const input = await runWithStage(0);
-    expect(input.stage).toBe("idea");
-  });
-  it("stage 1 → 'idea' (inclusive upper bound)", async () => {
-    const input = await runWithStage(1);
-    expect(input.stage).toBe("idea");
-  });
-  it("stage 2 → 'validation' (inclusive upper bound)", async () => {
-    const input = await runWithStage(2);
-    expect(input.stage).toBe("validation");
-  });
-  it("stage 3 → 'mvp'", async () => {
-    const input = await runWithStage(3);
-    expect(input.stage).toBe("mvp");
-  });
-  it("stage 4 → 'mvp' (inclusive upper bound)", async () => {
-    const input = await runWithStage(4);
-    expect(input.stage).toBe("mvp");
-  });
-  it("stage 5+ → 'growth'", async () => {
-    const input = await runWithStage(7);
-    expect(input.stage).toBe("growth");
   });
 });
 
@@ -645,7 +588,6 @@ describe("POST /api/data-room/generate — metrics extraction + null-coercion", 
         },
         error: null,
       },
-      { data: null, error: null }, // svi_snapshots
       { data: [], error: null },
       { data: [], error: null },
     ];
@@ -683,7 +625,6 @@ describe("POST /api/data-room/generate — metrics extraction + null-coercion", 
         },
         error: null,
       },
-      { data: null, error: null },
       { data: [], error: null },
       { data: [], error: null },
     ];
@@ -707,7 +648,6 @@ describe("POST /api/data-room/generate — metrics extraction + null-coercion", 
       { data: { id: "svi-1", current_svi: 500, current_stage: 4, startup_name: null }, error: null },
       { data: null, error: null },
       { data: null, error: null }, // no metrics row
-      { data: null, error: null },
       { data: [], error: null },
       { data: [], error: null },
     ];
@@ -718,161 +658,28 @@ describe("POST /api/data-room/generate — metrics extraction + null-coercion", 
   });
 });
 
-describe("POST /api/data-room/generate — valuation branch", () => {
-  it("threads sviScore / stage / metrics / dimensions into computeValuation input", async () => {
+describe("POST /api/data-room/generate — valuation (V04a / D22)", () => {
+  // The room used to carry a Berkus/Scorecard blend of the SVI dimension
+  // scores (computeValuation). D22: the SVI is never turned into dollars, so
+  // the room reads no svi_snapshots, never calls the engine and passes
+  // valuation: null to the composer.
+  it("never calls computeValuation and passes valuation: null — even with a full SVI account", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     getProjectIdFromRequestMock.mockResolvedValue(null);
     spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
     state.responses = [
       { data: { id: "svi-1", current_svi: 720, current_stage: 3, startup_name: "Acme" }, error: null },
-      { data: null, error: null },
-      {
-        data: {
-          mrr_aud: 5000, arr_aud: 60000, revenue_growth_pct: 0.20,
-          monthly_churn_pct: null, burn_rate_aud: 4000, runway_months: 15,
-        },
-        error: null,
-      },
-      {
-        data: {
-          dimension_scores: { ftv: 70, mpc: 65, ptd: 60, tre: 55, cgh: 50, iri: 45, lco: 40, svm: 35 },
-        },
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [], error: null },
-    ];
-    computeValuationMock.mockReturnValue({ lowAud: 250_000, midAud: 500_000, highAud: 800_000 });
-    await POST();
-    const [input] = computeValuationMock.mock.calls[0] as [{
-      sviScore: number; stage: string; mrrAud?: number; arrAud?: number;
-      revenueGrowthPct?: number; burnRateAud?: number; runwayMonths?: number;
-      dimensions?: Record<string, number>;
-    }];
-    expect(input.sviScore).toBe(720);
-    expect(input.stage).toBe("mvp");
-    expect(input.mrrAud).toBe(5000);
-    expect(input.arrAud).toBe(60000);
-    expect(input.revenueGrowthPct).toBe(0.20);
-    expect(input.burnRateAud).toBe(4000);
-    expect(input.runwayMonths).toBe(15);
-    expect(input.dimensions).toEqual({
-      ftv: 70, mpc: 65, ptd: 60, tre: 55, cgh: 50, iri: 45, lco: 40, svm: 35,
-    });
-  });
-
-  it("passes the computed {low, mid, high} into generateDataRoom's valuation param", async () => {
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: [], error: null },
-      { data: [], error: null },
-    ];
-    computeValuationMock.mockReturnValue({ lowAud: 111, midAud: 222, highAud: 333 });
-    await POST();
-    const [params] = generateDataRoomMock.mock.calls[0] as [{ valuation: unknown }];
-    expect(params.valuation).toEqual({ low: 111, mid: 222, high: 333 });
-  });
-
-  it("valuation = null when computeValuation throws — the whole generate still completes", async () => {
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: [], error: null },
-      { data: [], error: null },
-    ];
-    computeValuationMock.mockImplementation(() => {
-      throw new Error("bad input");
-    });
-    const res = await POST();
-    expect(res.status).toBe(200);
-    const [params] = generateDataRoomMock.mock.calls[0] as [{ valuation: unknown }];
-    expect(params.valuation).toBeNull();
-  });
-
-  it("valuation is skipped entirely when the founder has no svi_account (no throw)", async () => {
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: null, error: null }, // no svi_account
-      { data: [], error: null },   // shareholders
+      { data: null, error: null }, // svi_analyses
+      { data: { mrr_aud: 12_000, arr_aud: 144_000 }, error: null }, // startup_metrics
+      { data: [], error: null }, // shareholders
+      { data: [], error: null }, // svi_evidence
     ];
     await POST();
     expect(computeValuationMock).not.toHaveBeenCalled();
+    expect(state.fromCalls).not.toContain("svi_snapshots");
     const [params] = generateDataRoomMock.mock.calls[0] as [{ valuation: unknown }];
     expect(params.valuation).toBeNull();
-  });
-
-  it("current_svi null → sviScore defaults to 100 in the valuation input (?? 100 fallback)", async () => {
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: { id: "svi-1", current_svi: null, current_stage: 3, startup_name: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: [], error: null },
-      { data: [], error: null },
-    ];
-    computeValuationMock.mockReturnValue({ lowAud: 1, midAud: 2, highAud: 3 });
-    await POST();
-    const [input] = computeValuationMock.mock.calls[0] as [{ sviScore: number; stage: string }];
-    expect(input.sviScore).toBe(100);
-  });
-
-  it("current_stage null → mapStage(0) = 'idea' (?? 0 fallback)", async () => {
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: { id: "svi-1", current_svi: 500, current_stage: null, startup_name: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: [], error: null },
-      { data: [], error: null },
-    ];
-    computeValuationMock.mockReturnValue({ lowAud: 1, midAud: 2, highAud: 3 });
-    await POST();
-    const [input] = computeValuationMock.mock.calls[0] as [{ stage: string }];
-    expect(input.stage).toBe("idea");
-  });
-
-  it("dimensions undefined when the svi_snapshot has no dimension_scores", async () => {
-    gateMock.mockResolvedValue(gateOk(USER));
-    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
-    getProjectIdFromRequestMock.mockResolvedValue(null);
-    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
-    state.responses = [
-      { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-      { data: null, error: null }, // no snapshot
-      { data: [], error: null },
-      { data: [], error: null },
-    ];
-    computeValuationMock.mockReturnValue({ lowAud: 1, midAud: 2, highAud: 3 });
-    await POST();
-    const [input] = computeValuationMock.mock.calls[0] as [{ dimensions?: unknown }];
-    expect(input.dimensions).toBeUndefined();
   });
 });
 
@@ -926,7 +733,6 @@ describe("POST /api/data-room/generate — cap table + evidence composition", ()
       { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: null }, error: null },
       { data: null, error: null },
       { data: null, error: null },
-      { data: null, error: null },
       { data: [], error: null },
       {
         data: [
@@ -956,7 +762,6 @@ describe("POST /api/data-room/generate — cap table + evidence composition", ()
       { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: null }, error: null },
       { data: null, error: null },
       { data: null, error: null },
-      { data: null, error: null },
       { data: [], error: null },
       { data: [], error: null }, // no evidence
     ];
@@ -975,7 +780,6 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
     spendCreditsMock.mockResolvedValue({ ok: true, balance: 42.75 });
     state.responses = [
       { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: "Acme" }, error: null },
-      { data: null, error: null },
       { data: null, error: null },
       { data: null, error: null },
       { data: [], error: null },
@@ -1007,7 +811,6 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
     spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
     state.responses = [
       { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: "Acme" }, error: null },
-      { data: null, error: null },
       { data: null, error: null },
       { data: null, error: null },
       { data: [], error: null },
@@ -1057,7 +860,6 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
       { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: null }, error: null },
       { data: { total_svi: 723, analysis_json: analysisJson }, error: null },
       { data: null, error: null },
-      { data: null, error: null },
       { data: [], error: null },
       { data: [], error: null },
     ];
@@ -1092,7 +894,6 @@ describe("POST /api/data-room/generate — writes real documents", () => {
       { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: "Acme" }, error: null },
       { data: null, error: null }, // svi_analyses
       { data: null, error: null }, // startup_metrics
-      { data: null, error: null }, // svi_snapshots
       { data: [], error: null }, // shareholders
       { data: [], error: null }, // svi_evidence
       { data: { id: "room-77" }, error: null }, // data_rooms upsert

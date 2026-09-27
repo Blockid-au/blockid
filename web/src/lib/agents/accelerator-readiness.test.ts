@@ -458,7 +458,7 @@ describe("evaluateAcceleratorReadiness", () => {
     ]);
   });
 
-  it("applies estLiftAud as blendedMid * lift/100 rounded to nearest A$1,000, only for non-met rows", async () => {
+  it("never prices a lift in dollars — even with a stored deep-valuation blend (V04a / D22)", async () => {
     nextRows = [
       makeEntry({ id: "gap-row", topic: "team", valuation_lift_pct: 12 }),
       makeEntry({ id: "met-row", topic: "invention", valuation_lift_pct: 25 }),
@@ -472,10 +472,8 @@ describe("evaluateAcceleratorReadiness", () => {
     });
     const result = await evaluateAcceleratorReadiness(analysis, "we hold a patent");
     const gap = result?.sources[0].topCriteria[0];
-    // 1_234_567 * 0.12 = 148,148.04 → round(148.148) * 1000 = 148,000
-    expect(gap?.estLiftAud).toBe(148_000);
-    // met rows do not receive estLiftAud in the topCriteria list (they are excluded)
-    // but check the overall shape: no met row in highLeverageGaps either
+    expect(gap?.estLiftAud).toBeUndefined();
+    // met rows are still excluded from the high-leverage list
     expect(
       result?.highLeverageGaps.some((g) => g.entry.id === "met-row"),
     ).toBe(false);

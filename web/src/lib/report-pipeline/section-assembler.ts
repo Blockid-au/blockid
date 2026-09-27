@@ -3,6 +3,7 @@
 // Takes all AgentAnalysisResult objects from the pipeline and assembles
 // them into ordered report sections with cross-references and charts.
 
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import type {
   AgentRole,
   AgentAnalysisResult,
@@ -379,7 +380,8 @@ function sectionsToMarkdown(sections: ReportSection[], context: ReportContext): 
     startupName: context.startupName,
     currentStage: context.sviAnalysis.stageLabel,
     sviScore: context.sviAnalysis.totalSVI,
-    valuationRange: estimateValuationRange(context.sviAnalysis.totalSVI, stage),
+    // V04a (D22): the SVI/stage is never mapped to a dollar band.
+    valuationRange: valuationNotEstimable().label,
     nextSteps: allSteps.length > 0 ? allSteps : ["Complete your SVI assessment", "Add evidence & data", "Review your report", "Follow the action plan"],
   });
   parts.push("## The Three Critical Questions");
@@ -438,16 +440,6 @@ function sectionsToMarkdown(sections: ReportSection[], context: ReportContext): 
   parts.push(`*This report is for informational purposes only and does not constitute financial, legal, or investment advice.*`);
 
   return parts.join("\n\n");
-}
-
-function estimateValuationRange(sviScore: number, stage: number): string {
-  if (stage <= 1) return "A$50K – A$250K";
-  if (stage === 2) return "A$250K – A$1M";
-  if (stage === 3) return "A$500K – A$3M";
-  if (stage === 4) return "A$1M – A$10M";
-  if (stage === 5) return "A$5M – A$50M";
-  if (stage === 6) return "A$20M – A$200M";
-  return "A$100M+";
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

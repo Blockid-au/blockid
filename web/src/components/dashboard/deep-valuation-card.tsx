@@ -1,22 +1,18 @@
 "use client";
 
-import * as React from "react";
 import {
   AlertTriangle,
   BarChart3,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
   Lightbulb,
   Sparkles,
   Target,
-  TrendingUp,
   Users,
 } from "lucide-react";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
-type DeepValuation = NonNullable<SVIAnalysis["deepValuation"]>;
 type InputSummary = NonNullable<SVIAnalysis["inputSummary"]>;
 
 interface Props {
@@ -29,13 +25,6 @@ function fmtAud(v: number): string {
   if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
   return `A$${Math.round(v).toLocaleString("en-AU")}`;
 }
-
-const PERSPECTIVE_ICONS = {
-  investor: TrendingUp,
-  market: Target,
-  operational: BarChart3,
-  ecosystem: Users,
-} as const;
 
 function ProjectIntro({ summary }: { summary: InputSummary }) {
   return (
@@ -74,85 +63,29 @@ function ProjectIntro({ summary }: { summary: InputSummary }) {
   );
 }
 
-function PerspectiveRow({ p }: { p: DeepValuation["perspectives"][number] }) {
-  const Icon = PERSPECTIVE_ICONS[p.code] ?? BarChart3;
-  const confColor = p.confidence === "high" ? "text-emerald-700 bg-emerald-50"
-    : p.confidence === "medium" ? "text-blue-600 bg-blue-50"
-    : "text-amber-600 bg-amber-50";
-
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
-      >
-        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">{p.label}</p>
-          <p className="text-xs text-muted-foreground">{Math.round(p.weight * 100)}% weight &middot; <span className={cn("inline-block px-1.5 py-0.5 rounded text-[10px] font-medium", confColor)}>{p.confidence}</span></p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-base font-bold text-blue-600">{fmtAud(p.midAud)}</p>
-          <p className="text-[10px] text-muted-foreground">{fmtAud(p.lowAud)} – {fmtAud(p.highAud)}</p>
-        </div>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-      </button>
-
-      {open && (
-        <div className="px-4 pb-4 pt-2 bg-muted/10 space-y-2 border-t border-border">
-          <p className="text-xs text-muted-foreground leading-relaxed">{p.rationale}</p>
-          <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Assumptions</p>
-            <ul className="space-y-0.5">
-              {p.assumptions.map((a, i) => (
-                <li key={i} className="text-xs text-foreground">&bull; {a}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function DeepValuationCard({ analysis }: Props) {
   const dv = analysis.deepValuation;
   const summary = analysis.inputSummary;
 
   if (!dv && !summary) return null;
+  const notEstimable = valuationNotEstimable();
 
   return (
     <div className="space-y-6">
       {/* Project intro */}
       {summary && <ProjectIntro summary={summary} />}
 
-      {/* Multi-perspective valuation */}
+      {/* Company value — V04a / D22: the 4-lens blend multiplied the SVI into
+          dollars; it is never shown. Market sizing and scenarios stay. */}
       {dv && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-5">
-          <div>
-            <h3 className="text-base font-bold flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-blue-500" />
-              Multi-Perspective Valuation
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              4 independent methods triangulated. Higher data quality → higher weight.
-            </p>
-          </div>
-
-          {/* Blended hero */}
-          <div className="rounded-lg bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-200 p-4">
-            <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">Blended Valuation Estimate</p>
-            <p className="text-3xl font-bold text-foreground mt-1">{fmtAud(dv.blendedValuation.midAud)}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Range: {fmtAud(dv.blendedValuation.lowAud)} – {fmtAud(dv.blendedValuation.highAud)} &middot; <span className="font-medium capitalize">{dv.blendedValuation.confidence}</span> confidence
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            {dv.perspectives.map((p) => <PerspectiveRow key={p.code} p={p} />)}
-          </div>
+        <div className="rounded-xl border border-border bg-card p-5 space-y-2" data-testid="deep-valuation-not-estimable">
+          <h3 className="text-base font-bold flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-blue-500" />
+            Company value
+          </h3>
+          <p className="text-2xl font-bold text-foreground">{notEstimable.label}</p>
+          <p className="text-sm text-muted-foreground">{notEstimable.line}</p>
+          <p className="text-xs text-muted-foreground">{notEstimable.why}</p>
         </div>
       )}
 
@@ -196,9 +129,6 @@ export function DeepValuationCard({ analysis }: Props) {
                     <p className="text-sm font-semibold">{peer.name}</p>
                     <p className="text-[11px] text-muted-foreground">{peer.stageGuess} &middot; sim {peer.similarityScore}%</p>
                   </div>
-                  <p className="text-xs font-mono text-muted-foreground shrink-0 text-right">
-                    {fmtAud(peer.estValuationLowAud)}–{fmtAud(peer.estValuationHighAud)}
-                  </p>
                 </div>
               ))}
             </div>

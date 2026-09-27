@@ -53,7 +53,6 @@ function fixtureHeadlines(overrides: Partial<IndexHeadlines> = {}): IndexHeadlin
       deltaWeek: 3,
       sparkline7d: [102, 103, 104, 103, 105, 104, 105],
       totalCompanies: 138,
-      totalCoverageAud: 1_234_567_890,
       analysesToday: 7,
       analysesYesterday: 12,
     },
@@ -188,14 +187,13 @@ describe("envelope shape", () => {
     expect((body as unknown as { headlines?: unknown }).headlines).toBeUndefined();
   });
 
-  it("preserves the bsiAu block verbatim (value, deltaDay, deltaWeek, sparkline7d, totalCompanies, totalCoverageAud, analysesToday, analysesYesterday)", async () => {
+  it("preserves the bsiAu block verbatim (value, deltaDay, deltaWeek, sparkline7d, totalCompanies, analysesToday, analysesYesterday)", async () => {
     const { body } = await callGet();
     expect(body.bsiAu.value).toBe(105);
     expect(body.bsiAu.deltaDay).toBe(1);
     expect(body.bsiAu.deltaWeek).toBe(3);
     expect(body.bsiAu.sparkline7d).toEqual([102, 103, 104, 103, 105, 104, 105]);
     expect(body.bsiAu.totalCompanies).toBe(138);
-    expect(body.bsiAu.totalCoverageAud).toBe(1_234_567_890);
     expect(body.bsiAu.analysesToday).toBe(7);
     expect(body.bsiAu.analysesYesterday).toBe(12);
   });
@@ -244,7 +242,6 @@ describe("edge cases", () => {
           deltaWeek: 0,
           sparkline7d: [0, 0, 0, 0, 0, 0, 0],
           totalCompanies: 0,
-          totalCoverageAud: 0,
           analysesToday: 0,
           analysesYesterday: 0,
         },

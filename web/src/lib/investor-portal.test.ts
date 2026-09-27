@@ -14,9 +14,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 //   (c) allow a self-conflicting ticker in `addToWatchlist` — the ticker
 //       regex is the last gate before an untrusted `?ref=…` value lands
 //       in the natural-key column, and
-//   (d) forget the `min_svi` 0..100 clamp on prefs — surfacing a bogus
-//       `min_svi: 9999` into the deal-flow `.gte("total_score", …)` and
-//       silently returning zero rows to every angel + VC page.
+//   (d) forget to bound the deal-flow `.gte("total_score", …)` to the 0–100
+//       Investor-Ready Score scale — an uncapped SVI floor (`min_svi: 9999`,
+//       SV1 / D22) would silently return zero rows to every angel + VC page.
 //
 // The fake Supabase covers every chain shape the module walks:
 //   .from().select(cols).eq().maybeSingle()        ← prefs read
@@ -273,12 +273,11 @@ describe("investor-portal — getInvestorPreferences", () => {
     expect(prefs.min_svi).toBe(0);
   });
 
-  it("clamps min_svi above 100 down to 100 (Math.min ceiling)", async () => {
-    state.queue.push({ data: { investor_prefs: { min_svi: 9999 } } });
+  it("keeps min_svi above 100 — the SVI index is uncapped (SV1 / D22)", async () => {
+    state.queue.push({ data: { investor_prefs: { min_svi: 140 } } });
     const { getInvestorPreferences } = await import("./investor-portal");
     const prefs = await getInvestorPreferences("u-1");
-    // Pins the "silent zero-rows on bogus filter" guard.
-    expect(prefs.min_svi).toBe(100);
+    expect(prefs.min_svi).toBe(140);
   });
 
   it("coerces non-numeric min_svi to null (never NaN into a .gte() filter)", async () => {
@@ -388,7 +387,9 @@ describe("investor-portal — normalisePrefs (S8-C input hardening)", () => {
     expect(out.cheque_band).toBe("any");
     expect(out.min_svi).toBeNull();
     expect(normalisePrefs({ cheque_band: "2m_plus", min_svi: 150 }).cheque_band).toBe("2m_plus");
-    expect(normalisePrefs({ min_svi: 150 }).min_svi).toBe(100);
+    // SV1 (D22): the SVI index is uncapped — a floor of 150 is kept, not clamped to 100.
+    expect(normalisePrefs({ min_svi: 150 }).min_svi).toBe(150);
+    expect(normalisePrefs({ min_svi: -5 }).min_svi).toBe(0);
     expect(normalisePrefs({ stages: ["bogus"] as unknown as never }).stages).toEqual(["any"]);
     expect(normalisePrefs({ geos: [] }).geos).toEqual(["AU"]);
     expect(normalisePrefs({ sectors: Array.from({ length: 50 }, (_, i) => `s${i}`) }).sectors).toHaveLength(20);
@@ -601,6 +602,14 @@ describe("investor-portal — getDealFlow", () => {
     const { getDealFlow } = await import("./investor-portal");
     await getDealFlow("u-1");
     expect(callsFor("scores")[0].gtes).toEqual([{ col: "total_score", val: 80 }]);
+  });
+
+  it("bounds an uncapped SVI floor to the 0–100 Investor-Ready Score scale on total_score (SV1)", async () => {
+    state.queue.push({ data: { investor_prefs: { min_svi: 140 } } });
+    state.queue.push({ data: [] });
+    const { getDealFlow } = await import("./investor-portal");
+    await getDealFlow("u-1");
+    expect(callsFor("scores")[0].gtes).toEqual([{ col: "total_score", val: 100 }]);
   });
 
   it("defaults minScore to 0 when neither filter nor prefs provide one", async () => {

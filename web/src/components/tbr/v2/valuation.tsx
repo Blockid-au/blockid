@@ -94,8 +94,8 @@ export function TbrValuation({ report, title, locale = "en", citations, investme
   const t3 = v3Strings(locale);
   const rangeBars = v.visuals.find((x) => x.kind === "range_bars");
   const others = v.visuals.filter((x) => x !== rangeBars);
-  // No scored dimension yet → the consensus would be the three-case model of
-  // SVI 0 (≈ A$0.6–0.9M), which reads as a real valuation. Say so instead.
+  // No scored dimension yet → a CFO chapter over an empty profile would read
+  // as a real valuation. Say so instead (V04a: no SVI-derived range exists).
   if (report.cover.svi.band === "pending") {
     return (
       <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="4" title={title} pageBreak>

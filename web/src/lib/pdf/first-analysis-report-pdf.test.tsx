@@ -42,8 +42,13 @@ describe("renderFirstAnalysisReportPdf", () => {
     expect(text).toContain("Kelpie Rostering");
     expect(text).toContain("What we read");
     expect(text).toContain("Your Startup Value Index");
-    expect(text).toContain("Indicative valuation");
-    expect(text).toContain("Four views of the same company");
+    // V04a (D22): page 7 says the company value is not estimable and what
+    // unlocks a method — the SVI-derived range and the four views are gone.
+    expect(text).toContain("Company value");
+    expect(text).toContain("Not estimable");
+    expect(text).toContain("What unlocks a valuation method");
+    expect(text).not.toContain("Indicative valuation");
+    expect(text).not.toContain("Four views of the same company");
     for (const role of ["CEO", "CFO", "CMO", "CTO", "CPO", "CLO", "CHRO"]) {
       expect(text).toContain(role);
     }
@@ -56,8 +61,8 @@ describe("renderFirstAnalysisReportPdf", () => {
     expect(text).toContain("659 615 111");
     expect(text).toContain("grounded in the founder's doctoral research (DBA) on startup valuation");
     expect(text).not.toContain("PhD");
-    // Revenue-anchored fixture → the honest basis line.
-    expect(text).toContain("Revenue-anchored");
+    // The founder's revenue figure is read back, never turned into a value.
+    expect(text).not.toContain("Revenue-anchored");
     expect(text).toContain("A$18,500");
     // S32-C: the cover says which model actually wrote the sections (the
     // fixture's stub provider/model), folded from the sections when no meta.
@@ -96,12 +101,15 @@ describe("renderFirstAnalysisReportPdf", () => {
     expect(text).toContain("Appendix C");
   }, 90_000);
 
-  it("prints the SVI-based note when no revenue was provided", async () => {
+  // V04a (D22): the page used to print an "SVI-based" range when no revenue
+  // was given; it now prints "not estimable" and what unlocks a method.
+  it("prints not estimable (never an SVI-based range) when no revenue was provided", async () => {
     const report = sampleReport({ rawText: "An idea for a marketplace for surplus building materials. Pre-revenue, two founders, no product yet." });
     const { buffer } = await renderFirstAnalysisReportPdf({ report, variant: "free" });
     const text = await fullText(buffer);
-    expect(text).toContain("SVI-based");
-    expect(text).toContain("No revenue was provided");
+    expect(text).not.toContain("SVI-based");
+    expect(text).toContain("No revenue figure was provided");
+    expect(text).toContain("Not estimable");
     expect(text).not.toContain("Revenue-anchored");
   }, 60_000);
   // S32-E: a partial report (4 of 7 voices) still clears the floor by

@@ -98,7 +98,7 @@ describe("computeIndexHeadlines — degraded / empty inputs", () => {
     const out = await computeIndexHeadlines();
     expect(out.bsiAu.value).toBe(0);
     expect(out.bsiAu.totalCompanies).toBe(0);
-    expect(out.bsiAu.totalCoverageAud).toBe(0);
+    expect(out.bsiAu).not.toHaveProperty("totalCoverageAud");
     expect(out.bsiAu.analysesToday).toBe(0);
     expect(out.bsiAu.analysesYesterday).toBe(0);
     expect(out.sectorIndices).toEqual([]);
@@ -193,40 +193,14 @@ describe("computeIndexHeadlines — BSI-AU headline", () => {
     expect(out.bsiAu.totalCompanies).toBe(2);
   });
 
-  it("totalCoverageAud sums blended valuations and rounds to an integer", async () => {
+  it("carries no dollar coverage — the SVI is never summed into A$ (V04a / D22)", async () => {
     nextData = [
       row("a@x.io", 100, -1000, {
         deepValuation: { blendedValuation: { midAud: 1_234_567.89 } },
       }),
-      row("b@x.io", 100, -1000, {
-        deepValuation: { blendedValuation: { midAud: 500_000.55 } },
-      }),
     ];
     const out = await computeIndexHeadlines();
-    expect(out.bsiAu.totalCoverageAud).toBe(Math.round(1_234_567.89 + 500_000.55));
-  });
-
-  it("clamps a runaway valuation at 2B AUD (no over-flow into headline)", async () => {
-    nextData = [
-      row("a@x.io", 100, -1000, {
-        deepValuation: { blendedValuation: { midAud: 9_999_999_999 } },
-      }),
-    ];
-    const out = await computeIndexHeadlines();
-    expect(out.bsiAu.totalCoverageAud).toBe(2_000_000_000);
-  });
-
-  it("clamps a negative valuation at 0 (never subtracts from coverage)", async () => {
-    nextData = [
-      row("a@x.io", 100, -1000, {
-        deepValuation: { blendedValuation: { midAud: -50_000 } },
-      }),
-      row("b@x.io", 100, -1000, {
-        deepValuation: { blendedValuation: { midAud: 100_000 } },
-      }),
-    ];
-    const out = await computeIndexHeadlines();
-    expect(out.bsiAu.totalCoverageAud).toBe(100_000);
+    expect(out.bsiAu).not.toHaveProperty("totalCoverageAud");
   });
 });
 

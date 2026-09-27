@@ -12,7 +12,7 @@
 
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
-import { estimateValuation, valuationMetricsFromSignals, type ValuationEstimate } from "@/lib/valuation";
+import { VALUATION_NOT_ESTIMABLE, defaultUnlockInputs } from "@/lib/valuation/not-estimable";
 
 /** Hard cap on stored raw text. ~64 KB covers every real deck we have seen. */
 export const MAX_INPUT_TEXT_CHARS = 65_536;
@@ -83,21 +83,29 @@ export interface CompactSvi {
   confidenceMultiplier: number;
   dimensions: Record<string, number>;
   nextActions: { priority: string; title: string; detail: string }[];
-  valuation: {
-    low: number;
-    mid: number;
-    high: number;
-    method: string;
-    confidence: number;
-    currency: string;
-  };
+  /**
+   * V04a (D22): always "not estimable". The SVI is an uncapped index, never
+   * a dollar valuation; a figure may only come from a CFO method with
+   * qualified inputs, which the /analyze intake does not run. Rows written
+   * before V04a carry a legacy `{low, mid, high, method}` estimate derived
+   * from the SVI — readers must not show it (see `isLegacySviValuation`).
+   */
+  valuation: CompactValuation;
+}
+
+export interface CompactValuation {
+  status: typeof VALUATION_NOT_ESTIMABLE;
+  /** Evidence that unlocks a CFO valuation method (EN). */
+  unlock: string[];
+}
+
+/** The stored "not estimable" valuation for a compact SVI row. */
+export function notEstimableCompactValuation(): CompactValuation {
+  return { status: VALUATION_NOT_ESTIMABLE, unlock: defaultUnlockInputs("en") };
 }
 
 /** Compact score + valuation summary. The full analysis stays reproducible. */
-export function compactSvi(
-  analysis: SVIAnalysis,
-  valuation: ValuationEstimate,
-): CompactSvi {
+export function compactSvi(analysis: SVIAnalysis): CompactSvi {
   const dimensions: Record<string, number> =
     analysis.dimensionScores ??
     Object.fromEntries(analysis.subs.map((s) => [s.key, s.value]));
@@ -114,14 +122,7 @@ export function compactSvi(
     nextActions: (analysis.nextActions ?? [])
       .slice(0, MAX_STORED_ACTIONS)
       .map((a) => ({ priority: a.priority, title: a.title, detail: a.detail })),
-    valuation: {
-      low: valuation.low,
-      mid: valuation.mid,
-      high: valuation.high,
-      method: valuation.method,
-      confidence: valuation.confidence,
-      currency: valuation.currency,
-    },
+    valuation: notEstimableCompactValuation(),
   };
 }
 
@@ -167,7 +168,8 @@ export function buildAnalysisRow(input: AnalysisRowInput): Record<string, unknow
     svi_total: input.svi ? Math.round(input.svi.totalSVI * 100) / 100 : null,
     stage: input.svi ? input.svi.stage : (input.result.context?.stage ?? null),
     stage_label: input.svi?.stageLabel ?? null,
-    valuation_mid_aud: input.svi ? Math.round(input.svi.valuation.mid) : null,
+    // V04a (D22): never a dollar figure derived from the SVI.
+    valuation_mid_aud: null,
     // 0122 precedent: consent is never assumed. Both flags stay false until a
     // founder explicitly opts in through a publish control that does not yet
     // exist — so nothing written here can reach a public or investor surface.
@@ -208,6 +210,15 @@ export interface StoredAnalysisRow {
 }
 
 /**
+ * True when a stored compact valuation is the pre-V04a estimate derived from
+ * the SVI (`{low, mid, high, method}`) rather than the not-estimable state.
+ * Readers treat it as not estimable and never print its numbers.
+ */
+export function isLegacySviValuation(v: unknown): boolean {
+  return !!v && typeof v === "object" && (v as { status?: unknown }).status !== VALUATION_NOT_ESTIMABLE;
+}
+
+/**
  * Re-assemble the client-facing analysis. `rawText` is stitched back on from
  * `input_text` so the payload matches the IntakeResult the UI already knows
  * how to render — a caller should not have to care that we split the two.
@@ -231,15 +242,17 @@ export function toClientAnalysis(row: StoredAnalysisRow): Record<string, unknown
       context: row.context ?? undefined,
     },
     context: row.context,
-    svi: row.svi,
+    // V04a: a pre-V04a row's SVI-derived estimate never leaves the server.
+    svi: row.svi ? { ...row.svi, valuation: notEstimableCompactValuation() } : null,
   };
 }
 
 /**
- * Derive the compact score + valuation from an intake result, exactly the
- * way `AnalyzeResults` does client-side — same `computeSVI(signals)`, same
- * `estimateValuation(total, stage, {sector}, dims)` — so the row and the
- * screen can never disagree about what the founder was shown.
+ * Derive the compact score from an intake result, exactly the way
+ * `AnalyzeResults` does client-side — same `computeSVI(signals)` — so the
+ * row and the screen can never disagree about what the founder was shown.
+ * The valuation is always "not estimable" (V04a / D22): no dollar figure is
+ * derived from the SVI or its dimension scores.
  *
  * Returns null rather than throwing: a scoring hiccup must not cost the
  * founder the row, and the retained signals make it recomputable later.
@@ -248,16 +261,7 @@ export function deriveCompactSvi(result: IntakeResult): CompactSvi | null {
   try {
     if (!result.signals) return null;
     const analysis = computeSVI(result.signals);
-    const dims =
-      analysis.dimensionScores ??
-      Object.fromEntries((analysis.subs ?? []).map((s) => [s.key, s.value]));
-    const valuation = estimateValuation(
-      analysis.totalSVI,
-      analysis.stage ?? 0,
-      valuationMetricsFromSignals(analysis.signals ?? result.signals, analysis.sector ?? analysis.signals?.sector),
-      dims,
-    );
-    return compactSvi(analysis, valuation);
+    return compactSvi(analysis);
   } catch (err) {
     console.error("[analyses:derive] scoring failed —", err);
     return null;

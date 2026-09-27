@@ -38,7 +38,11 @@ export interface ListingRow {
   svi: number;
   /** latest − prior-week close; null when there is no prior close ("new" — G29-D, never 0 / −99). */
   deltaWeek: number | null;
-  valuationAud: number;
+  /**
+   * V04a (D22): always null. It used to read the deep-valuation blend, which
+   * multiplied the SVI into dollars; the index never publishes a price.
+   */
+  valuationAud: null;
   sparkline: number[];      // 7-point SVI history (daily aggregation)
   publicName: string | null;
   publicVisible: boolean;
@@ -58,6 +62,7 @@ export interface ListingFilter {
   revenueOnly?: boolean;
 }
 
+/** "valuation" is accepted for URL / API compatibility and sorts by SVI (V04a: no price is published). */
 export type ListingSort = "svi" | "delta" | "valuation" | "stage" | "recent";
 
 export interface ListingsResult {
@@ -139,10 +144,6 @@ function extractStage(row: AnalysisRow): number {
   return typeof a.stage === "number" ? Math.max(0, Math.min(7, a.stage)) : 0;
 }
 
-function extractValuation(row: AnalysisRow): number {
-  const a = (row.analysis_json ?? {}) as { deepValuation?: { blendedValuation?: { midAud?: number } } };
-  return Math.max(0, Math.min(2_000_000_000, a.deepValuation?.blendedValuation?.midAud ?? 0));
-}
 
 function extractHasRevenue(row: AnalysisRow): boolean {
   const a = (row.analysis_json ?? {}) as { signals?: { hasRevenue?: boolean } };
@@ -254,7 +255,7 @@ export async function computeListings(args: {
 
     const sector = extractSector(latest);
     const stage = extractStage(latest);
-    const valuationAud = extractValuation(latest);
+    const valuationAud = null;
     const hasRevenue = extractHasRevenue(latest);
 
     // 7-day delta = latest - latest-older-than-7-days; no prior close → null ("new")
@@ -310,7 +311,6 @@ export async function computeListings(args: {
       case "delta":     return a.deltaWeek === null || b.deltaWeek === null
                           ? (a.deltaWeek === null ? 1 : 0) - (b.deltaWeek === null ? 1 : 0)
                           : (a.deltaWeek - b.deltaWeek) * dir;
-      case "valuation": return (a.valuationAud - b.valuationAud) * dir;
       case "stage":     return (a.stage - b.stage) * dir;
       case "recent":    return (new Date(a.lastAnalysisAt).getTime() - new Date(b.lastAnalysisAt).getTime()) * dir;
       case "svi":
@@ -347,7 +347,8 @@ export interface ListingDetail {
   svi: number;
   /** latest − prior-week close; null when there is no prior close ("new"). */
   deltaWeek: number | null;
-  valuationAud: number;
+  /** V04a (D22): always null — see ListingRow.valuationAud. */
+  valuationAud: null;
   sviHistory: Array<{ date: string; svi: number }>;
   analysesCount: number;
   lastAnalysisAt: string;
@@ -358,7 +359,8 @@ export interface ListingDetail {
   // Snapshots from the latest analysis
   antlerSignals: Array<{ key: string; label: string; score: number }> | null;
   acceleratorReadiness: { overallPct: number; topGaps: Array<{ criterion: string; source: string }> } | null;
-  perspectives: Array<{ label: string; lowAud: number; midAud: number; highAud: number; weight: number }> | null;
+  /** V04a (D22): always null — the deep-valuation lenses multiplied the SVI into dollars. */
+  perspectives: null;
   inputSummaryProjectName: string | null;
   generatedAt: string;
 }
@@ -418,7 +420,7 @@ async function buildDetailFromRow(
   const a = (latest.analysis_json ?? {}) as Record<string, unknown>;
   const sector = extractSector(latest);
   const stage = extractStage(latest);
-  const valuationAud = extractValuation(latest);
+  const valuationAud = null;
   // S36: the listing row already carries the level; otherwise one fail-soft read.
   const verificationLevel =
     matchRow?.verificationLevel ?? (latest.project_id ? ((await loadVerificationLevels(_supabase, [latest.project_id])).get(latest.project_id) ?? 0) : 0);
@@ -465,9 +467,8 @@ async function buildDetailFromRow(
       }
     : null;
 
-  // Deep valuation perspectives
-  const dv = a.deepValuation as { perspectives?: Array<{ label: string; lowAud: number; midAud: number; highAud: number; weight: number }> } | undefined;
-  const perspectives = dv?.perspectives ?? null;
+  // V04a (D22): the deep-valuation perspectives are never published.
+  const perspectives = null;
 
   const inputSummary = a.inputSummary as { projectName?: string } | undefined;
 

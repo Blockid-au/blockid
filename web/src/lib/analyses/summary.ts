@@ -6,7 +6,7 @@
 // the three surfaces cannot drift into describing the same run differently.
 
 import { withRedirectQueryParam } from "@/lib/security/safe-redirect";
-import { formatAUD } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 
 /** One row of GET /api/analyses. */
 export interface AnalysisListRow {
@@ -124,12 +124,14 @@ export function formatRunDateTime(iso: string | null | undefined): string {
   });
 }
 
-/** Valuation midpoint as a founder-facing string, or an em dash when absent. */
-export function formatValuationMid(value: number | null | undefined): string {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return "—";
-  }
-  return formatAUD(value);
+/**
+ * The valuation cell of a saved-analysis row. V04a (D22): `valuation_mid_aud`
+ * on an analyses row was only ever derived from the SVI, so it is never
+ * printed — the cell reads "Not estimable" (a CFO method needs qualified
+ * inputs the intake does not have).
+ */
+export function analysisValuationText(): string {
+  return valuationNotEstimable().label;
 }
 
 /** SVI total rounded the way every other surface rounds it. */

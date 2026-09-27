@@ -6,7 +6,7 @@ import { LEGAL_ENTITY, acnAbnLine } from "@/lib/site/legal-entity";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { benchmarkNLabel, formatBenchmarkLine, noBenchmarkYetLine, notEnoughLine, publishBenchmark, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
-import { estimateValuation, formatAUD } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import type { BrandSettings } from "@/lib/branding/load";
 import * as path from "path";
 import * as fs from "fs";
@@ -733,10 +733,11 @@ export function formatAud(v: number): string {
 function DeepAnalysisPage({ analysis }: { analysis: SVIAnalysis }) {
   const summary = analysis.inputSummary;
   const dv = analysis.deepValuation;
+  const notEstimable = valuationNotEstimable();
 
   return (
     <View>
-      <PageTitle title="Detailed Analysis & Valuation" subtitle="What we found in your input — and how 4 independent methods price your startup" />
+      <PageTitle title="Detailed Analysis" subtitle="What we found in your input — market sizing, revenue scenarios and risk flags" />
 
       {/* ── Input summary card ───────────────────────────────────── */}
       {summary && (
@@ -770,42 +771,16 @@ function DeepAnalysisPage({ analysis }: { analysis: SVIAnalysis }) {
         </View>
       )}
 
-      {/* ── Multi-perspective valuation table ────────────────────── */}
+      {/* ── Valuation (V04a / D22) ───────────────────────────────────
+          The 4-lens table multiplied the SVI into dollars; it is gone. No
+          CFO method runs in this report, so the company value is "not
+          estimable" with the evidence that unlocks a method. */}
       {dv && (
-        <View style={{ marginBottom: 10 }}>
-          <Text style={[s.label, { marginBottom: 6 }]}>4-Lens Valuation Triangulation</Text>
-          <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6 }}>
-            <View style={{ flexDirection: "row", backgroundColor: C.surface100, paddingVertical: 5, paddingHorizontal: 8 }}>
-              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "32%" }}>LENS</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "16%", textAlign: "right" }}>LOW</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "20%", textAlign: "right" }}>MID</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "16%", textAlign: "right" }}>HIGH</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "16%", textAlign: "right" }}>WEIGHT</Text>
-            </View>
-            {dv.perspectives.map((p, i) => (
-              <View key={p.code} style={{ flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 0.5, borderTopColor: C.surface200, backgroundColor: i % 2 === 0 ? C.white : C.surface50 }}>
-                <View style={{ width: "32%" }}>
-                  <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{p.label}</Text>
-                  <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{p.confidence} confidence</Text>
-                </View>
-                <Text style={{ fontSize: 9, color: C.ink600, width: "16%", textAlign: "right" }}>{formatAud(p.lowAud)}</Text>
-                <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.brand700, width: "20%", textAlign: "right" }}>{formatAud(p.midAud)}</Text>
-                <Text style={{ fontSize: 9, color: C.ink600, width: "16%", textAlign: "right" }}>{formatAud(p.highAud)}</Text>
-                <Text style={{ fontSize: 9, color: C.ink700, width: "16%", textAlign: "right" }}>{(p.weight * 100).toFixed(0)}%</Text>
-              </View>
-            ))}
-            {/* Blended row */}
-            <View style={{ flexDirection: "row", paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.brand600, backgroundColor: C.brand50 }}>
-              <View style={{ width: "32%" }}>
-                <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.brand700 }}>BLENDED ESTIMATE</Text>
-                <Text style={{ fontSize: 7, color: C.ink600, marginTop: 1 }}>Weighted by data quality · {dv.blendedValuation.confidence} confidence</Text>
-              </View>
-              <Text style={{ fontSize: 10, color: C.ink700, width: "16%", textAlign: "right" }}>{formatAud(dv.blendedValuation.lowAud)}</Text>
-              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.brand700, width: "20%", textAlign: "right" }}>{formatAud(dv.blendedValuation.midAud)}</Text>
-              <Text style={{ fontSize: 10, color: C.ink700, width: "16%", textAlign: "right" }}>{formatAud(dv.blendedValuation.highAud)}</Text>
-              <Text style={{ fontSize: 9, color: C.brand700, width: "16%", textAlign: "right" }}>100%</Text>
-            </View>
-          </View>
+        <View style={{ marginBottom: 10, backgroundColor: C.surface50, padding: 10, borderRadius: 6, borderWidth: 0.5, borderColor: C.surface200 }}>
+          <Text style={[s.label, { marginBottom: 4 }]}>Company value</Text>
+          <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 3 }}>{notEstimable.label}</Text>
+          <Text style={{ fontSize: 8.5, color: C.ink700, lineHeight: 1.45 }}>{notEstimable.line}</Text>
+          <Text style={{ fontSize: 7, color: C.ink500, marginTop: 3, lineHeight: 1.4 }}>{notEstimable.why}</Text>
         </View>
       )}
 
@@ -839,9 +814,6 @@ function DeepAnalysisPage({ analysis }: { analysis: SVIAnalysis }) {
               <View key={peer.name} style={{ marginBottom: 5, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: C.surface200 }}>
                 <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{peer.name}</Text>
                 <Text style={{ fontSize: 7, color: C.ink500 }}>{peer.stageGuess} · sim {peer.similarityScore}%</Text>
-                <Text style={{ fontSize: 8, color: C.ink700, marginTop: 1 }}>
-                  {formatAud(peer.estValuationLowAud)} – {formatAud(peer.estValuationHighAud)}
-                </Text>
               </View>
             ))}
           </View>
@@ -870,7 +842,7 @@ function DeepAnalysisPage({ analysis }: { analysis: SVIAnalysis }) {
       {/* ── Risk flags ─────────────────────────────────────────── */}
       {dv && dv.riskFlags.length > 0 && (
         <View style={{ marginTop: 6 }}>
-          <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#B45309", letterSpacing: 1, marginBottom: 3 }}>VALUATION RISK FLAGS</Text>
+          <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#B45309", letterSpacing: 1, marginBottom: 3 }}>RISK FLAGS</Text>
           {dv.riskFlags.slice(0, 3).map((f, i) => (
             <Text key={i} style={{ fontSize: 8, color: C.ink700, lineHeight: 1.4, marginBottom: 2 }}>
               &bull; {f}
@@ -904,10 +876,13 @@ function ScnActionPlanPage({ plan, maturity }: {
   maturity?: SVIAnalysis["maturitySignal"];
 }) {
   const yn = plan.yourNumber;
+  const notEstimable = valuationNotEstimable();
+  // A plan stored before V04a carried SVI-derived dollars in its prose.
+  const plainEnglish = /A\$\s?\d/.test(yn.plainEnglish) ? notEstimable.why : yn.plainEnglish;
 
   return (
     <View>
-      <PageTitle title="What is your number?" subtitle="Your SVI, your valuation — and the SCN action plan to move both" />
+      <PageTitle title="What is your number?" subtitle="Your SVI index — and the SCN action plan to move it" />
 
       {/* ── Maturity banner (only when established / scale-up) ────── */}
       {maturity?.isEstablished && (
@@ -916,7 +891,7 @@ function ScnActionPlanPage({ plan, maturity }: {
             Established / Scale-up signals detected ({maturity.confidence})
           </Text>
           <Text style={{ fontSize: 8, color: C.ink700, lineHeight: 1.4 }}>
-            The number below is anchored to public-page signals only. For accurate pricing, connect Stripe/Xero or upload current financials. Evidence: {maturity.evidence.slice(0, 2).join("; ")}.
+            BlockID does not price a company from public-page signals. Connect Stripe/Xero or upload current financials to unlock a valuation method. Evidence: {maturity.evidence.slice(0, 2).join("; ")}.
           </Text>
         </View>
       )}
@@ -925,7 +900,7 @@ function ScnActionPlanPage({ plan, maturity }: {
       <View style={{ marginBottom: 12, padding: 14, borderRadius: 8, backgroundColor: C.brand50, borderLeftWidth: 4, borderLeftColor: C.brand600 }}>
         <View style={{ flexDirection: "row", gap: 16 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>SVI Score</Text>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>SVI index</Text>
             <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{yn.sviScore}</Text>
             <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{yn.sviLabel}</Text>
             <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>
@@ -933,16 +908,13 @@ function ScnActionPlanPage({ plan, maturity }: {
             </Text>
           </View>
           <View style={{ flex: 1, borderLeftWidth: 0.5, borderLeftColor: C.brand200, paddingLeft: 12 }}>
-            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Blended Valuation</Text>
-            <Text style={{ fontSize: 24, fontFamily: "Helvetica-Bold", color: C.brand700 }}>{formatAud(yn.valuationMidAud)}</Text>
-            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>
-              {formatAud(yn.valuationLowAud)} – {formatAud(yn.valuationHighAud)}
-            </Text>
-            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{yn.valuationConfidence} confidence</Text>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Company value</Text>
+            <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.brand700 }}>{notEstimable.label}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2, lineHeight: 1.4 }}>{notEstimable.line}</Text>
           </View>
         </View>
         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: C.brand200 }}>
-          <Text style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5 }}>{yn.plainEnglish}</Text>
+          <Text style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5 }}>{plainEnglish}</Text>
         </View>
       </View>
 
@@ -1010,7 +982,7 @@ function ScnActionPlanPage({ plan, maturity }: {
 
       {/* ── Valuation levers ───────────────────────────────────────── */}
       <View>
-        <Text style={[s.label, { marginBottom: 4 }]}>How to push your number up</Text>
+        <Text style={[s.label, { marginBottom: 4 }]}>Levers that strengthen your evidence</Text>
         <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 5 }}>
           {plan.valuationLevers.slice(0, 5).map((l, i) => (
             <View key={i} style={{
@@ -1024,8 +996,8 @@ function ScnActionPlanPage({ plan, maturity }: {
                 <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{l.lever}</Text>
                 <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{l.effort} effort · {l.timeframe}</Text>
               </View>
-              <Text style={{ flex: 1, fontSize: 9, fontFamily: "Helvetica-Bold", color: "#10B981", textAlign: "right", alignSelf: "center" }}>
-                {l.upliftAud}
+              <Text style={{ flex: 2, fontSize: 7.5, color: "#047857", textAlign: "right", alignSelf: "center" }}>
+                {l.effect ?? ""}
               </Text>
             </View>
           ))}
@@ -1036,7 +1008,7 @@ function ScnActionPlanPage({ plan, maturity }: {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- *  ACCELERATOR CHECKLIST PAGE (v2.12) — heatmap + top 5 valuation-lift moves
+ *  ACCELERATOR CHECKLIST PAGE (v2.12) — heatmap + top 5 high-leverage moves
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAnalysis["acceleratorReadiness"]> }) {
@@ -1045,12 +1017,6 @@ function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAna
     if (pct >= 40) return C.brand600;
     if (pct >= 20) return "#F59E0B";
     return "#EF4444";
-  }
-  function fmtAud(v?: number): string {
-    if (!v || v <= 0) return "";
-    if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-    if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-    return `A$${v}`;
   }
 
   return (
@@ -1098,9 +1064,9 @@ function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAna
         ))}
       </View>
 
-      {/* Top 5 valuation-lift moves */}
+      {/* Top 5 high-leverage moves */}
       <View style={{ marginBottom: 8 }}>
-        <Text style={[s.label, { marginBottom: 4 }]}>Top 5 valuation-lift moves (across all sources)</Text>
+        <Text style={[s.label, { marginBottom: 4 }]}>Top 5 high-leverage moves (across all sources)</Text>
         <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 5 }}>
           {readiness.highLeverageGaps.slice(0, 5).map((g, i) => (
             <View key={i} style={{
@@ -1116,9 +1082,6 @@ function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAna
                     {g.entry.source_name} · status: <Text style={{ color: g.status === "partial" ? "#B45309" : "#9F1239", fontFamily: "Helvetica-Bold" }}>{g.status.toUpperCase()}</Text>
                   </Text>
                 </View>
-                {g.estLiftAud && g.estLiftAud > 0 && (
-                  <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: "#10B981", textAlign: "right" }}>+{fmtAud(g.estLiftAud)}</Text>
-                )}
               </View>
               {g.entry.tactic.length > 0 && (
                 <View style={{ marginTop: 4 }}>
@@ -1136,7 +1099,7 @@ function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAna
       {/* Methodology note */}
       <View style={{ marginTop: 8, padding: 8, backgroundColor: C.surface50, borderRadius: 5 }}>
         <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4 }}>
-          Criteria sourced from public accelerator posts (Antler blog, YC essays, Startmate posts, etc.). Each is mapped to the stage range it applies to. Estimated A$ lift = the criterion&apos;s `valuation_lift_pct` applied to the blended valuation mid. Met / partial / gap status is computed from your Antler signals + SVI dimensions + scraped input keywords — deterministic, re-runs every analysis. See <Text style={{ fontFamily: "Helvetica-Bold" }}>/workspace/accelerators/criteria</Text> for the full searchable library.
+          Criteria sourced from public accelerator posts (Antler blog, YC essays, Startmate posts, etc.). Each is mapped to the stage range it applies to. No dollar lift is shown: the SVI is an index, not a valuation. Met / partial / gap status is computed from your Antler signals + SVI dimensions + scraped input keywords — deterministic, re-runs every analysis. See <Text style={{ fontFamily: "Helvetica-Bold" }}>/workspace/accelerators/criteria</Text> for the full searchable library.
         </Text>
       </View>
     </View>
@@ -1225,8 +1188,8 @@ export function SVIReportPDF({
   const p1Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P1");
 
   // ── SCN navigation data (Position / Value / Direction) ─────────────────
-  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
-  const valuation = estimateValuation(sviScore, analysis.stage, { sector: analysis.sector ?? analysis.signals?.sector }, dims);
+  // V04a (D22): no dollar range is derived from the SVI or its dimensions.
+  const valuation = valuationNotEstimable();
   // G21 P1 review (score-governance § 7): the rank and the stage median come
   // from the stored cohort result and only when published — never
   // `percentileRank` / SVI_BENCHMARKS (static-table estimates without an n).
@@ -1515,11 +1478,9 @@ export function SVIReportPDF({
           <View style={{ flexDirection: "row", gap: 10, marginTop: 28 }}>
             {/* Estimated Valuation */}
             <View style={{ flex: 1, backgroundColor: C.brand50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.brand200, alignItems: "center" }}>
-              <Text style={{ fontSize: 6.5, color: C.brand600, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Est. Startup Value</Text>
-              <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.brand700 }}>
-                {formatAUD(valuation.low)} – {formatAUD(valuation.high)}
-              </Text>
-              <Text style={{ fontSize: 6.5, color: C.ink500, marginTop: 2 }}>pre-revenue range · AUD</Text>
+              <Text style={{ fontSize: 6.5, color: C.brand600, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Company value</Text>
+              <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand700 }}>{valuation.label}</Text>
+              <Text style={{ fontSize: 6.5, color: C.ink500, marginTop: 2, textAlign: "center" }}>{valuation.hint}</Text>
             </View>
             {/* Percentile */}
             <View style={{ flex: 1, backgroundColor: C.emerald50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.emerald200, alignItems: "center" }}>
@@ -1715,7 +1676,7 @@ export function SVIReportPDF({
           <MetricCard label="STARTUP INDEX" value={String(sviScore)} sub={sviLabel(sviScore)} />
           <MetricCard label="STAGE" value={String(analysis.stage)} sub={analysis.stageLabel} color={C.ink800} />
           <MetricCard label="VS AU PEERS" value={topPercent === null ? "—" : `Top ${topPercent}%`} sub={published ? `P${percentile} at stage — ${published.label}` : noBenchmarkYetLine(cohortN)} color={C.emerald600} />
-          <MetricCard label="EST. VALUE" value={formatAUD(valuation.mid)} sub="indicative" color={C.teal600} />
+          <MetricCard label="COMPANY VALUE" value={valuation.label} sub="no CFO method yet" color={C.teal600} />
         </View>
 
         <Text style={[s.body, { marginBottom: 6 }]}>
@@ -1788,24 +1749,13 @@ export function SVIReportPDF({
         <HeaderBar color={brandPrimary} />
         <ScnBanner index="03" label="Value" question="What's my startup worth?" color={SCN_COLORS[2]} />
 
-        {/* Indicative valuation range */}
+        {/* Company value — V04a / D22: not estimable off the SVI */}
         <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14, backgroundColor: C.surface50, marginBottom: 14 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
-            <Text style={s.label}>INDICATIVE PRE-MONEY VALUATION (AUD)</Text>
-            <Text style={{ fontSize: 7, color: C.ink400 }}>{valuation.method} · {Math.round(valuation.confidence * 100)}% conf.</Text>
-          </View>
-          <Text style={{ fontSize: 24, fontFamily: "Helvetica-Bold", color: C.teal600, marginBottom: 6 }}>
-            {formatAUD(valuation.low)} – {formatAUD(valuation.high)}
-          </Text>
-          <ValuationRangeSVG low={valuation.low} mid={valuation.mid} high={valuation.high} width={250} />
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 1, width: 250 }}>
-            <Text style={{ fontSize: 6.5, color: C.ink400 }}>{formatAUD(valuation.low)}</Text>
-            <Text style={{ fontSize: 6.5, color: C.brand700, fontFamily: "Helvetica-Bold" }}>{formatAUD(valuation.mid)}</Text>
-            <Text style={{ fontSize: 6.5, color: C.ink400 }}>{formatAUD(valuation.high)}</Text>
-          </View>
-          <Text style={{ fontSize: 7.5, color: C.ink500, marginTop: 8, lineHeight: 1.45 }}>
-            Triangulated from Berkus, Scorecard and revenue-multiple methods calibrated to 2024–2025 Australian
-            market comparables. Indicative only — not a formal valuation under the Corporations Act 2001 (Cth).
+          <Text style={s.label}>COMPANY VALUE (AUD)</Text>
+          <Text style={{ fontSize: 18, fontFamily: "Helvetica-Bold", color: C.teal600, marginTop: 4, marginBottom: 6 }}>{valuation.label}</Text>
+          <Text style={{ fontSize: 8.5, color: C.ink700, lineHeight: 1.45 }}>{valuation.line}</Text>
+          <Text style={{ fontSize: 7.5, color: C.ink500, marginTop: 6, lineHeight: 1.45 }}>
+            {valuation.why} Not a formal valuation under the Corporations Act 2001 (Cth).
           </Text>
         </View>
 

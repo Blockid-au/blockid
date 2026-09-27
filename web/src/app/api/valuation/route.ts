@@ -1,29 +1,24 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { computeValuation, type ValuationInput } from "@/lib/valuation";
-import { canAfford, spendCredits } from "@/lib/credits";
-import { findSVIAccountWithFallback, creditChargeNote } from "@/lib/projects";
+import { findSVIAccountWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
-import { resolveBurnRate } from "@/lib/revenue/burn-rate-server";
-import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
-import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
-import { primeSectorMultiples } from "@/lib/valuation/sector-multiples";
 import { apiRoute } from "@/lib/audit/api-route";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 
 export const dynamic = "force-dynamic";
 
-// Map numeric SVI stage (0-7) to valuation stage string
-function mapStage(numericStage: number): string {
-  if (numericStage <= 1) return "idea";
-  if (numericStage <= 2) return "validation";
-  if (numericStage <= 4) return "mvp";
-  return "growth"; // 5-7
-}
-
 // ---------------------------------------------------------------------------
-// GET /api/valuation — Compute dollar valuation for the logged-in user
-// Uses latest SVI analysis (dimension scores) + latest metrics (revenue data)
+// /api/valuation — V04a (founder decision D22, 2026-09-27).
+//
+// This route used to price the company with `computeValuation`: a Berkus +
+// Scorecard blend whose pillars were the SVI dimension scores (and the SVI
+// total as a fallback), cross-checked against connected MRR. D22: the SVI is
+// an uncapped index, not a dollar valuation — a figure may only come from a
+// CFO valuation method with qualified inputs (the report pipeline's
+// `cfo-valuation.ts`, `/api/valuation/vc`, `/api/valuation/scenario`). Both
+// verbs now answer "not estimable" with the evidence that unlocks a method.
+// POST no longer charges credits: nothing is computed.
 // ---------------------------------------------------------------------------
 
 export async function GET() {
@@ -35,9 +30,6 @@ export async function GET() {
         { status: 401 },
       );
     }
-    // S27-C: load admin-approved sector-multiple overrides (cached 10 min).
-    await primeSectorMultiples();
-
     const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json(
@@ -46,19 +38,15 @@ export async function GET() {
       );
     }
 
-    // 1. Find the project's SVI account — with fallback for legacy records.
-    // S18-A — member-aware read (viewer+): the OWNER's record on a shared
-    // project; connected-revenue signals are keyed on the owner's user_id.
+    // S18-A — member-aware read (viewer+): the OWNER's record on a shared project.
     const { scope, denied } = await projectScopeOrDeny("viewer");
     if (denied) return denied;
-    const projectId = scope?.projectId ?? null;
     const account = await findSVIAccountWithFallback(
       scope?.dataEmail ?? user.email,
-      projectId,
+      scope?.projectId ?? null,
       "id, current_svi, current_stage",
       { callerEmail: user.email },
     );
-
     if (!account) {
       return NextResponse.json(
         { ok: false, error: "No SVI account found. Complete an SVI analysis first." },
@@ -66,244 +54,31 @@ export async function GET() {
       );
     }
 
-    const sviScore = (account.current_svi as number) ?? 100;
-    const numericStage = (account.current_stage as number) ?? 0;
-    const stage = mapStage(numericStage);
-
-    // 2. Fetch latest snapshot for dimension scores
-    const { data: snapshot } = await supabase
-      .from("svi_snapshots")
-      .select("dimension_scores")
-      .eq("account_id", account.id)
-      .order("snapshot_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Parse dimension scores from the snapshot JSON
-    let dimensions: ValuationInput["dimensions"] = undefined;
-    if (snapshot?.dimension_scores && typeof snapshot.dimension_scores === "object") {
-      const ds = snapshot.dimension_scores as Record<string, number>;
-      dimensions = {
-        ftv: ds.ftv,
-        mpc: ds.mpc,
-        ptd: ds.ptd,
-        tre: ds.tre,
-        cgh: ds.cgh,
-        iri: ds.iri,
-        lco: ds.lco,
-        svm: ds.svm,
-      };
-    }
-
-    // 3. Fetch latest metrics for revenue data
-    const { data: latestMetrics } = await supabase
-      .from("startup_metrics")
-      .select(
-        "mrr_aud, arr_aud, revenue_growth_pct, monthly_churn_pct, burn_rate_aud, runway_months",
-      )
-      .eq("account_id", account.id)
-      .order("metric_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // S28-C / S29-hardening — ONE burn precedence (Xero → bank CSV →
-    // startup_metrics → none), shared with /api/revenue and /api/pnl; feeds
-    // the runway figure.
-    const burn = await resolveBurnRate(supabase, {
-      projectId,
-      ownerUserId: scope?.ownerUserId ?? user.id,
-      metricBurn: latestMetrics?.burn_rate_aud as number | null | undefined,
-    });
-
-    // 4. Build valuation input
-    const input: ValuationInput = {
-      sviScore,
-      stage,
-      dimensions,
-      mrrAud: (latestMetrics?.mrr_aud as number) ?? undefined,
-      arrAud: (latestMetrics?.arr_aud as number) ?? undefined,
-      revenueGrowthPct:
-        (latestMetrics?.revenue_growth_pct as number) ?? undefined,
-      monthlyChurnPct:
-        (latestMetrics?.monthly_churn_pct as number) ?? undefined,
-      burnRateAud: burn.burnRate > 0 ? burn.burnRate : undefined,
-      runwayMonths: (latestMetrics?.runway_months as number) ?? undefined,
-    };
-
-    // 5. Run valuation engine
-    const engine = computeValuation(input);
-
-    // 6. S17-B — cross-check against connected revenue (Stripe `svi_signals.mrr_aud`,
-    //    Xero `svi_evidence.xero_revenue`). Overlap narrows, disagreement widens
-    //    + notes, stale (> 90d) signals are ignored + noted, no MRR = unchanged.
-    const signals = await loadConnectedRevenueSignals(supabase, {
-      userId: scope?.ownerUserId ?? user.id,
-      projectId,
-      accountId: account.id as string,
-    });
-    const bridged = applyConnectedRevenueBridge(engine, signals, { sector: input.sector });
-
-    const valuation = {
-      ...engine,
-      lowAud: bridged.lowAud,
-      midAud: bridged.midAud,
-      highAud: bridged.highAud,
-      method:
-        bridged.valuationMethod === "svi+arr_multiple"
-          ? `${engine.method} + connected ARR multiple cross-check`
-          : engine.method,
-      valuationMethod: bridged.valuationMethod,
-      methodNote: bridged.methodNote,
-      connectedRevenue: bridged.connectedRevenue,
-      sviRange: { lowAud: engine.lowAud, midAud: engine.midAud, highAud: engine.highAud },
-    };
-
     return NextResponse.json({
       ok: true,
-      valuation,
-      sviScore,
-      stage,
-      numericStage,
+      valuation: valuationNotEstimable(),
+      sviScore: (account.current_svi as number | null) ?? null,
+      numericStage: (account.current_stage as number | null) ?? null,
     });
   } catch (err) {
     console.error("[blockid:valuation] GET error", err);
     return NextResponse.json(
-      { ok: false, error: "Valuation computation failed" },
+      { ok: false, error: "Valuation lookup failed" },
       { status: 500 },
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// POST /api/valuation — Scenario modeling with custom inputs
-// Costs 0.50 credits for detailed multi-method valuation
-// ---------------------------------------------------------------------------
-
-async function POST_handler(request: Request) {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { ok: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    await primeSectorMultiples();
-
-    // Parse request body
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object") {
-      return NextResponse.json(
-        { ok: false, error: "Invalid request body" },
-        { status: 400 },
-      );
-    }
-
-    const {
-      sviScore,
-      stage,
-      mrrAud,
-      arrAud,
-      revenueGrowthPct,
-      monthlyChurnPct,
-      burnRateAud,
-      runwayMonths,
-      sector,
-      teamSize,
-      dimensions,
-    } = body;
-
-    // Validate required fields
-    if (typeof sviScore !== "number" || sviScore < 0) {
-      return NextResponse.json(
-        { ok: false, error: "sviScore is required and must be a positive number" },
-        { status: 400 },
-      );
-    }
-    if (typeof stage !== "string" || !["idea", "validation", "mvp", "growth"].includes(stage)) {
-      return NextResponse.json(
-        { ok: false, error: 'stage must be one of: idea, validation, mvp, growth' },
-        { status: 400 },
-      );
-    }
-
-    // Check credits
-    const affordCheck = await canAfford(user.id, "valuation_detailed");
-    if (!affordCheck.allowed) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Insufficient credits",
-          balance: affordCheck.balance,
-          cost: affordCheck.cost,
-        },
-        { status: 402 },
-      );
-    }
-
-    // Build valuation input from request body
-    const input: ValuationInput = {
-      sviScore,
-      stage,
-      mrrAud: typeof mrrAud === "number" ? mrrAud : undefined,
-      arrAud: typeof arrAud === "number" ? arrAud : undefined,
-      revenueGrowthPct: typeof revenueGrowthPct === "number" ? revenueGrowthPct : undefined,
-      monthlyChurnPct: typeof monthlyChurnPct === "number" ? monthlyChurnPct : undefined,
-      burnRateAud: typeof burnRateAud === "number" ? burnRateAud : undefined,
-      runwayMonths: typeof runwayMonths === "number" ? runwayMonths : undefined,
-      sector: typeof sector === "string" ? sector : undefined,
-      teamSize: typeof teamSize === "number" ? teamSize : undefined,
-      dimensions:
-        dimensions && typeof dimensions === "object"
-          ? {
-              ftv: typeof dimensions.ftv === "number" ? dimensions.ftv : undefined,
-              mpc: typeof dimensions.mpc === "number" ? dimensions.mpc : undefined,
-              ptd: typeof dimensions.ptd === "number" ? dimensions.ptd : undefined,
-              tre: typeof dimensions.tre === "number" ? dimensions.tre : undefined,
-              cgh: typeof dimensions.cgh === "number" ? dimensions.cgh : undefined,
-              iri: typeof dimensions.iri === "number" ? dimensions.iri : undefined,
-              lco: typeof dimensions.lco === "number" ? dimensions.lco : undefined,
-              svm: typeof dimensions.svm === "number" ? dimensions.svm : undefined,
-            }
-          : undefined,
-    };
-
-    // Spend credits — S18-A: a scenario is pure compute on caller-supplied
-    // inputs (nothing on the project record is read or written), so viewer+
-    // and always the CALLER's wallet; project_id only tags the ledger.
-    const { scope: scenarioScope, denied } = await projectScopeOrDeny("viewer");
-    if (denied) return denied;
-    const scenarioProjectId = scenarioScope?.projectId ?? null;
-    const spend = await spendCredits(user.id, "valuation_detailed", {
-      sviScore,
-      stage,
-      scenario: true,
-      project_id: scenarioProjectId,
-    });
-    if (!spend.ok) {
-      return NextResponse.json(
-        { ok: false, error: "Credit deduction failed" },
-        { status: 402 },
-      );
-    }
-
-    // Run valuation engine
-    const valuation = computeValuation(input);
-
-    return NextResponse.json({
-      ok: true,
-      valuation,
-      input: { sviScore, stage },
-      creditsRemaining: spend.balance,
-      creditNote: creditChargeNote(scenarioScope),
-    });
-  } catch (err) {
-    console.error("[blockid:valuation] POST error", err);
+async function POST_handler() {
+  const user = await getCurrentUser();
+  if (!user) {
     return NextResponse.json(
-      { ok: false, error: "Valuation computation failed" },
-      { status: 500 },
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
     );
   }
+  // No SVI-driven scenario is computed and no credit is spent.
+  return NextResponse.json({ ok: true, valuation: valuationNotEstimable(), charged: false });
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.

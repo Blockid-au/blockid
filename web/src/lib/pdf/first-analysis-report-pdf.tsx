@@ -4,7 +4,7 @@
  *
  * Not a third renderer: every visual primitive (palette, stylesheet, header
  * bar, footer, page title, gauge, metric cards, dimension bars, bullets,
- * action rows, radar and valuation-range SVGs) comes from
+ * action rows and radar SVGs) comes from
  * `svi-report-pdf.tsx`, so this document looks like the family it belongs
  * to. What is new is the STRUCTURE, which is what makes the page-count
  * promise honest:
@@ -16,7 +16,7 @@
  *      4  Your Startup Value Index  (gauge, radar, dimension bars)
  *      5  Dimensions I–IV           (rationale, evidence, gaps)
  *      6  Dimensions V–VIII
- *      7  Indicative valuation      (range chart, four-view table, assumptions)
+ *      7  Company value             (not estimable + what unlocks a method; V04a)
  *      8–14  One page per C-level voice (CEO, CFO, CMO, CTO, CPO, CLO, CHRO)
  *     15  Your first 30 days        (flow diagram + milestones)
  *     16  Glossary
@@ -51,12 +51,11 @@ import {
   PageTitle,
   RadarChartSVG,
   ScoreGauge,
-  ValuationRangeSVG,
-  formatAud,
   s,
   sviLabel,
 } from "./svi-report-pdf";
 import { pdfPageCount } from "./page-count";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { buildReportMeta } from "@/lib/analyses/first-analysis/meta";
 import {
   AGENT_META,
@@ -64,12 +63,16 @@ import {
   FIRST_ANALYSIS_AGENTS,
   SECTION_MAX_ATTEMPTS,
   pendingSections,
+  readValuationSection,
   unavailableSections,
   type AgentSection,
   type FirstAnalysisAgent,
   type FirstAnalysisReport,
   type SectionStatus,
 } from "@/lib/analyses/first-analysis/types";
+
+/** V04a (D22): the company value is never derived from the SVI. */
+const NOT_ESTIMABLE = valuationNotEstimable();
 
 export type ReportVariant = "free" | "unlimited";
 /** Which delivery this render is (job.ts `DeliveryPart`): a partial prints "to follow" notes and a part-1 cover line. */
@@ -84,7 +87,6 @@ const MAX_ECHO_SLIDES = 12;
 const MAX_EVIDENCE_PER_DIM = 3;
 const MAX_GAPS_PER_DIM = 2;
 const MAX_ASSUMPTIONS = 5;
-const MAX_METHOD_ROWS = 4;
 const MAX_PLAN_STEPS = 7;
 const MAX_MILESTONES = 3;
 const MAX_AGENT_BODY_CHARS = 5_200;
@@ -170,7 +172,6 @@ function Para({ children }: { children: string }) {
 /* ─── Cover ─────────────────────────────────────────────────────────────── */
 
 function CoverPage({ report, variant, part }: { report: FirstAnalysisReport; variant: ReportVariant; part: ReportPart }) {
-  const v = report.valuation;
   const written = FIRST_ANALYSIS_AGENTS.filter((r) => Boolean(report.agents[r]));
   const pending = pendingSections(report);
   const unavailable = unavailableSections(report);
@@ -208,9 +209,9 @@ function CoverPage({ report, variant, part }: { report: FirstAnalysisReport; var
             <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{`${report.svi.stageLabel} · ${sviLabel(report.svi.total)}`}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: C.surface50, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14 }}>
-            <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Indicative valuation</Text>
-            <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.ink900, marginTop: 6 }}>{`${formatAud(v.lowAud)} – ${formatAud(v.highAud)}`}</Text>
-            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{v.basis === "revenue" ? "Revenue-anchored" : "SVI-based, no revenue provided"}</Text>
+            <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Company value</Text>
+            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.ink900, marginTop: 6 }}>{NOT_ESTIMABLE.label}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{NOT_ESTIMABLE.hint}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: C.surface50, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14 }}>
             <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Written by</Text>
@@ -221,7 +222,7 @@ function CoverPage({ report, variant, part }: { report: FirstAnalysisReport; var
 
         <View>
           <Text style={{ fontSize: 8, color: C.ink400, lineHeight: 1.5 }}>
-            Prepared for the founder from the input they provided. Every number in this document traces to that input or to an assumption stated beside it. The method is grounded in the founder&apos;s doctoral research (DBA) on startup valuation.
+            Prepared for the founder from the input they provided. Every number in this document traces to that input or to an assumption stated beside it. The method is grounded in the founder&apos;s doctoral research (DBA) on startup valuation; the Startup Value Index is an index, not a dollar valuation.
           </Text>
           <Text style={{ fontSize: 7, color: C.ink500, marginTop: 6 }}>{preparedWithLine(report)}</Text>
           <Text style={{ fontSize: 7, color: C.ink500, marginTop: 6 }}>{PDF_ENTITY_LINE}</Text>
@@ -238,7 +239,7 @@ function ContentsPage({ variant }: { variant: ReportVariant }) {
     ["3", "What we read — the facts taken from your input, with sources"],
     ["4", "Your Startup Value Index — the score and the eight dimensions"],
     ["5–6", "Dimension by dimension — rationale, evidence and gaps"],
-    ["7", "Indicative valuation — range, four views, assumptions"],
+    ["7", "Company value — not estimable yet, and what unlocks it"],
     ["8", "Strategy (CEO)"],
     ["9", "Finances & valuation (CFO)"],
     ["10", "Market & customers (CMO)"],
@@ -344,7 +345,7 @@ function SviPage({ report }: { report: FirstAnalysisReport }) {
       <PageMarker n={4} title="Your Startup Value Index" />
       <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>
         <View style={{ alignItems: "center", width: 150 }}>
-          <ScoreGauge score={Math.min(100, svi.total)} size={84} />
+          <ScoreGauge score={Math.round(svi.total)} size={84} />
           <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.ink900, marginTop: 6 }}>{Math.round(svi.total)}</Text>
           <Text style={{ fontSize: 8, color: C.ink500 }}>{`${svi.stageLabel} · ${sviLabel(svi.total)}`}</Text>
           <Text style={{ fontSize: 7, color: C.ink400, marginTop: 4, textAlign: "center" }}>{`Net ${svi.netAdjustment >= 0 ? "+" : ""}${svi.netAdjustment} on base ${svi.baseline} · evidence confidence ${Math.round(svi.confidence * 100)}%`}</Text>
@@ -394,49 +395,27 @@ function DimensionsPage({ report, from, to, n }: { report: FirstAnalysisReport; 
 /* ─── Valuation ─────────────────────────────────────────────────────────── */
 
 function ValuationPage({ report }: { report: FirstAnalysisReport }) {
-  const v = report.valuation;
+  // V04a (D22): the SVI is never turned into dollars. A report stored before
+  // the change still carries an SVI-derived range — it is read as not
+  // estimable and never printed.
+  const v = readValuationSection(report.valuation);
   return (
     <Page size="A4" style={s.page} wrap={false}>
       <HeaderBar />
-      <PageTitle title="Indicative valuation" subtitle={v.basis === "revenue" ? "Anchored on the revenue figure in your input" : "SVI-based — no revenue figure was provided"} />
-      <PageMarker n={7} title="Indicative valuation" />
+      <PageTitle title="Company value" subtitle="Not estimable yet — a valuation needs a CFO method with verified inputs" />
+      <PageMarker n={7} title="Company value" />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
-        <MetricCard label="Low" value={formatAud(v.lowAud)} />
-        <MetricCard label="Mid" value={formatAud(v.midAud)} color={C.brand700} />
-        <MetricCard label="High" value={formatAud(v.highAud)} />
+        <MetricCard label="Company value" value={NOT_ESTIMABLE.label} color={C.brand700} />
       </View>
-      <ValuationRangeSVG low={v.lowAud} mid={v.midAud} high={v.highAud} />
-      <Text style={{ fontSize: 7.5, color: C.ink500, marginTop: 4 }}>{`Method: ${v.method} · confidence ${v.confidence}/100`}</Text>
-      <Text style={{ fontSize: 8, color: C.amber700, marginTop: 6, lineHeight: 1.4 }}>{v.note}</Text>
+      <Text style={{ fontSize: 9, color: C.ink800, lineHeight: 1.5 }}>{v.note}</Text>
+      <Text style={{ fontSize: 8, color: C.amber700, marginTop: 6, lineHeight: 1.4 }}>{NOT_ESTIMABLE.why}</Text>
 
-      <Text style={s.h2}>Four views of the same company</Text>
-      {v.methods.length === 0 ? (
-        <Text style={{ fontSize: 8, color: C.ink500 }}>The cross-check views could not be computed for this input.</Text>
-      ) : (
-        <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6 }}>
-          <View style={{ flexDirection: "row", backgroundColor: C.surface100, paddingVertical: 4, paddingHorizontal: 8 }}>
-            <Text style={{ flex: 2, fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink600 }}>VIEW</Text>
-            <Text style={{ flex: 1.2, fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink600 }}>LOW</Text>
-            <Text style={{ flex: 1.2, fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink600 }}>MID</Text>
-            <Text style={{ flex: 1.2, fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink600 }}>HIGH</Text>
-            <Text style={{ flex: 0.8, fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink600 }}>WEIGHT</Text>
-          </View>
-          {v.methods.slice(0, MAX_METHOD_ROWS).map((m, i) => (
-            <View key={m.name} style={{ paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 0.5, borderTopColor: C.surface200, backgroundColor: i % 2 ? C.surface50 : C.white }}>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={{ flex: 2, fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>{m.name}</Text>
-                <Text style={{ flex: 1.2, fontSize: 8, color: C.ink700 }}>{formatAud(m.lowAud)}</Text>
-                <Text style={{ flex: 1.2, fontSize: 8, color: C.ink700 }}>{formatAud(m.midAud)}</Text>
-                <Text style={{ flex: 1.2, fontSize: 8, color: C.ink700 }}>{formatAud(m.highAud)}</Text>
-                <Text style={{ flex: 0.8, fontSize: 8, color: C.ink700 }}>{`${Math.round(m.weight * 100)}%`}</Text>
-              </View>
-              <Text style={{ fontSize: 7, color: C.ink500, marginTop: 2, lineHeight: 1.4 }}>{clip(m.rationale, 180)}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+      <Text style={s.h2}>What unlocks a valuation method</Text>
+      {v.unlock.map((u, i) => (
+        <Bullet key={`un-${i}`} text={clip(u, 210)} color={C.brand500} />
+      ))}
 
-      <Text style={s.h2}>Assumptions behind the number</Text>
+      <Text style={s.h2}>What we read from your input</Text>
       {v.assumptions.slice(0, MAX_ASSUMPTIONS).map((a, i) => (
         <Bullet key={`as-${i}`} text={clip(a, 210)} color={C.brand500} />
       ))}
@@ -567,11 +546,11 @@ const GLOSSARY: [string, string][] = [
   ["Startup Value Index (SVI)", "BlockID's open-ended index. Base 100; each of eight dimensions adds or subtracts on evidence. It is a position, not a valuation."],
   ["Dimension", "One of eight lenses: Founder & Team, Market & Problem, Product & Tech, Traction & Revenue, Cap Table & Governance, Investor Readiness, Legal & Compliance, Strategic Vision & Moat."],
   ["Evidence confidence", "How much of the eight dimensions your input actually evidences. Low confidence means 'tell us more', not 'you are weak'."],
-  ["Indicative valuation", "A range built from stated methods and assumptions. Not a formal valuation and not advice."],
+  ["Company value", "Shown only when a CFO valuation method has verified inputs (connected revenue, financial statements or a priced round). Until then it reads \"not estimable\"; the SVI is never converted into dollars."],
   ["Berkus method", "Pre-revenue method that assigns a capped dollar value to five pillars: idea, prototype, team, relationships, rollout."],
   ["Scorecard method", "Weights the company against the regional pre-money median for its stage."],
   ["Revenue multiple", "Valuation as a multiple of annual recurring revenue, by sector. Used only when a revenue figure was provided."],
-  ["MRR / ARR", "Monthly / annual recurring revenue. A figure here changes the valuation method."],
+  ["MRR / ARR", "Monthly / annual recurring revenue. A verified figure unlocks the revenue-multiple method."],
   ["ESIC", "Early Stage Innovation Company — an ATO status that gives eligible investors a tax offset."],
   ["R&D Tax Incentive", "The Australian programme refunding a share of eligible research and development spend (43.5% refundable offset for companies under A$20M turnover)."],
   ["ESOP", "Employee share option plan; Australian start-up tax concession applies when the conditions are met."],
@@ -605,7 +584,7 @@ function DisclaimerPage({ report }: { report: FirstAnalysisReport }) {
         This report was generated by BlockID.au from the information the founder provided. The &quot;What we read&quot; page lists exactly what that information was. Where a fact was not provided, the report says so; it does not fill the gap with an estimate presented as the founder&apos;s number.
       </Para>
       <Para>
-        The Startup Value Index is a directional measure of evidence, not a financial valuation. The indicative valuation range is produced by the methods and assumptions listed on page 7 and is provided for the founder&apos;s own planning. It is not an offer, a recommendation, or a statement that any investor would transact at these values.
+        The Startup Value Index is a directional measure of evidence, not a financial valuation, and no dollar value is derived from it. Page 7 lists what would unlock a valuation method. Nothing here is an offer, a recommendation, or a statement that any investor would transact at any value.
       </Para>
       <Para>
         The C-level sections are written by BlockID&apos;s AI agents, each grounded on the same input. They are commentary for a founder, in a mentoring register, and may be wrong where the input was thin. Read them as a senior advisor&apos;s first pass, not as a decision.

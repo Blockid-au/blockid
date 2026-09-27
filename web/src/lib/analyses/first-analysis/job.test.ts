@@ -131,7 +131,7 @@ describe("runFirstAnalysisJob", () => {
     // First save: skeleton with the CEO named as current and no agents yet.
     const first = h.saves[0];
     expect(first.svi.dimensions).toHaveLength(8);
-    expect(first.valuation.basis).toBe("revenue");
+    expect(first.valuation.status).toBe("not_estimable"); // V04a: never an SVI-derived range
     expect(first.echo.rows.length).toBe(11);
     expect(first.agents).toEqual({});
     expect(first.progress.current).toBe("ceo");

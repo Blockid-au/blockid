@@ -29,13 +29,6 @@ const STATUS_LABEL = {
   gap: "Gap",
 } as const;
 
-function fmtAud(v?: number): string {
-  if (!v || v <= 0) return "—";
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-  return `A$${v}`;
-}
-
 function SourceRow({ s }: { s: Source }) {
   const [open, setOpen] = React.useState(false);
   const pctColor = s.pct >= 70 ? "text-emerald-700"
@@ -96,9 +89,7 @@ function SourceRow({ s }: { s: Source }) {
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
-                  {c.estLiftAud && c.estLiftAud > 0 ? (
-                    <span className="text-[10px] font-semibold text-emerald-600">+{fmtAud(c.estLiftAud)} valuation</span>
-                  ) : <span />}
+                  <span />
                   {c.entry.citations[0] && (
                     <a href={c.entry.citations[0]} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5">
                       Source <ExternalLink className="h-2.5 w-2.5" />
@@ -170,7 +161,7 @@ export function AcceleratorReadinessCard({ analysis }: { analysis: SVIAnalysis }
       {r.highLeverageGaps.length > 0 && (
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
           <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 mb-2 flex items-center gap-1.5">
-            <Award className="h-3 w-3" /> Top valuation-lift moves (across all sources)
+            <Award className="h-3 w-3" /> Top high-leverage moves (across all sources)
           </p>
           <ul className="space-y-1.5">
             {r.highLeverageGaps.slice(0, 3).map((g, i) => (
@@ -179,9 +170,6 @@ export function AcceleratorReadinessCard({ analysis }: { analysis: SVIAnalysis }
                 <span className="flex-1">
                   <strong>{g.entry.criterion}</strong>
                   <span className="text-muted-foreground"> &middot; {g.entry.source_name}</span>
-                  {g.estLiftAud && g.estLiftAud > 0 && (
-                    <span className="text-emerald-600 font-semibold ml-1">+{fmtAud(g.estLiftAud)}</span>
-                  )}
                 </span>
               </li>
             ))}

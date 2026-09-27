@@ -45,7 +45,8 @@ export interface AssessmentCardStrings {
 const EN: AssessmentCardStrings = {
   kicker: "BlockID Assessment Card",
   svi: "SVI",
-  outOf: "/ 100",
+  // SV1 (D22): the SVI is an uncapped index — never "/ 100".
+  outOf: "index",
   evidenceConfidence: "Evidence Confidence",
   verification: "Verification",
   stage: "Stage",
@@ -80,7 +81,7 @@ const EN: AssessmentCardStrings = {
 const VI: AssessmentCardStrings = {
   kicker: "Thẻ đánh giá BlockID",
   svi: "SVI",
-  outOf: "/ 100",
+  outOf: "chỉ số",
   evidenceConfidence: "Độ tin cậy bằng chứng",
   verification: "Xác minh",
   stage: "Giai đoạn",

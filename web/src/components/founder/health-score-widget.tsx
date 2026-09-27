@@ -2,7 +2,8 @@
 
 // HealthScoreWidget — Startup Health Score composite gauge.
 //
-// Visual upgrade: 2-column layout on desktop, estimated valuation displayed,
+// Visual upgrade: 2-column layout on desktop, company-value slot ("not
+// estimable" + unlock hint — V04a/D22: never derived from the SVI),
 // grade narrative, share CTA, and actionable priority cards.
 //
 // Fetches lazily via /api/founder/health-score?startup_id=<id>.
@@ -12,6 +13,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Share2, TrendingUp, Zap } from "lucide-react";
 import type { HealthScoreResult } from "@/lib/health-score";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 
 // ── Copy ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,7 @@ const COPY = {
     notRun:     "Not run",
     shareScore: "Share Score",
     viewReport: "Full Report",
-    valuationLabel: "Est. Startup Value",
+    valuationLabel: "Company value",
     gradeNarrative: {
       A: "Excellent — investor-ready signal",
       B: "Strong — a few gaps to close",
@@ -59,7 +61,7 @@ const COPY = {
     notRun:     "Chưa chạy",
     shareScore: "Chia Sẻ Điểm",
     viewReport: "Báo Cáo Đầy Đủ",
-    valuationLabel: "Định Giá Ước Tính",
+    valuationLabel: "Giá trị doanh nghiệp",
     gradeNarrative: {
       A: "Xuất sắc — sẵn sàng cho nhà đầu tư",
       B: "Tốt — cần cải thiện một số điểm",
@@ -119,22 +121,6 @@ const GRADE_COLOURS: Record<Grade, {
     pill: "bg-bear/10 text-bear",
   },
 };
-
-// ── Valuation estimation (mirrors dashboard logic) ────────────────────────────
-
-function estimateValuation(score: number): string {
-  let raw: number;
-  if (score < 30)       raw = Math.round(score * 3000);
-  else if (score <= 50) raw = Math.round(50_000 + (score - 30) * 22_500);
-  else if (score <= 70) raw = Math.round(500_000 + (score - 50) * 75_000);
-  else if (score <= 85) raw = Math.round(2_000_000 + (score - 70) * 200_000);
-  else if (score <= 120) raw = Math.round(5_000_000 + (score - 85) * 142_857);
-  else raw = Math.round(10_000_000 + (score - 120) * 250_000);
-
-  if (raw >= 1_000_000) return `A$${(raw / 1_000_000).toFixed(1)}M`;
-  if (raw >= 1_000) return `A$${(raw / 1_000).toFixed(0)}K`;
-  return `A$${raw.toLocaleString()}`;
-}
 
 // ── SVG arc gauge ─────────────────────────────────────────────────────────────
 
@@ -255,8 +241,7 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
   }, [startupId]);
 
   const colours = result ? GRADE_COLOURS[result.grade] : GRADE_COLOURS["F"];
-  const sviScore = result?.components.sviScore;
-  const valuation = sviScore ? estimateValuation(sviScore) : null;
+  const valuation = result ? valuationNotEstimable({ locale: lang }) : null;
 
   return (
     <div className={`bg-surface border shadow-1 rounded-2xl overflow-hidden transition-all duration-300 hover:border-action/40 ${result ? colours.bg : "border-line-subtle"}`}>
@@ -321,10 +306,10 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
                     <TrendingUp className="h-3.5 w-3.5 text-muted" />
                     <p className="text-[10px] uppercase tracking-widest text-muted font-medium">{c.valuationLabel}</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-strong">
-                    {valuation}
+                  <p className="text-lg font-bold text-strong">
+                    {valuation.label}
                   </p>
-                  <p className="text-[10px] text-muted mt-1">Based on your SVI Score</p>
+                  <p className="text-[10px] text-muted mt-1">{valuation.hint}</p>
                 </div>
               )}
 

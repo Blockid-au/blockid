@@ -112,22 +112,9 @@ export function checkAnalysisDepth(
     reasons.push("This run has no overall index value to publish.");
   }
 
-  const val = svi.valuation;
-  const valuationOk =
-    val &&
-    isFiniteNumber(val.low) &&
-    isFiniteNumber(val.mid) &&
-    isFiniteNumber(val.high) &&
-    val.mid > 0 &&
-    val.low <= val.mid &&
-    val.mid <= val.high &&
-    typeof val.method === "string" &&
-    val.method.trim().length > 0;
-  if (!valuationOk) {
-    reasons.push(
-      "This run has no valuation range, which is half of what a reader comes to a profile for.",
-    );
-  }
+  // V04a (D22): the compact valuation was always derived from the SVI and is
+  // never published, so it is no longer a publish requirement.
+
 
   const actions = (svi.nextActions ?? []).filter(
     (a) =>

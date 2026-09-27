@@ -319,17 +319,16 @@ describe("adapter integration", () => {
     expect(report.valuation.narrative).not.toMatch(/three-case/i);
   });
 
-  it("fromSnapshot without a `vc` keeps the directional three-case fallback: all 7 methods non-applicable, no inputs, stage baseline as the only cross-check, one honest line, no ask", () => {
+  // V04a (D22): without a `vc` the adapter used to lift a directional
+  // three-case band (SVI × stage multiplier) with the stage baseline as a
+  // cross-check. That was an SVI→dollar path; the chapter is now not estimable.
+  it("fromSnapshot without a `vc` is not estimable: no methods, no range, no cross-check, one honest line", () => {
     const report = fromSnapshot({ snapshotId: "snap-2", stageLabel: "Seed", stage: 2, sviTotal: 100, dimStates: { tre: { score: 40 } } });
     expect(isReportV2(report)).toBe(true);
-    expect(report.valuation.methods).toHaveLength(7);
-    expect(report.valuation.methods.every((m) => !m.applicable && m.weight === 0)).toBe(true);
-    expect(report.valuation.inputs).toBeUndefined();
-    expect(report.valuation.ask).toBeUndefined();
-    expect(report.valuation.crossChecks).toHaveLength(1);
-    expect(report.valuation.crossChecks?.[0]).toMatchObject({ midAud: VALUATION_BASELINES_AUD[2].mid });
-    expect(report.valuation.narrative).toMatch(/No CFO method ran on this snapshot/);
-    expect(report.valuation.visuals[0].title).toMatch(/three cases/);
+    expect(report.valuation).toMatchObject({ status: "unavailable", reason: "not_estimable", visuals: [] });
+    expect(report.valuation).not.toHaveProperty("methods");
+    expect(report.valuation).not.toHaveProperty("crossChecks");
+    expect(report.valuation.narrative).toMatch(/^Not estimable — add .* to unlock a valuation method\./);
   });
 });
 

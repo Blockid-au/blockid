@@ -23,11 +23,20 @@ const ledger: AssessmentLedgerInput = {
 const item = (over: Partial<DimensionEvidenceItem>): DimensionEvidenceItem => ({ id: "x", statement: "s", level: "L1", verified: false, ...over });
 
 describe("buildAssessmentCard", () => {
+  it("SV1: an uncapped index above 100 is never 'strong' by construction", () => {
+    const weak = { total: 140, dimensions: ledger.dimensions.map((d) => ({ ...d, score: 45 })) };
+    const card = buildAssessmentCard({ name: "Acme", sector: "SaaS", stageLabel: "Seed", verificationLevel: 2 }, weak, {}, { generatedAt: "2026-09-20T00:00:00Z" });
+    expect(card.svi).toBe(140);
+    expect(card.sviBand).toBe("developing");
+  });
+
   it("builds the full card from plain inputs", () => {
     const card = buildAssessmentCard({ name: "Acme", sector: "SaaS", stageLabel: "Seed", verificationLevel: 2 }, ledger, {}, { generatedAt: "2026-09-20T00:00:00Z" });
     expect(card.startupName).toBe("Acme");
     expect(card.svi).toBe(74);
-    expect(card.sviBand).toBe("strong");
+    // SV1 (D22): the band reads the weighted profile of the assessed dimensions
+    // (≈ 67 here), not min(100, index) — was "strong" off the index of 74.
+    expect(card.sviBand).toBe("developing");
     expect(card.verification).toMatchObject({ level: 2, short: "L2", label: "BlockID Verified L2", verified: true });
     expect(card.stageLabel).toBe("Seed");
     expect(card.sector).toBe("SaaS");

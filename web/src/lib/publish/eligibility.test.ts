@@ -86,21 +86,14 @@ describe("checkAnalysisDepth", () => {
     expect(result.reasons.join(" ")).toMatch(/dimensions/i);
   });
 
-  it("refuses a run with no valuation range", () => {
+  // V04a (D22): the stored valuation was always SVI-derived and is never
+  // published, so it is no longer a publish requirement (the old pin refused
+  // a run without an A$ range; every new run is "not estimable").
+  it("does not require a valuation range — a not-estimable run is publishable", () => {
     const result = checkAnalysisDepth(
-      svi({
-        valuation: {
-          low: 0,
-          mid: 0,
-          high: 0,
-          method: "",
-          confidence: 0,
-          currency: "AUD",
-        },
-      }),
+      svi({ valuation: { status: "not_estimable", unlock: ["connected revenue (Stripe or Xero)"] } }),
     );
-    expect(result.ok).toBe(false);
-    expect(result.reasons.join(" ")).toMatch(/valuation/i);
+    expect(result.reasons.join(" ")).not.toMatch(/valuation/i);
   });
 
   it("refuses a run with fewer than three usable next steps", () => {

@@ -46,7 +46,9 @@ describe("<AssessmentCard>", () => {
     expect(html).toContain(">SVI<");
     expect(html).toContain(">Evidence Confidence<");
     expect(html).toContain(">74<");
-    expect(html).toContain("/ 100");
+    // SV1 (D22): the SVI is an uncapped index — never "/ 100".
+    expect(html).not.toContain("/ 100");
+    expect(html).toContain(">index<");
     expect(html).toContain(`>${data.evidenceConfidence}<`);
     // The two tiles share one 2-column grid and the same value size.
     expect(html).toContain("grid-cols-2");

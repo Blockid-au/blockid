@@ -53,13 +53,17 @@ describe("prompts", () => {
     expect(sys).toMatch(/mentor/i);
   });
 
-  it("user prompt hands over the echo, the SVI and the valuation basis", () => {
+  // V04a (D22): the prompt used to hand over an "INDICATIVE VALUATION" range
+  // derived from the SVI; it now says the company value is not estimable.
+  it("user prompt hands over the echo, the SVI and a not-estimable valuation block", () => {
     const user = buildAgentUserPrompt(grounding());
     expect(user).toContain("WHAT WE READ");
     expect(user).toContain("Revenue:");
     expect(user).toContain("Startup Value Index:");
-    expect(user).toContain("INDICATIVE VALUATION");
-    expect(user).toContain("a revenue figure from the input");
+    expect(user).toContain("# VALUATION");
+    expect(user).toMatch(/Not estimable — add .* to unlock a valuation method\./);
+    expect(user).toContain("NOT estimable");
+    expect(user).not.toContain("INDICATIVE VALUATION");
     expect(user).toContain("Kelpie Rostering");
   });
 });
@@ -111,13 +115,13 @@ describe("parseAgentText", () => {
 });
 
 describe("checkGrounding", () => {
-  it("accepts figures from the input, the range and the assumptions; flags invented own-facts and a misstated valuation", () => {
+  it("accepts figures from the input and benchmarks; flags invented own-facts and ANY stated valuation (V04a)", () => {
     const g = grounding();
-    const low = `A$${(g.valuation.lowAud / 1_000_000).toFixed(1)}M`;
-    const high = `A$${(g.valuation.highAud / 1_000_000).toFixed(1)}M`;
-    const good = `MRR is A$18,500 today. The indicative valuation of ${low} to ${high} rests on Berkus pillars capped at A$2.0M each.`;
-    // The Berkus cap is a method assumption, not the founder's data — allowed, and tagged.
+    const good = "MRR is A$18,500 today. The company value is not estimable yet; a typical AU seed round raises A$2.0M.";
+    // A market figure named as such is advice — allowed, and tagged.
     expect(checkGrounding(good, g)).toEqual({ ok: true, ungrounded: [], misstatedValuation: [], benchmarks: ["A$2.0M"] });
+    // There is no range any more, so a valuation figure is always misstated.
+    expect(checkGrounding("The indicative valuation is A$4.1M on these numbers.", g).misstatedValuation).toEqual(["A$4.1M"]);
 
     const invented = "You have raised A$333,333 to date and your burn is about $60k a month.";
     const v1 = checkGrounding(invented, g);
@@ -199,12 +203,12 @@ describe("checkGrounding", () => {
 });
 
 describe("writeAgentSection", () => {
-  it("retries a misstated valuation with the range spelled out, and fails the section if it persists", async () => {
+  it("retries a misstated valuation saying it is not estimable, and fails the section if it persists", async () => {
     const bad = `TITLE: Wrong\n\n${WORDS} The indicative valuation is A$1.2M.\n\nNEXT:\n1. a\n2. b\n3. c`;
     const call = vi.fn().mockResolvedValue({ text: bad });
     await expect(writeAgentSection("ceo", grounding(), call)).rejects.toThrow(/misstated the valuation/);
     expect(call).toHaveBeenCalledTimes(2);
-    expect(call.mock.calls[1][0].user).toMatch(/presented A\$1\.2M as the valuation; the indicative range is/);
+    expect(call.mock.calls[1][0].user).toMatch(/presented A\$1\.2M as the valuation; the company value is not estimable in this report/);
   });
 
   it("keeps a grounded rewrite over an own-fact-ungrounded first answer, and says why", async () => {

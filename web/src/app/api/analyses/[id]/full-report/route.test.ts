@@ -150,7 +150,9 @@ describe("GET /api/analyses/[id]/full-report", () => {
     // 10 intake rows + the founder-execution echo row (G14-S37).
     expect(body.preview.echo.rows).toHaveLength(11);
     expect(body.preview.svi.dimensions).toHaveLength(8);
-    expect(body.preview.valuation.lowAud).toBeGreaterThan(0);
+    // V04a (D22): the preview's valuation is not estimable — no SVI-derived range.
+    expect(body.preview.valuation.status).toBe("not_estimable");
+    expect(body.preview.valuation).not.toHaveProperty("lowAud");
     expect(typeof body.preview.ceoParagraph).toBe("string");
     expect(JSON.stringify(body)).not.toContain('"cfo"');
     expect(body.pollAfterSec).toBe(0);
