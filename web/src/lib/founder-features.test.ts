@@ -16,6 +16,8 @@ import {
   listPricingTiers,
   listRoadmapMilestones,
   listTeamMembers,
+  logTeamMembersError,
+  TEAM_MEMBERS_LOG_TAG,
   getActiveProjectIdOrNull,
   currentQuarterKey,
   nextQuarters,
@@ -105,5 +107,39 @@ describe("legacy + quarter helpers", () => {
   it("quarter keys are sortable YYYY-Qn", () => {
     expect(currentQuarterKey(new Date("2026-09-12"))).toBe("2026-Q3");
     expect(nextQuarters(3, new Date("2026-11-01"))).toEqual(["2026-Q4", "2027-Q1", "2027-Q2"]);
+  });
+});
+
+describe("listTeamMembers — the 0023/0304 team_members reconciliation (27/09 P1)", () => {
+  it("lists roster rows plus active cap-table holders only", async () => {
+    await listTeamMembers(ownerScope);
+    expect(sb.find("team_members", "or").map((c) => c.args[0])).toEqual(["source.eq.roster,is_active.eq.true"]);
+  });
+
+  it("a failed read is logged with a stable tag and the Postgres code — never silently []", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failing = {
+      from: () => {
+        const chain: Record<string, unknown> = {};
+        for (const op of ["select", "eq", "or", "order"]) chain[op] = () => chain;
+        chain.then = (res: (v: unknown) => void) => res({ data: null, error: { message: "column team_members.user_id does not exist", code: "42703" } });
+        return chain;
+      },
+    };
+    sbState.sb = failing;
+    await expect(listTeamMembers(ownerScope)).resolves.toEqual([]);
+    expect(errSpy).toHaveBeenCalledWith(
+      TEAM_MEMBERS_LOG_TAG,
+      expect.stringMatching(/listTeamMembers failed — schema drift \(apply supabase\/pending-authority\/0473_team_members_roster_columns\.sql\)/),
+      expect.objectContaining({ code: "42703", message: "column team_members.user_id does not exist" }),
+    );
+    errSpy.mockRestore();
+  });
+
+  it("logTeamMembersError: a non-drift error is logged without the migration hint", () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logTeamMembersError("x", { message: "timeout", code: "57014" });
+    expect(errSpy.mock.calls[0][1]).toBe("x failed");
+    errSpy.mockRestore();
   });
 });
