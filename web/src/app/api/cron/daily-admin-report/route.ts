@@ -27,6 +27,24 @@ function shell(cmd: string, timeout = 5_000): string {
 // Two drives matter: / (root, ~276G) and /data (300G — node_modules, releases,
 // caches, knowledge-base). When /data nears 90% deploys fail; this surfaces it
 // in the daily email so the team sees it before the orchestrator does.
+// 27/09 health sweep: the run timed out at cron-runner's 60 s because the
+// inner agent-upgrade call alone was allowed 60 s. The crontab line now gives
+// the job `--timeout 180`; the two optional enrichments below are time-boxed
+// well inside it so the KPI e-mail still goes out when either is slow.
+/** @internal exported for tests */
+export const AGENT_UPGRADE_TIMEOUT_MS = 75_000;
+/** @internal exported for tests */
+export const AI_RECOMMENDATIONS_TIMEOUT_MS = 40_000;
+
+/** Resolve `fallback` if `work` has not settled within `ms` (the work itself keeps running). */
+function withTimeout<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 function collectDiskUsage(): DiskRow[] {
   const rows: DiskRow[] = [];
   for (const [mount, label] of [
@@ -206,7 +224,7 @@ export async function GET(request: Request) {
         {
           method: "POST",
           headers: { "Authorization": `Bearer ${cronSecretValue}` },
-          signal: AbortSignal.timeout(60_000),
+          signal: AbortSignal.timeout(AGENT_UPGRADE_TIMEOUT_MS),
         },
       );
       if (agentRes.ok) {
@@ -221,7 +239,7 @@ export async function GET(request: Request) {
     let aiRecommendations = "";
     try {
       const { callAIForUpgrade } = await import("@/lib/ai-client");
-      const recResult = await callAIForUpgrade({
+      const recResult = await withTimeout(callAIForUpgrade({
         system: "You are the COO of BlockID.au, an AI-powered startup valuation platform. Write a brief daily operational summary (3-5 bullet points) with improvement recommendations based on today's metrics. Be specific and actionable. Format as markdown bullet list.",
         user: `Today's metrics (${dateStr}):
 - New users: ${newUsers} (total: ${totalUsers})
@@ -235,7 +253,7 @@ export async function GET(request: Request) {
 
 Write 3-5 concise recommendations. Focus on growth, conversion, and operational health.`,
         maxTokens: 500,
-      });
+      }), AI_RECOMMENDATIONS_TIMEOUT_MS, null);
       if (recResult) {
         aiRecommendations = recResult.text;
       }
