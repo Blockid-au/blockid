@@ -41,7 +41,10 @@ import { POST } from "./route";
 
 // Route calls .from("projects").select().eq().eq().single()
 // and       .from("team_members").select().eq().eq()  (list result)
-function makeSupabase(project: { name: string; industry: string; stage: number } | null) {
+function makeSupabase(
+  project: { name: string; industry: string; stage: number } | null,
+  team: { data: Array<Record<string, unknown>> | null; error: { message: string; code?: string } | null } = { data: [], error: null },
+) {
   const from = vi.fn((table: string) => {
     if (table === "projects") {
       const single = vi.fn().mockResolvedValue({ data: project, error: null });
@@ -51,7 +54,7 @@ function makeSupabase(project: { name: string; industry: string; stage: number }
       return { select };
     }
     // team_members — list resolves to empty by default
-    const eq2 = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eq2 = vi.fn().mockResolvedValue(team);
     const eq1 = vi.fn().mockReturnValue({ eq: eq2 });
     const select = vi.fn().mockReturnValue({ eq: eq1 });
     return { select };
@@ -202,5 +205,36 @@ describe("POST /api/founder/team/ai-fill", () => {
     const body = await res.json() as { ok: boolean; suggestions: unknown[] };
     expect(body.ok).toBe(true);
     expect(body.suggestions.length).toBeGreaterThan(0);
+  });
+
+  it("27/09 P1: a failed team read is logged with the stable tag (never silently an empty team)", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.getCurrentUser.mockResolvedValue({ id: "u-1" });
+    mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
+    mocks.getSupabaseAdmin.mockReturnValue(
+      makeSupabase({ name: "AcmeSaaS", industry: "saas", stage: 2 }, { data: null, error: { message: "column team_members.user_id does not exist", code: "42703" } }),
+    );
+    const res = await POST();
+    expect(res.status).toBe(200);
+    const tagged = errSpy.mock.calls.find((c) => c[0] === "[blockid:founder-features:team-members]");
+    expect(tagged?.[1]).toMatch(/ai-fill existing team failed — schema drift/);
+    expect(tagged?.[2]).toMatchObject({ code: "42703" });
+  });
+
+  it("counts roster rows and ACTIVE cap-table holders as the existing team; a removed holder is not", async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: "u-1" });
+    mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
+    const member = { role_title: "Senior Full-Stack Engineer", role_category: "hire", equity_pct: 1, salary_aud: 150000, status: "filled" };
+    mocks.getSupabaseAdmin.mockReturnValue(
+      makeSupabase({ name: "AcmeSaaS", industry: "saas", stage: 2 }, { data: [{ ...member, source: "equity", is_active: true }], error: null }),
+    );
+    let body = (await (await POST()).json()) as { suggestions: Array<{ role_title: string }> };
+    expect(body.suggestions.map((s) => s.role_title)).not.toContain("Senior Full-Stack Engineer");
+
+    mocks.getSupabaseAdmin.mockReturnValue(
+      makeSupabase({ name: "AcmeSaaS", industry: "saas", stage: 2 }, { data: [{ ...member, source: "equity", is_active: false }], error: null }),
+    );
+    body = (await (await POST()).json()) as { suggestions: Array<{ role_title: string }> };
+    expect(body.suggestions[0]?.role_title).toBe("Senior Full-Stack Engineer");
   });
 });

@@ -19,7 +19,7 @@
     ]
   },
   "0304_founder_core_features.sql": {
-    "reason": "OPEN ISSUE — team_members already existed from 0023_equity_members.sql (name/email/role/equity_pct/is_active, used by src/lib/equity.ts) so 0304's CREATE TABLE IF NOT EXISTS was a no-op and its org-chart shape (user_id/role_title/full_name/status…, used by src/lib/founder-features.ts + api/founder/team) is NOT live. The two code paths disagree on the table; needs a reconciliation migration (make `name` nullable or split the table), not a blind ADD COLUMN. 0344 repaired the other three tables (gtm_strategies, pricing_tiers, roadmap_milestones).",
+    "reason": "OPEN ISSUE — team_members already existed from 0023_equity_members.sql (name/email/role/equity_pct/is_active, used by src/lib/equity.ts) so 0304's CREATE TABLE IF NOT EXISTS was a no-op and its org-chart shape (user_id/role_title/full_name/status…, used by src/lib/founder-features.ts + api/founder/team) is NOT live. The two code paths disagree on the table; needs a reconciliation migration (make `name` nullable or split the table), not a blind ADD COLUMN. 0344 repaired the other three tables (gtm_strategies, pricing_tiers, roadmap_milestones). 27/09/2026: the reconciliation is written — supabase/pending-authority/0473_team_members_roster_columns.sql (0304 columns added nullable/defaulted + a BEFORE INSERT/UPDATE trigger that keeps both shapes valid on one table), NOT applied yet (founder review). Once applied, narrow this waiver to index.public.team_members_project_idx (live keeps 0023's idx_team_members_project) and the column nullability 0473 relaxes (user_id, role_title).",
     "ignore": [
       "column.public.team_members.*",
       "index.public.team_members_*"

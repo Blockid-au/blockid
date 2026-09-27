@@ -10,7 +10,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const state: { pending: Array<Record<string, unknown>>; partial: Array<Record<string, unknown>>; done: Array<Record<string, unknown>> } = { pending: [], partial: [], done: [] };
+const state: {
+  pending: Array<Record<string, unknown>>;
+  partial: Array<Record<string, unknown>>;
+  done: Array<Record<string, unknown>>;
+  /** Every filter / write the store built, in order (the progress-write guard suite). */
+  log: Array<[string, ...unknown[]]>;
+} = { pending: [], partial: [], done: [], log: [] };
 
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => ({
@@ -19,12 +25,18 @@ vi.mock("@/lib/supabase", () => ({
       const chain: Record<string, unknown> = {};
       const self = () => chain;
       for (const op of ["select", "lt", "order", "limit", "eq", "is"]) chain[op] = self;
+      chain.update = (patch: unknown) => {
+        state.log.push(["update", patch]);
+        return chain;
+      };
       chain.in = (col: string, vals: string[]) => {
+        state.log.push(["in", col, vals]);
         if (col === "full_report_status" && vals.includes("done")) which = "done";
         return chain;
       };
       const origEq = chain.eq as () => unknown;
       chain.eq = (col: string, val: string) => {
+        state.log.push(["eq", col, val]);
         if (col === "full_report_status" && val === "done_partial") which = "partial";
         return origEq();
       };
@@ -34,7 +46,7 @@ vi.mock("@/lib/supabase", () => ({
   }),
 }));
 
-import { isNeverStarted, sweepPendingFullReports } from "./store";
+import { isNeverStarted, saveFullReportProgress, sweepPendingFullReports } from "./store";
 
 const row = (id: string, over: Record<string, unknown> = {}) => ({
   id,
@@ -53,6 +65,7 @@ beforeEach(() => {
   state.pending = [];
   state.partial = [];
   state.done = [];
+  state.log = [];
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
@@ -80,5 +93,19 @@ describe("sweepPendingFullReports — the free-cap hold (G25-C)", () => {
     expect(isNeverStarted({ full_report_status: "queued", full_report_attempts: 0 })).toBe(true);
     expect(isNeverStarted({ full_report_status: "queued", full_report_attempts: 2 })).toBe(false);
     expect(isNeverStarted({ full_report_status: "running", full_report_attempts: 0 })).toBe(false);
+  });
+});
+
+describe("saveFullReportProgress — the late-write guards (27/09 review)", () => {
+  it("writes only while the job is running; with a claim stamp, only while that claim still owns the row", async () => {
+    const env = { version: "tbr-v2" } as unknown as Parameters<typeof saveFullReportProgress>[1];
+    await saveFullReportProgress("a1", env, { claimStartedAt: "2026-09-27T01:00:00.123+00:00" });
+    expect(state.log).toContainEqual(["in", "full_report_status", ["running", "done_partial"]]);
+    expect(state.log).toContainEqual(["eq", "full_report_started_at", "2026-09-27T01:00:00.123+00:00"]);
+
+    state.log = [];
+    await saveFullReportProgress("a1", env);
+    expect(state.log).toContainEqual(["in", "full_report_status", ["running", "done_partial"]]);
+    expect(state.log.some((e) => e[0] === "eq" && e[1] === "full_report_started_at")).toBe(false);
   });
 });

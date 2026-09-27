@@ -114,8 +114,17 @@ export interface TimelineText {
   leave: (link: boolean) => string;
   emailed: (to: string) => string;
   emailedAccount: string;
-  srRunning: (label: string, pct: number) => string;
+  /** The polite live region: the stage only (never the ticking percent), so it speaks on a stage change. */
+  srRunning: (label: string) => string;
   srDone: string;
+  /** Queued / held rows: no worker yet, so no heartbeat — say what is really happening. */
+  queuedLine: string;
+  heldLine: string;
+  /** A running row whose worker has not written yet. */
+  awaitingUpdate: string;
+  /** The page stopped polling (POLL_GIVE_UP_MS) — the card no longer knows the run's state. */
+  stoppedChecking: string;
+  checkAgain: string;
   detailsToggle: string;
   heading: string;
   // chips
@@ -152,6 +161,10 @@ export interface TimelineText {
   analysingNow: string;
   readyPending: string;
   intakeTitle: string;
+  /** The upload card for typed text (nothing to upload). */
+  intakeTitleText: string;
+  /** The upload card for a website URL. */
+  intakeTitleWebsite: string;
   waitingFor: (stage: string) => string;
   sectionInvestment: string;
   sectionValuation: string;
@@ -186,8 +199,13 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     leave: (link) => (link ? "You can leave this page — the report stays at this link." : "You can leave this page — the report is kept in your analysis."),
     emailed: (to) => ` It is also e-mailed to ${to} when it lands.`,
     emailedAccount: " It is also e-mailed to your account address when it lands.",
-    srRunning: (label, pct) => `${label} — ${pct}% complete`,
+    srRunning: (label) => `Now: ${label}`,
     srDone: "Your report is ready.",
+    queuedLine: "Waiting for a report worker — nothing has started yet",
+    heldLine: "Held for the next free-report slot — it starts automatically",
+    awaitingUpdate: "Waiting for the first update from the server",
+    stoppedChecking: "Stopped checking — reload to see the latest status.",
+    checkAgain: "Reload and check again",
     detailsToggle: "Show every stage",
     heading: "Analysis progress",
     slides: (n) => `${n} slide${n === 1 ? "" : "s"}`,
@@ -228,6 +246,8 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     analysingNow: "Being analysed now…",
     readyPending: "Done — appears when the report is assembled",
     intakeTitle: "Uploading and reading your document",
+    intakeTitleText: "Sending and reading your input",
+    intakeTitleWebsite: "Reading the website",
     waitingFor: (s) => `Waiting — fills in when “${s}” finishes`,
     sectionInvestment: "Dashboard & investment view",
     sectionValuation: "Valuation — methods, consensus and what moves it",
@@ -260,8 +280,13 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     leave: (link) => (link ? "Bạn có thể rời trang — báo cáo luôn ở đường dẫn này." : "Bạn có thể rời trang — báo cáo được lưu trong phân tích của bạn."),
     emailed: (to) => ` Báo cáo cũng được gửi email tới ${to} khi hoàn tất.`,
     emailedAccount: " Báo cáo cũng được gửi tới email tài khoản của bạn khi hoàn tất.",
-    srRunning: (label, pct) => `${label} — hoàn thành ${pct}%`,
+    srRunning: (label) => `Đang: ${label}`,
     srDone: "Báo cáo của bạn đã sẵn sàng.",
+    queuedLine: "Đang chờ máy phân tích — chưa bắt đầu",
+    heldLine: "Đang giữ chỗ cho suất báo cáo miễn phí tiếp theo — sẽ tự bắt đầu",
+    awaitingUpdate: "Đang chờ cập nhật đầu tiên từ máy chủ",
+    stoppedChecking: "Đã ngừng kiểm tra — tải lại trang để xem trạng thái mới nhất.",
+    checkAgain: "Tải lại và kiểm tra",
     detailsToggle: "Xem mọi giai đoạn",
     heading: "Tiến độ phân tích",
     slides: (n) => `${n} slide`,
@@ -302,6 +327,8 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     analysingNow: "Đang phân tích…",
     readyPending: "Đã xong — hiển thị khi báo cáo được hoàn thiện",
     intakeTitle: "Đang tải lên và đọc tài liệu",
+    intakeTitleText: "Đang gửi và đọc nội dung của bạn",
+    intakeTitleWebsite: "Đang đọc trang web",
     waitingFor: (s) => `Đang chờ — sẽ điền khi “${s}” hoàn tất`,
     sectionInvestment: "Bảng tổng quan & góc nhìn đầu tư",
     sectionValuation: "Định giá — phương pháp, đồng thuận và yếu tố tác động",
@@ -310,6 +337,13 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     lead: (r) => `Phụ trách · ${r}`,
   },
 };
+
+/** The upload card's title: a document upload, a website, or typed text (nothing to upload). */
+export function intakeCardTitle(p: { hasFile: boolean; source?: "file" | "website" | "text" }, locale: TimelineLocale): string {
+  const t = TIMELINE_TEXT[locale];
+  if (p.hasFile) return t.intakeTitle;
+  return p.source === "website" ? t.intakeTitleWebsite : t.intakeTitleText;
+}
 
 // ── Formatting ──────────────────────────────────────────────────────────────
 

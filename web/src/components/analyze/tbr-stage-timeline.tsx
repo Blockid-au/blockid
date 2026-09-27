@@ -17,9 +17,10 @@
 // orchestrator's real events). The only thing this component does on its
 // own clock is count seconds between polls — it never advances a stage.
 //
-// Accessibility: a polite live region announces the stage + percent (not
-// the ticking counters); spinners stop under prefers-reduced-motion; the
-// stage list is an ordered list with aria-current on the running stage.
+// Accessibility: a polite live region announces stage changes, completion
+// and failure only (27/09 review: it used to carry the percent and re-spoke
+// every poll); spinners stop under prefers-reduced-motion; the stage list is
+// an ordered list with aria-current on the running stage.
 
 import * as React from "react";
 import { AlertCircle, Check, Loader2, Minus } from "lucide-react";
@@ -28,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/use-locale";
 import { clientIntakeTimeline, type IntakeUploadProgress, type TbrStageView, type TbrTimelineView } from "@/lib/analyses/first-analysis/stage-timeline";
 import type { LiveViewUpdate } from "./full-report-panel";
-import { STAGE_COPY, TIMELINE_TEXT, fmtDuration, stageChips, type TimelineLocale } from "./tbr-stage-copy";
+import { STAGE_COPY, TIMELINE_TEXT, fmtDuration, intakeCardTitle, stageChips, type TimelineLocale } from "./tbr-stage-copy";
 
 export interface TbrStageTimelineProps {
   timeline: TbrTimelineView | null;
@@ -46,12 +47,20 @@ export interface TbrStageTimelineProps {
   emailsAccount?: boolean;
   /** Force a locale (tests); defaults to the visitor's cookie. */
   locale?: TimelineLocale;
-  /** A header line of the caller's own (the upload card: "Uploading and reading your document"). */
+  /** A header line of the caller's own (the upload card: "Uploading and reading your document" / "Reading the website"). */
   titleOverride?: string;
   /** The worker heartbeat line — off for the upload card (no worker yet). */
   showHeartbeat?: boolean;
   /** The "you can leave this page" note — off while the upload is still in the browser. */
   showLeaveNote?: boolean;
+  /**
+   * The page stopped polling (POLL_GIVE_UP_MS): the payload is old, so the
+   * counters stop, the heartbeat and time-left go, and the card says so with
+   * a reload button — it never guesses what the server did since.
+   */
+  stoppedChecking?: boolean;
+  /** "Check again" action; defaults to reloading the page. */
+  onCheckAgain?: () => void;
   className?: string;
 }
 
@@ -60,7 +69,9 @@ export interface TbrStageTimelineProps {
  * the last one; a failed poll keeps the last payload and raises the
  * connection flag (AF06 — a blip never blanks the card). Exported for the suite.
  */
-export function mergeLiveView<V extends { view: unknown; receivedAt: number; connectionTrouble: boolean }>(prev: V | null, next: V): V {
+export function mergeLiveView<V extends { view: unknown; receivedAt: number; connectionTrouble: boolean; stoppedPolling?: boolean }>(prev: V | null, next: V): V {
+  // The page gave up polling: keep the last payload, flag it as no longer live.
+  if (next.stoppedPolling) return prev ? { ...prev, connectionTrouble: false, stoppedPolling: true } : next;
   if (next.view) return next;
   if (!prev) return next;
   return { ...prev, connectionTrouble: true };
@@ -96,12 +107,16 @@ export function TbrStageTimeline({
   titleOverride,
   showHeartbeat = true,
   showLeaveNote = true,
+  stoppedChecking = false,
+  onCheckAgain,
   className,
 }: TbrStageTimelineProps) {
   const [cookieLocale] = useLocale();
   const locale: TimelineLocale = forcedLocale ?? cookieLocale;
   const t = TIMELINE_TEXT[locale];
-  const active = timeline ? ACTIVE_STATES.has(timeline.state) : true;
+  const unfinished = timeline ? ACTIVE_STATES.has(timeline.state) : true;
+  // Counters tick only while the page is still polling a live run.
+  const active = unfinished && !stoppedChecking;
 
   // A one-second tick between polls — counters only, never stage status.
   const [now, setNow] = React.useState(() => receivedAt);
@@ -139,7 +154,18 @@ export function TbrStageTimeline({
   const knownCompany = company ?? timeline.stages.find((s) => s.key === "score")?.detail?.company ?? null;
   const title =
     titleOverride ?? (timeline.state === "running" && knownCompany ? t.titleRunningCompany(knownCompany) : t.title[timeline.state]);
-  const liveLabel = done ? t.srDone : running ? t.srRunning(STAGE_COPY[locale][running.key].label, timeline.percent) : t.title[timeline.state];
+  // The polite region changes only when the stage, the run state or the
+  // polling state changes — never with the percent or a counter.
+  const liveLabel = done
+    ? t.srDone
+    : unfinished && stoppedChecking
+      ? t.stoppedChecking
+      : timeline.state === "running" && running
+        ? t.srRunning(STAGE_COPY[locale][running.key].label)
+        : t.title[timeline.state];
+  // A worker heartbeat exists only once a worker holds the row.
+  const workerState = timeline.state === "running" || timeline.state === "retrying";
+  const waitingState = timeline.state === "queued" || timeline.state === "held";
   const stageList = (
     <ol className="space-y-3 px-4 py-4 sm:px-5" data-testid="tbr-timeline-stages">
       {timeline.stages.map((stage, i) => (
@@ -175,7 +201,7 @@ export function TbrStageTimeline({
             <p className="font-mono text-sm tabular-nums text-primary" data-testid="tbr-timeline-elapsed">
               {t.elapsed(fmtDuration(elapsed))}
             </p>
-            {remaining !== null && !done && (
+            {remaining !== null && !done && !stoppedChecking && (
               <p className="font-mono text-xs tabular-nums text-action" data-testid="tbr-timeline-remaining">
                 {remaining > 0 ? t.remaining(fmtDuration(remaining)) : t.finishing}
               </p>
@@ -199,20 +225,39 @@ export function TbrStageTimeline({
           <p className="text-muted">
             {timeline.percent}% · {t.typical(fmtDuration(timeline.typicalTotalSec), timeline.samples)}
           </p>
-          {active && showHeartbeat && (
+          {active && showHeartbeat && waitingState && (
+            <p className="flex items-center gap-1.5 text-secondary" data-testid="tbr-timeline-waiting" data-state={timeline.state}>
+              <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-action" />
+              {timeline.state === "held" ? t.heldLine : t.queuedLine}
+            </p>
+          )}
+          {active && showHeartbeat && workerState && (
             <p
               className={cn("flex items-center gap-1.5", band === "stale" ? "text-warn" : "text-secondary")}
               data-testid="tbr-timeline-heartbeat"
               data-band={band}
             >
               <span aria-hidden className={cn("inline-block h-1.5 w-1.5 rounded-full", band === "alive" ? "bg-bull" : band === "stale" ? "bg-warn" : "bg-action")} />
-              {ago === null ? t.status.running : band === "alive" ? t.alive(fmtDuration(ago)) : band === "slow" ? t.slow(fmtDuration(ago)) : t.stale(fmtDuration(ago))}
+              {ago === null ? t.awaitingUpdate : band === "alive" ? t.alive(fmtDuration(ago)) : band === "slow" ? t.slow(fmtDuration(ago)) : t.stale(fmtDuration(ago))}
               {typeof timeline.calls === "number" && timeline.calls > 0 && <span className="text-muted">· {t.calls(timeline.calls)}</span>}
             </p>
           )}
         </div>
-        {timeline.overrun && !done && <p className="mt-1 text-xs text-secondary">{t.overrun}</p>}
-        {connectionTrouble && (
+        {timeline.overrun && !done && !stoppedChecking && <p className="mt-1 text-xs text-secondary">{t.overrun}</p>}
+        {unfinished && stoppedChecking && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" data-testid="tbr-timeline-stopped">
+            <p className="text-warn">{t.stoppedChecking}</p>
+            <button
+              type="button"
+              onClick={() => (onCheckAgain ? onCheckAgain() : window.location.reload())}
+              className="inline-flex items-center rounded-lg border border-line-subtle px-2.5 py-1 font-semibold text-primary transition-colors hover:border-action"
+              data-testid="tbr-timeline-check-again"
+            >
+              {t.checkAgain}
+            </button>
+          </div>
+        )}
+        {connectionTrouble && !stoppedChecking && (
           <p className="mt-1 text-xs text-warn" role="status" data-testid="tbr-timeline-offline">
             {t.offline}
           </p>
@@ -232,7 +277,7 @@ export function TbrStageTimeline({
         stageList
       )}
 
-      {active && showLeaveNote && (
+      {unfinished && showLeaveNote && (
         <p className="border-t border-line-subtle px-4 py-3 text-xs text-secondary sm:px-5" data-testid="tbr-timeline-leave">
           {t.leave(hasLink)}
           {emailTo ? t.emailed(emailTo) : emailsAccount ? t.emailedAccount : ""}
@@ -322,7 +367,8 @@ export function IntakeProgressCard({ progress, className }: { progress: IntakeUp
     <TbrStageTimeline
       timeline={clientIntakeTimeline(progress)}
       receivedAt={progress.at}
-      titleOverride={TIMELINE_TEXT[locale].intakeTitle}
+      // Only a file is uploaded; typed text and a website are "sent" / "read" (27/09 review).
+      titleOverride={intakeCardTitle(progress, locale)}
       showHeartbeat={false}
       showLeaveNote={false}
       className={className}
@@ -342,6 +388,7 @@ export function LiveRunTimeline({ live, authenticated, className }: { live: Live
       timeline={live?.view?.timeline ?? null}
       receivedAt={live?.receivedAt ?? 0}
       connectionTrouble={Boolean(live?.connectionTrouble)}
+      stoppedChecking={Boolean(live?.stoppedPolling)}
       hasLink
       emailTo={live?.view?.emailTo ?? null}
       emailsAccount={authenticated === true}

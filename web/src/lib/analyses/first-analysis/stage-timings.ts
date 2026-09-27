@@ -18,7 +18,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getStatusRoot } from "@/lib/status/jsonl";
-import { DEFAULT_STAGE_SECONDS, TBR_STAGE_KEYS, defaultStageEtas, type StageEtas, type TbrStageKey } from "./stage-timeline";
+import { DEFAULT_STAGE_SECONDS, ETA_EXCLUDED_STAGES, TBR_STAGE_KEYS, defaultStageEtas, type StageEtas, type TbrStageKey } from "./stage-timeline";
 
 export const TBR_STAGE_TIMINGS_FILE = "tbr-stage-timings.jsonl";
 export const ETA_SAMPLE_RUNS = 30;
@@ -51,7 +51,8 @@ export function etasFromRows(rows: StageTimingsRow[]): StageEtas {
   if (usable.length === 0) return defaultStageEtas();
   const stages = { ...DEFAULT_STAGE_SECONDS };
   for (const key of TBR_STAGE_KEYS) {
-    if (key === "received" || key === "read") continue;
+    // Rows written before 27/09 carry a queue-polluted `score` — never learnt from.
+    if (ETA_EXCLUDED_STAGES.has(key)) continue;
     const m = median(usable.map((r) => r.stages[key]).filter((v): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0));
     if (m !== null) stages[key] = Math.max(1, Math.round(m / 1000));
   }

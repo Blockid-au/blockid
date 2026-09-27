@@ -493,12 +493,20 @@ export function failStages(stages: TbrStageRecord[], at: string, reason: TbrStag
   }
 }
 
+/**
+ * Stages the ETA ledger never learns from. `received` / `read` happen before
+ * the row exists; `score` spans created → claimed on the timeline, i.e. the
+ * time the row waited in the queue (or held for the free cap) — recording it
+ * would teach the ETAs the queue length, not the work (27/09 review).
+ */
+export const ETA_EXCLUDED_STAGES: ReadonlySet<TbrStageKey> = new Set<TbrStageKey>(["received", "read", "score"]);
+
 /** Per-stage durations (ms) of a finished run — the timings ledger row. */
 export function stageDurationsMs(stages: TbrStageRecord[]): Partial<Record<TbrStageKey, number>> {
   const out: Partial<Record<TbrStageKey, number>> = {};
   for (const s of stages) {
     if (s.status !== "done" || !s.startedAt || !s.finishedAt) continue;
-    if (s.key === "received" || s.key === "read") continue;
+    if (ETA_EXCLUDED_STAGES.has(s.key)) continue;
     const ms = Date.parse(s.finishedAt) - Date.parse(s.startedAt);
     if (Number.isFinite(ms) && ms >= 0) out[s.key] = ms;
   }
@@ -656,6 +664,8 @@ export function isTimelineView(v: unknown): v is TbrTimelineView {
 export interface IntakeUploadProgress {
   /** A file is being uploaded (false: typed text / a URL — nothing to upload). */
   hasFile: boolean;
+  /** What was submitted — picks the upload card's title (absent = a file when `hasFile`, else text). */
+  source?: "file" | "website" | "text";
   filename: string | null;
   loaded: number;
   total: number;

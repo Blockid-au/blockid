@@ -182,6 +182,34 @@ export async function listCompetitors(
   return (data as Competitor[]) ?? [];
 }
 
+/** Stable log tag for the team roster reads — grep for it in the origin logs. */
+export const TEAM_MEMBERS_LOG_TAG = "[blockid:founder-features:team-members]";
+
+/**
+ * Log a failed `team_members` roster read loudly (27/09 P1). The live table
+ * had the 0023 cap-table shape with no `user_id` (0304's CREATE TABLE IF NOT
+ * EXISTS was a no-op), so every read failed with 42703 and the page quietly
+ * rendered an empty roster for weeks. A missing column / table is tagged as
+ * schema drift and names the reconciliation migration.
+ */
+export function logTeamMembersError(where: string, error: { message?: string; code?: string; details?: string | null; hint?: string | null }): void {
+  const code = error.code ?? null;
+  const drift = code === "42703" || code === "42P01" || code === "PGRST204" || /does not exist|schema cache/i.test(error.message ?? "");
+  console.error(TEAM_MEMBERS_LOG_TAG, `${where} failed${drift ? " — schema drift (apply supabase/pending-authority/0473_team_members_roster_columns.sql)" : ""}`, {
+    code,
+    message: error.message ?? null,
+    details: error.details ?? null,
+    hint: error.hint ?? null,
+  });
+}
+
+/**
+ * The org-chart roster for (owner, project): every roster row, plus the
+ * active cap-table holders (lib/equity.ts rows the 0473 trigger mirrors into
+ * the roster shape). Cap-table members removed from the register
+ * (`is_active = false`) are not listed. An error is logged (never silent)
+ * and yields [] so the page still renders.
+ */
 export async function listTeamMembers(
   scope: FounderFeatureScope,
 ): Promise<TeamMember[]> {
@@ -193,9 +221,10 @@ export async function listTeamMembers(
     .select("*")
     .eq("user_id", ownerUserId)
     .eq("project_id", projectId)
+    .or("source.eq.roster,is_active.eq.true")
     .order("created_at", { ascending: true });
   if (error) {
-    console.error(`${LOG} listTeamMembers failed`, error.message);
+    logTeamMembersError("listTeamMembers", error);
     return [];
   }
   return (data as TeamMember[]) ?? [];

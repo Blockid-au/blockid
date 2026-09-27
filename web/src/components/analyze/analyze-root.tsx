@@ -270,10 +270,15 @@ async function postIntake(
   });
 }
 
-/** The upload card's first snapshot, taken when the visitor presses Analyse (26/09). Exported for the test. */
-export function initialIntakeProgress(file: File | null | undefined, now: number = Date.now()): IntakeUploadProgress {
+/**
+ * The upload card's first snapshot, taken when the visitor presses Analyse
+ * (26/09). `variant` names what was sent so a website or typed text is not
+ * titled "Uploading…" (27/09 review). Exported for the test.
+ */
+export function initialIntakeProgress(file: File | null | undefined, now: number = Date.now(), variant?: SmartIntakeSubmission["variant"]): IntakeUploadProgress {
   return {
     hasFile: Boolean(file),
+    source: file ? "file" : variant === "url" ? "website" : "text",
     filename: file?.name ?? null,
     loaded: 0,
     total: file?.size ?? 0,
@@ -524,7 +529,7 @@ export function AnalyzeRoot({
     }
     setIntakeLoading(true);
     inFlightRef.current = true;
-    setIntakeProgress(initialIntakeProgress(sub.file));
+    setIntakeProgress(initialIntakeProgress(sub.file, undefined, sub.variant));
     const onUpload = (loaded: number, total: number, uploaded: boolean) =>
       setIntakeProgress((prev) =>
         prev

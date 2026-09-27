@@ -98,11 +98,14 @@ describe("initialIntakeProgress", () => {
   it("a file: its name and size, nothing uploaded yet", async () => {
     const { initialIntakeProgress } = await import("./analyze-root");
     const file = new File(["0123456789"], "deck.pdf", { type: "application/pdf" });
-    expect(initialIntakeProgress(file, 5)).toEqual({ hasFile: true, filename: "deck.pdf", loaded: 0, total: 10, uploaded: false, startedAt: 5, uploadedAt: null, at: 5 });
+    expect(initialIntakeProgress(file, 5)).toEqual({ hasFile: true, source: "file", filename: "deck.pdf", loaded: 0, total: 10, uploaded: false, startedAt: 5, uploadedAt: null, at: 5 });
   });
 
   it("typed text or a URL: no upload row", async () => {
     const { initialIntakeProgress } = await import("./analyze-root");
-    expect(initialIntakeProgress(null, 7)).toMatchObject({ hasFile: false, filename: null, total: 0 });
+    expect(initialIntakeProgress(null, 7)).toMatchObject({ hasFile: false, source: "text", filename: null, total: 0 });
+    // 27/09 review: a website submission is read, not uploaded.
+    expect(initialIntakeProgress(null, 7, "url")).toMatchObject({ hasFile: false, source: "website" });
+    expect(initialIntakeProgress(null, 7, "idea")).toMatchObject({ source: "text" });
   });
 });

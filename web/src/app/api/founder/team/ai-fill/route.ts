@@ -22,6 +22,7 @@ import {
   type HirePhase,
 } from "@/lib/agents/chro-team";
 import { apiRoute } from "@/lib/audit/api-route";
+import { logTeamMembersError } from "@/lib/founder-features";
 
 export const dynamic = "force-dynamic";
 
@@ -143,14 +144,20 @@ async function POST_handler() {
   const name = project?.name ?? "Your startup";
   const sector = (project?.industry ?? "saas").toLowerCase();
 
-  // Get existing team members to run assessTeam() for gap analysis
-  const { data: existingMembers } = await sb
+  // Get existing team members to run assessTeam() for gap analysis.
+  // 27/09 P1: this read used to fail on the 0023-shaped live table (no
+  // user_id) and the error was dropped, so every plan saw an empty team —
+  // it is logged now; the same roster rule as listTeamMembers (roster rows +
+  // active cap-table holders) applies once 0473 is live.
+  const { data: existingMembers, error: membersError } = await sb
     .from("team_members")
-    .select("role_title, role_category, equity_pct, salary_aud, status")
+    .select("role_title, role_category, equity_pct, salary_aud, status, source, is_active")
     .eq("project_id", projectId)
     .eq("user_id", ownerUserId);
+  if (membersError) logTeamMembersError("ai-fill existing team", membersError);
 
-  const existingProfiles: TeamMemberProfile[] = (existingMembers ?? []).map((m) => ({
+  const rosterMembers = (existingMembers ?? []).filter((m) => m.source === "roster" || m.is_active !== false);
+  const existingProfiles: TeamMemberProfile[] = rosterMembers.map((m) => ({
     role: m.role_title,
     seniority: "senior",
     isFounder: m.role_category === "founder",
