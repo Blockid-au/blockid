@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
-import { loadRevisionPosition, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
+import { loadRevisionPosition, loadTrendBaseline, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
 import { getCurrentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -149,6 +149,34 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
   return { row, persisted };
 }
 
+/**
+ * G34 F02/S3: an immutable revision with no daily snapshot (a paid order or a
+ * first analysis, committed through `commitFinalReport`) renders from its
+ * stored document alone — the old-version view of those reports. No snapshot
+ * id is handed to the client (no action plan / survey keyed on it).
+ */
+function revisionOnlyResult(loaded: Awaited<ReturnType<typeof loadReportV2ByShareToken>>): { row: SnapshotRow; persisted: PersistedState } | null {
+  if (!loaded || loaded.path !== "stored") return null;
+  const r = loaded.report;
+  const dimStates = toDimStates(Object.fromEntries(r.dimensions.map((d) => [d.dim, { status: "complete", score: d.score }])));
+  const savedAt = Date.parse(r.generatedAt);
+  return {
+    row: { id: loaded.snapshotId, project_id: loaded.projectId, created_at: r.generatedAt, criterion_results: null, dim_results: null, dimension_scores: null, analysis_json: null },
+    persisted: {
+      savedAt: Number.isFinite(savedAt) ? savedAt : 0,
+      dimStates,
+      criterionStates: [],
+      completed: DIM_KEYS.filter((k) => dimStates[k].score !== null).length,
+      total: 8,
+      totalMs: null,
+      done: true,
+      industry: r.cover.sector || null,
+      stage: r.cover.stageLabel || null,
+      snapshotId: null,
+    },
+  };
+}
+
 /** G13-W1-R1: stored ReportV2 for the row (null until migration 0395 + a pipeline write). */
 export default async function ViTbrSharePage({
   params,
@@ -159,12 +187,14 @@ export default async function ViTbrSharePage({
 }) {
   const { token } = await params;
   const { pdf } = await searchParams;
-  const result = await fetchByToken(token);
-  if (!result) notFound();
   // Keep Vietnamese share pages on the same canonical reader bridge as PDF
   // and the English share page.
   const loaded = await loadReportV2ByShareToken(token, { locale: "vi" });
+  const result = (await fetchByToken(token)) ?? revisionOnlyResult(loaded);
+  if (!result) notFound();
   const initialReportV2 = loaded?.report ?? null;
+  // G34 F02/S3: the previous same-project revision → the scorecard trend (same method only).
+  const trendBaseline = await loadTrendBaseline(token, getSupabaseAdmin());
   // G34 BT3 (spec §3): "Viewing rev N · Latest rev M" — the latest link only for the project owner.
   const revision = await revisionBannerFor(await loadRevisionPosition(token, getSupabaseAdmin()), (await getCurrentUser().catch(() => null))?.id ?? null, getSupabaseAdmin(), "/vi/tbr");
 
@@ -179,6 +209,7 @@ export default async function ViTbrSharePage({
         pdfMode={pdfMode}
         locale="vi"
         revision={revision}
+        trendBaseline={trendBaseline}
       />
     </div>
   );

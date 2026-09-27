@@ -762,6 +762,52 @@ describe("generateTrustReportForOrder — persistence", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// generateTrustReportForOrder — G34 F02/S3 immutable revision (best-effort)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("generateTrustReportForOrder — immutable revision", () => {
+  it("commits the stored document (same reportId + SV2 methodMeta as the assembled row), snapshot-less, keyed on the project", async () => {
+    const state = happyState();
+    const commitRevision = vi.fn().mockResolvedValue({ status: "committed", revisionId: "rev-1", shareToken: "t".repeat(32) });
+    const result = await run(state, { commitRevision });
+    expect(result).toEqual({ ok: true, reportId: REPORT_ID });
+    expect(commitRevision).toHaveBeenCalledTimes(1);
+    const args = commitRevision.mock.calls[0][1] as { source: string; projectId: string; accountId: string; snapshotId: unknown; sviVersion: string; report: { reportId: string; methodMeta?: { svi_method: string } } };
+    expect(args).toMatchObject({ source: "paid_order", projectId: BUSINESS_ID, accountId: ACCOUNT_ID, snapshotId: null, sviVersion: "2.0.0" });
+    expect(args.report.reportId).toBe(REPORT_ID);
+    const stored = (state.inserts?.assembled_reports?.[0] as Row).report_json as { methodMeta?: unknown };
+    expect(stored.methodMeta).toEqual(args.report.methodMeta);
+    expect(args.report.methodMeta?.svi_method).toBe("svi-2.0.0");
+  });
+
+  it.each([
+    ["rejects", () => Promise.reject(new Error("report_revisions unavailable"))],
+    ["throws synchronously", () => { throw new Error("boom"); }],
+    ["reports failed", () => Promise.resolve({ status: "failed", reason: "unconfirmed" })],
+  ])("a revision commit that %s never fails a stored order", async (_label, impl) => {
+    const state = happyState();
+    const result = await run(state, { commitRevision: vi.fn(impl) as unknown as GeneratorDeps["commitRevision"] });
+    expect(result).toEqual({ ok: true, reportId: REPORT_ID });
+    expect(state.inserts?.agent_report_tasks).toHaveLength(1);
+  });
+
+  it("the default commit against a database without the revision surface is isolated too", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await run(happyState());
+    expect(result).toEqual({ ok: true, reportId: REPORT_ID });
+    warn.mockRestore();
+  });
+
+  it("no revision when the assembled row was not confirmed", async () => {
+    const state = happyState();
+    state.insertError = { assembled_reports: { message: "duplicate key" } };
+    const commitRevision = vi.fn();
+    await run(state, { commitRevision });
+    expect(commitRevision).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // generateTrustReportForOrder — agent_report_tasks (analytics)
 // ─────────────────────────────────────────────────────────────────────────────
 

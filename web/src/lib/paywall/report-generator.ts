@@ -63,6 +63,8 @@ import {
 } from "@/lib/projects";
 import type { GenerateInput, GenerateResult } from "./report-order-worker";
 import { insertCompletedAssembledReport } from "@/lib/report-v2/storage";
+import { commitFinalReport } from "@/lib/report-v2/commit-final-report";
+import { withMethodMeta } from "@/lib/report-v2/method-meta";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Narrow Supabase surface
@@ -104,6 +106,8 @@ export interface GeneratorDeps {
   findAnalysis?: typeof findLatestAnalysisWithFallback;
   /** Injectable id minter — the stored report's primary key. */
   newReportId?: () => string;
+  /** G34 F02/S3: the immutable-revision commit (best-effort — never fails a stored order). */
+  commitRevision?: typeof commitFinalReport;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -412,6 +416,9 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
   const storedReportId = newReportId();
 
   if (!report.reportV2) return fail(true, "canonical_report_missing");
+  // G32 SV2: the order path stamps method metadata too (idempotent), so the
+  // assembled row and its immutable revision carry the same document.
+  const finalDocument = withMethodMeta(report.reportV2, sviAnalysis.version);
   const stored = await insertCompletedAssembledReport(supabase as unknown as SupabaseClient, {
       id: storedReportId,
       account_id: accountId,
@@ -439,9 +446,25 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
       full_markdown: report.markdown,
       status: "complete",
       credits_cost: Number(order.credits_used ?? 0),
-    }, report.reportV2);
+    }, finalDocument);
 
   if (!stored) return fail(true, "assembled_report_persistence_unconfirmed");
+
+  // G34 F02/S3: immutable revision of the stored document (same reportId as
+  // the assembled row). Best-effort: the order is READY on the assembled row
+  // alone; a missing revision only means no history / trend for this run.
+  try {
+    await (deps.commitRevision ?? commitFinalReport)(supabase as unknown as SupabaseClient, {
+      source: "paid_order",
+      report: { ...finalDocument, reportId: storedReportId },
+      projectId,
+      accountId,
+      snapshotId: null,
+      sviVersion: sviAnalysis.version,
+    });
+  } catch {
+    /* never fails a stored order */
+  }
 
   // Per-agent rows are analytics only — never fail the order on them.
   const agentTasks = report.sections

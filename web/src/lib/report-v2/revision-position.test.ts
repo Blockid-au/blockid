@@ -4,7 +4,10 @@
 
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { revisionBannerFor, revisionPositionFrom, type RevisionRowLike } from "./revision-position";
+import { loadTrendBaseline, previousRevisionFrom, revisionBannerFor, revisionPositionFrom, type RevisionRowLike } from "./revision-position";
+import { demoReportV2 } from "./fixtures";
+import { withMethodMeta } from "./method-meta";
+import type { ReportV2 } from "./schema";
 
 const row = (id: string, day: number, revoked = false): RevisionRowLike => ({ id, share_token: `tok-${id}`, created_at: `2026-09-${String(day).padStart(2, "0")}T00:00:00Z`, revoked_at: revoked ? "2026-09-26T00:00:00Z" : null });
 
@@ -45,5 +48,63 @@ describe("revisionBannerFor", () => {
   it("no banner when this is the latest revision or no position", async () => {
     expect(await revisionBannerFor(revisionPositionFrom([row("a", 1), row("b", 10)], "b", "p1"), "u1", dbWithOwner("u1"))).toBeNull();
     expect(await revisionBannerFor(null, "u1", dbWithOwner("u1"))).toBeNull();
+  });
+});
+
+// ── G34 F02/S3: trend baseline ──────────────────────────────────────────────
+
+describe("previousRevisionFrom", () => {
+  it("the row just before in creation order, skipping revoked rows; null for the first; undefined when absent", () => {
+    expect(previousRevisionFrom([row("c", 20), row("a", 1), row("b", 10)], "c")!.id).toBe("b");
+    expect(previousRevisionFrom([row("a", 1), row("b", 10, true), row("c", 20)], "c")!.id).toBe("a");
+    expect(previousRevisionFrom([row("a", 1), row("b", 10)], "a")).toBeNull();
+    expect(previousRevisionFrom([row("a", 1, true), row("b", 10)], "b")).toBeNull();
+    expect(previousRevisionFrom([row("a", 1)], "zz")).toBeUndefined();
+  });
+});
+
+describe("loadTrendBaseline", () => {
+  /** report_revisions stub: token lookup → current row; project list; previous row's document by id. */
+  function revisionsDb(opts: { current?: unknown; list?: unknown[]; doc?: unknown; fail?: "current" | "list" | "doc" }) {
+    return {
+      from: () => {
+        const filters: Array<[string, unknown]> = [];
+        let cols = "";
+        const chain: Record<string, unknown> = {};
+        Object.assign(chain, {
+          select: (c: string) => { cols = c; return chain; },
+          eq: (col: string, val: unknown) => { filters.push([col, val]); return chain; },
+          is: () => chain,
+          order: () => chain,
+          limit: async () => (opts.fail === "list" ? { data: null, error: { message: "x" } } : { data: opts.list ?? [], error: null }),
+          maybeSingle: async () => {
+            if (cols === "report_json") return opts.fail === "doc" ? { data: null, error: { message: "x" } } : { data: { report_json: opts.doc }, error: null };
+            return opts.fail === "current" ? { data: null, error: { message: "x" } } : { data: opts.current ?? null, error: null };
+          },
+        });
+        return chain;
+      },
+    } as unknown as SupabaseClient;
+  }
+  const doc = () => withMethodMeta(demoReportV2() as ReportV2, "2.2.0");
+
+  it("returns the previous revision's compact baseline (scores + method)", async () => {
+    const db = revisionsDb({ current: { id: "b", project_id: "p1" }, list: [row("a", 1), row("b", 10)], doc: doc() });
+    const base = await loadTrendBaseline("tok-b", db);
+    expect(base).toMatchObject({ revisionId: "a", createdAt: row("a", 1).created_at, method: { svi_method: "svi-2.2.0" } });
+    expect(Object.keys(base!.scores)).toHaveLength(8);
+  });
+
+  it("null for the project's first revision", async () => {
+    expect(await loadTrendBaseline("tok-a", revisionsDb({ current: { id: "a", project_id: "p1" }, list: [row("a", 1)] }))).toBeNull();
+  });
+
+  it("undefined (no trend) for a legacy token, a read error, or an unreadable previous document", async () => {
+    expect(await loadTrendBaseline("legacy", revisionsDb({ current: null }))).toBeUndefined();
+    expect(await loadTrendBaseline("t", revisionsDb({ fail: "current" }))).toBeUndefined();
+    expect(await loadTrendBaseline("t", revisionsDb({ current: { id: "b", project_id: "p1" }, fail: "list" }))).toBeUndefined();
+    expect(await loadTrendBaseline("t", revisionsDb({ current: { id: "b", project_id: "p1" }, list: [row("a", 1), row("b", 10)], doc: { schemaVersion: "2.0" } }))).toBeUndefined();
+    expect(await loadTrendBaseline("t", revisionsDb({ current: { id: "b", project_id: "p1" }, list: [row("a", 1), row("b", 10)], fail: "doc" }))).toBeUndefined();
+    expect(await loadTrendBaseline("t", null)).toBeUndefined();
   });
 });

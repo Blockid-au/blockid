@@ -20,6 +20,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { commitFinalReport } from "@/lib/report-v2/commit-final-report";
+import { withMethodMeta } from "@/lib/report-v2/method-meta";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -206,9 +208,8 @@ async function POST_handler(request: Request): Promise<Response> {
             marketBenchmark: typeof f?.marketBenchmark === "string" ? f.marketBenchmark : null,
           };
         }
-        await writeSnapshotReportV2(
-          supabase,
-          snapshotId,
+        // G32 SV2 stamp (idempotent) so the projection and its revision match.
+        const reportV2 = withMethodMeta(
           fromSnapshot({
             snapshotId,
             projectId: resolvedProjectId,
@@ -222,6 +223,23 @@ async function POST_handler(request: Request): Promise<Response> {
             tier: "standard",
           }),
         );
+        const reportV2Saved = await writeSnapshotReportV2(supabase, snapshotId, reportV2);
+        // G34 F02/S3: immutable revision (history / trend / old-version view).
+        // Best-effort — only after the projection is confirmed, skipped when
+        // the deck has no project, and never changes this response.
+        if (reportV2Saved) {
+          try {
+            await commitFinalReport(supabase, {
+              source: "pitchdeck_snapshot",
+              report: reportV2,
+              projectId: resolvedProjectId,
+              accountId,
+              snapshotId,
+            });
+          } catch {
+            /* never fails the snapshot save */
+          }
+        }
       }
     } else {
       console.warn("[blockid:pitchdeck] snapshot insert failed", insertErr.message);

@@ -25,6 +25,7 @@ import { buildCitationIndex } from "@/lib/report-v2/citations";
 import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { buildDashboardView } from "@/lib/report-v2/dashboard-view";
 import { buildDashboardV4 } from "@/lib/report-v2/dashboard-v4";
+import type { TrendBaseline } from "@/lib/report-v2/trend";
 import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { investmentViewFor } from "@/lib/report-v2/investment-view";
 import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
@@ -103,6 +104,8 @@ export interface TbrReportV2Props {
   nextStep?: TbrNextStepProps | null;
   /** G34 BT3 (spec §3): the viewed immutable revision vs the latest — banner when older. */
   revision?: TbrRevisionInfo | null;
+  /** G34 F02/S3: previous same-project revision for the scorecard trend (null = first revision; omitted = not loaded). */
+  trendBaseline?: TrendBaseline | null;
 }
 
 /** The v3 section titles for a UI locale (EN / VI; ES / JA read EN). */
@@ -110,7 +113,7 @@ export function tbrV3SectionTitles(locale: TbrLocale = "en") {
   return getTbrV3Strings(locale).sec;
 }
 
-export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks, canCorrect = false, nextStep = null, revision = null }: TbrReportV2Props) {
+export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks, canCorrect = false, nextStep = null, revision = null, trendBaseline }: TbrReportV2Props) {
   const t = tbrV3SectionTitles(locale);
   // One evidence-confidence number: the card is built once and the verdict,
   // the tiles and the chapters all read the same value (review P1, 2026-09-20).
@@ -129,7 +132,7 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   const paid = !free || forceFull;
   // G34 BT3: the page-1 projection (D24-b: free page 1 unlocked; lists gated like the screening).
   // G34 BT6 (RQ21): the backtest headline the server page loaded (omitted → the line links the methodology, no figures).
-  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: !paid, dash: dashboard, ...(benchmarks?.calibration !== undefined ? { calibration: benchmarks.calibration } : {}) });
+  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: !paid, dash: dashboard, ...(benchmarks?.calibration !== undefined ? { calibration: benchmarks.calibration } : {}), ...(trendBaseline !== undefined ? { trendBaseline } : {}) });
   const railFor = (mode: TbrUnlockMode) => (
     <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} orderStatus={unlock?.orderStatus} generateHref={unlock?.generateHref} locale={locale} />
   );

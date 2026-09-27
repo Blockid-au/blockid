@@ -53,7 +53,8 @@ import {
 } from "@/lib/svi-analysis";
 import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectById } from "@/lib/projects";
 import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
-import { insertCompletedAssembledReport, insertImmutableReportRevision, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { insertCompletedAssembledReport, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { commitFinalReport } from "@/lib/report-v2/commit-final-report";
 import { withMethodMeta } from "@/lib/report-v2/method-meta";
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
 import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
@@ -1035,13 +1036,16 @@ export async function runTrustReportForProject(args: {
   // caller; a missing revision must never silently fall back to the mutable
   // daily token after a successful paid generation.
   if (!db) throw new Error("report_revision_db_unavailable");
-  const revision = await insertImmutableReportRevision(db, {
+  // G34 F02/S3: the shared commit path; this writer stays fail-closed.
+  const revision = await commitFinalReport(db, {
+    source: "project_pipeline",
     snapshotId,
     accountId: ctx.account.id,
     projectId: project.id,
     report: reportV2,
+    sviVersion: ctx.sviAnalysis.version,
   });
-  if (!revision) throw new Error("report_revision_unconfirmed");
+  if (revision.status !== "committed") throw new Error("report_revision_unconfirmed");
 
   // G19-S46: one quality row per run, now that the snapshot id is known.
   const quality = await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, snapshotId, reportV2 ?? report.reportV2 ?? null), args.qualityWriter);
@@ -1195,13 +1199,15 @@ export async function runRescoreForProject(args: {
         snapshotId,
         reportV2,
       )) throw new Error("rescore_snapshot_document_unconfirmed");
-      const revision = await insertImmutableReportRevision(db, {
+      const revision = await commitFinalReport(db, {
+        source: "project_pipeline",
         snapshotId,
         accountId: account.id,
         projectId: project.id,
         report: reportV2,
+        sviVersion: analysis.version,
       });
-      if (!revision) throw new Error("rescore_revision_unconfirmed");
+      if (revision.status !== "committed") throw new Error("rescore_revision_unconfirmed");
       return { kind: "rescore", snapshotId, shareToken: revision.shareToken, analysisId, svi: sviTotal, delta, stage: analysis.stage };
     }
   }

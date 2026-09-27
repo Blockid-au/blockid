@@ -81,6 +81,7 @@ import {
   stageDurationsMs,
 } from "./stage-timeline";
 import { recordStageTimings, type StageTimingsRow } from "./stage-timings";
+import { commitFirstAnalysisRevision } from "./revision";
 
 export type ReportV2JobOutcome =
   | { outcome: "not_claimable" }
@@ -121,6 +122,8 @@ export interface ReportV2JobDeps {
   heartbeatEveryMs?: number;
   /** 26/09 — append the finished run's stage durations to the ETA ledger. Optional, never throws. */
   recordStageTimings?: (row: StageTimingsRow) => Promise<void>;
+  /** G34 F02/S3 — immutable revision of the finished document (revision.ts). Optional, best-effort. */
+  commitRevision?: (row: FullReportRow, envelope: FullReportV2Envelope, sviVersion: string) => Promise<unknown>;
 }
 
 /**
@@ -531,6 +534,8 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
   }
 
   await deps.finish(id, { status: "done", report: envelope, error: null });
+  // G34 F02/S3 — immutable revision (history / trend). Best-effort: never fails the run or its delivery.
+  await Promise.resolve().then(() => deps.commitRevision?.(row, envelope, built.analysis.version)).catch(() => undefined);
   const fresh = (await deps.load(id)) ?? row;
   const emailed = await deps.deliver({ ...fresh, full_report_status: "done", full_report_json: envelope }, envelope);
   return {
@@ -666,6 +671,7 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     progressEveryMs: 4_000,
     heartbeatEveryMs: 10_000,
     recordStageTimings,
+    commitRevision: (row, envelope, sviVersion) => commitFirstAnalysisRevision(row, envelope, sviVersion),
   };
 }
 
