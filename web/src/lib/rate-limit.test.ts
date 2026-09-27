@@ -101,10 +101,11 @@ describe("checkRateLimit — bucketed async API", () => {
 // CGNAT). They now only bound scripted floods; the per-(IP, email) buckets
 // in lib/security/auth-rate-limit.ts stay the brute-force defence.
 describe("checkRateLimit — auth buckets sized for a shared-IP trial wave (S31-C)", () => {
-  it("auth-register 30/min, auth-login 40/min, auth-password-reset 10/min, all one-minute windows", async () => {
+  it("auth-register 30/min, auth-login 40/min, auth-google-nav 40/min, auth-password-reset 10/min, all one-minute windows", async () => {
     const expected: Array<[RateLimitBucket, number]> = [
       ["auth-register", 30],
       ["auth-login", 40],
+      ["auth-google-nav", 40],
       ["auth-password-reset", 10],
     ];
     for (const [bucket, limit] of expected) {
@@ -171,11 +172,11 @@ describe("checkRateLimit — `limitMultiplier` scales a bucket's limit for the p
 // Rate-limit gap sweep (2026-09-26) — buckets for public routes that had no
 // limiter (wired in src/proxy.ts BUCKET_ROUTES).
 describe("checkRateLimit — public-route buckets (2026-09-26 gap sweep)", () => {
-  it("public-event 60/min, public-write 10/min, i18n-translate 60/min, public-ai 10 per 10 min", async () => {
+  it("public-event 60/min, public-write 10/min, i18n-translate 300/min (carrier NAT, 27/09), public-ai 10 per 10 min", async () => {
     const expected: Array<[RateLimitBucket, number, number]> = [
       ["public-event", 60, 60_000],
       ["public-write", 10, 60_000],
-      ["i18n-translate", 60, 60_000],
+      ["i18n-translate", 300, 60_000],
       ["public-ai", 10, 10 * 60_000],
     ];
     for (const [bucket, limit, windowMs] of expected) {
@@ -183,6 +184,12 @@ describe("checkRateLimit — public-route buckets (2026-09-26 gap sweep)", () =>
       expect(r.limit).toBe(limit);
       expect(bucketWindowMs(bucket)).toBe(windowMs);
     }
+  });
+
+  it("a carrier-NAT IP can spend well past the old 60/min i18n-translate ceiling, and the 301st call is refused", async () => {
+    const key = ["/api/i18n/translate", `ip:${Math.random()}`];
+    for (let i = 0; i < 300; i += 1) expect((await checkRateLimit("i18n-translate", key)).allowed).toBe(true);
+    expect((await checkRateLimit("i18n-translate", key)).allowed).toBe(false);
   });
 
   it("the 11th public-ai call from one identity inside the window is refused", async () => {

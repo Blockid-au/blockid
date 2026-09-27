@@ -356,6 +356,12 @@ export type RateLimitBucket =
   | "evidence-upload"
   | "upload"
   | "auth-login"
+  // 27/09 health sweep: the Google redirect flow's top-level browser
+  // navigations (GET /api/auth/google/start + /callback). Same per-IP ceiling
+  // as auth-login but fail-OPEN, and the proxy answers a 429 with a redirect
+  // back to /auth/login instead of a raw JSON page mid sign-in. The token
+  // POST (/api/auth/google) stays in the fail-closed auth-login bucket.
+  | "auth-google-nav"
   | "auth-register"
   | "auth-password-reset"
   // QA-3 P1-9 (2026-09-12) — /api/lead (contact form + waitlists): 10 per
@@ -418,13 +424,17 @@ const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   // buckets in lib/security/auth-rate-limit.ts (5 per 15 min); these
   // per-IP numbers only need to bound scripted floods.
   "auth-login": 40,
+  "auth-google-nav": 40,
   "auth-register": 30,
   "auth-password-reset": 10,
   lead: 10,
   "public-event": 60,
   "public-write": 10,
-  // One Vietnamese page view batches its strings into 1–3 calls.
-  "i18n-translate": 60,
+  // One Vietnamese page view batches its strings into 1–3 calls, but a whole
+  // carrier-NAT egress (VN mobile CGNAT) shares one anonymous IP key and a
+  // 429 here silently falls back to English. 27/09 health sweep: 60 → 300.
+  // Cache hits never reach the AI translator, so this only bounds floods.
+  "i18n-translate": 300,
   "public-ai": 10,
   default: 100,
 };

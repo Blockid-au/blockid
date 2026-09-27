@@ -14,7 +14,8 @@
 //     invalid_grant, invalid_client, redirect_uri_mismatch, unauthorized_client
 //   * Our own stages: not_configured, state_mismatch, missing_code,
 //     token_invalid, email_unverified, login_failed, exchange_failed,
-//     gis_failed (client widget), network (client fetch).
+//     gis_failed (client widget), network (client fetch), rate_limited
+//     (proxy per-IP ceiling on the start/callback navigations).
 
 export const GOOGLE_CALLBACK_PATH = "/api/auth/google/callback";
 export const GOOGLE_START_PATH = "/api/auth/google/start";
@@ -121,6 +122,12 @@ export function describeGoogleSignInError(
       return {
         title: "The Google pop-up did not complete.",
         hint: "Pop-ups or third-party cookies may be blocked. Use “Continue with Google (redirect)” — it works without either.",
+        configuration: false,
+      };
+    case "rate_limited":
+      return {
+        title: "Too many sign-in attempts from your network.",
+        hint: "Wait a minute, then try Google again — or sign in with email below.",
         configuration: false,
       };
     case "network":

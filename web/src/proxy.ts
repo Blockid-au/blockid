@@ -12,6 +12,7 @@ import { grantsRewriteTarget } from "@/lib/funding/grants-route";
 import { demoBandRewriteTarget } from "@/lib/report-v2/demo-band-route";
 import { checkRateLimit, type RateLimitBucket } from "@/lib/rate-limit";
 import { securityHeaders } from "@/lib/security-headers";
+import { absoluteSiteUrl } from "@/lib/site-url";
 import { firstPartyInlineScriptHashes } from "@/lib/security/inline-script-hashes";
 import { prerenderScriptHashes } from "@/lib/security/prerender-script-hashes";
 import {
@@ -121,8 +122,14 @@ const BUCKET_ROUTES: ReadonlyArray<readonly [prefix: string, bucket: RateLimitBu
   ["/api/i18n/translate", "i18n-translate"],
   ["/api/rnd", "public-ai"],
   ["/api/website-tech-audit", "public-ai"],
-  // Google sign-in verifies the ID token / exchanges the code with Google
-  // and creates a session — same per-IP ceiling as password login.
+  // The Google redirect flow's browser navigations (GET start + callback)
+  // must never show a raw JSON page mid sign-in: fail-open bucket, and a
+  // 429 redirects to /auth/login (27/09 health sweep). Listed BEFORE the
+  // `/api/auth/google` prefix, which would otherwise swallow them.
+  ["/api/auth/google/start", "auth-google-nav"],
+  ["/api/auth/google/callback", "auth-google-nav"],
+  // Google sign-in token POST verifies the ID token and creates a session —
+  // same fail-closed per-IP ceiling as password login.
   ["/api/auth/google", "auth-login"],
   // Auth surfaces — fail-closed (see FAIL_CLOSED_BUCKETS in lib/rate-limit.ts).
   ["/api/auth/login-password", "auth-login"],
@@ -545,6 +552,17 @@ export async function proxy(request: NextRequest) {
     }
     if (!result.allowed) {
       const retryAfterSec = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000));
+      if (bucket === "auth-google-nav") {
+        // Top-level navigation: land on the login page with plain-language
+        // copy (lib/auth/google-sign-in-errors.ts) rather than raw JSON.
+        // Canonical origin: request.url is the upstream bind address behind nginx.
+        const login = new URL(absoluteSiteUrl("/auth/login"));
+        login.searchParams.set("google_error", "rate_limited");
+        const redirect = NextResponse.redirect(login, 303);
+        redirect.headers.set("Retry-After", String(retryAfterSec));
+        redirect.headers.set("Cache-Control", "no-store");
+        return applySecurityHeaders(redirect);
+      }
       // CISO P1 (2026-08-23): auth buckets are fail-closed. When the limiter
       // backing store errors out for one of them we return 503 (not 429) so
       // callers can distinguish "you hit the ceiling" from "limiter is dead".

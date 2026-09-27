@@ -86,6 +86,14 @@ describe("LoginForm — Google redirect fallback", () => {
     expect(out).toContain("Testing");
   });
 
+  it("?google_error=rate_limited (proxy ceiling on the Google start/callback navigations) → wait-and-retry copy", () => {
+    nav.qs = "google_error=rate_limited";
+    const out = html();
+    expect(out).toContain('role="alert"');
+    expect(out).toContain("Too many sign-in attempts from your network.");
+    expect(out).not.toContain("Error code:");
+  });
+
   it("an arbitrary ?google_error value is sanitised, never reflected", () => {
     nav.qs = "google_error=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E";
     const out = html();

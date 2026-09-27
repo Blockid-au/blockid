@@ -467,10 +467,48 @@ describe("rate-limit buckets — public routes that had no limiter (2026-09-26 g
     expect(await bucketOf(path)).toBe(bucket);
   });
 
+  it("the Google redirect flow's GET navigations sit in the fail-open auth-google-nav bucket, not auth-login", async () => {
+    for (const p of ["/api/auth/google/start", "/api/auth/google/callback"]) {
+      expect(await bucketOf(p, "GET"), p).toBe("auth-google-nav");
+    }
+    // The token POST keeps the fail-closed auth-login bucket.
+    expect(await bucketOf("/api/auth/google")).toBe("auth-login");
+  });
+
   it("neighbours are not swept in: the unsubscribe one-click post, the Stripe webhook, the coupon redeem route", async () => {
     for (const p of ["/api/unsubscribe", "/api/stripe/webhook", "/api/coupon/redeem", "/api/index/submit", "/api/track/open"]) {
       expect(await bucketOf(p)).toBeNull();
     }
+  });
+});
+
+// 27/09 health sweep: Google start/callback are top-level browser
+// navigations. A limiter denial there must land the user back on the login
+// page with plain copy — never a raw 429/503 JSON page mid sign-in.
+describe("rate-limit denial on the Google sign-in navigations (27/09 health sweep)", () => {
+  it.each(["/api/auth/google/start?next=%2Fworkspace", "/api/auth/google/callback?code=c&state=s"])(
+    "a 429 on %s redirects to /auth/login?google_error=rate_limited",
+    async (path) => {
+      checkRateLimitMock.mockResolvedValueOnce({ allowed: false, remaining: 0, limit: 40, resetAt: Date.now() + 30_000 });
+      const res = await proxy(req(path, { method: "GET", site: "cross-site" }));
+      expect(res.status).toBe(303);
+      const location = new URL(res.headers.get("location") ?? "");
+      expect(location.pathname).toBe("/auth/login");
+      expect(location.searchParams.get("google_error")).toBe("rate_limited");
+      expect(location.host).not.toMatch(/localhost|0\.0\.0\.0|127\.0\.0\.1/);
+      expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(res.headers.get("x-test-security")).toBe("1");
+    },
+  );
+
+  it("the Google token POST still answers a fail-closed limiter with 503 JSON (auth-login stays fail-closed)", async () => {
+    checkRateLimitMock.mockResolvedValueOnce({
+      allowed: false, remaining: 0, limit: 40, resetAt: Date.now() + 60_000, failedClosed: true,
+    });
+    const res = await proxy(req("/api/auth/google", { method: "POST", site: "same-origin" }));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ ok: false, bucket: "auth-login", failClosed: true });
   });
 });
 
