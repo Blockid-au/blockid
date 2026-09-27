@@ -14,6 +14,9 @@
 
 set -u
 
+# Text log (overridable so the colocated test never writes the host log).
+LOG="${BLOCKID_CRON_LOG:-/tmp/blockid-cron.log}"
+
 ENDPOINT="${1:-}"
 if [ -z "$ENDPOINT" ]; then
   echo "Usage: bash scripts/cron-runner.sh <endpoint-name>"
@@ -41,7 +44,7 @@ G30_PY
     ) || G30_DECISION=invalid
     if [ "$G30_DECISION" != released ]; then
       # A truthful deferral, not HTTP success or a fabricated health sample.
-      printf '%s %s: deferred (G30 ownership %s; no HTTP request)\n' "$(date -u '+%m-%d %H:%M')" "$ENDPOINT" "$G30_DECISION" >> /tmp/blockid-cron.log
+      printf '%s %s: deferred (G30 ownership %s; no HTTP request)\n' "$(date -u '+%m-%d %H:%M')" "$ENDPOINT" "$G30_DECISION" >> "$LOG"
       exit 0
     fi
     ;;
@@ -55,7 +58,7 @@ LOCK_FILE="/tmp/blockid-cron.$ENDPOINT.lock"
 exec 9>"$LOCK_FILE" 2>/dev/null || true
 if command -v flock >/dev/null 2>&1; then
   if ! flock -n 9; then
-    echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: skip (previous run still holding lock)" >> /tmp/blockid-cron.log
+    echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: skip (previous run still holding lock)" >> "$LOG"
     exit 0
   fi
 fi
@@ -84,14 +87,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_HELPER="$WEB_DIR/scripts/g30-serving-state.py"
 if ! ORIGIN_PORT=$(python3 "$STATE_HELPER" --web "$WEB_DIR" --port 2>/dev/null); then
-  echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: deferred (serving state invalid or switching)" >> /tmp/blockid-cron.log
+  echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: deferred (serving state invalid or switching)" >> "$LOG"
   exit 0
 fi
 RUN_RELEASE=""
 if [ -e "$WEB_DIR/content/reports/g30-serving-state.json" ] || [ -L "$WEB_DIR/content/reports/g30-serving-state.json" ]; then
   if ! SERVING_SNAPSHOT=$(python3 "$STATE_HELPER" --web "$WEB_DIR" --snapshot 2>/dev/null) || \
       ! RUN_RELEASE=$(printf '%s' "$SERVING_SNAPSHOT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["phase"]=="stable" and str(d["active"]["port"])==sys.argv[1]; print(d["active"]["releasePath"])' "$ORIGIN_PORT" 2>/dev/null); then
-    echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: deferred (serving instance changed before admission)" >> /tmp/blockid-cron.log
+    echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: deferred (serving instance changed before admission)" >> "$LOG"
     exit 0
   fi
 else
@@ -103,8 +106,20 @@ fi
 # retry/Telegram tail) — a fixed 90 s used to kill every cron that legitimately
 # ran longer (evaluation-batch-runner, report pipelines with --timeout 300).
 # Ceiling: 600 + 30 s.
+#
+# 27/09 health sweep: the watchdog must never hold the job lock. A forked
+# subshell (and its `sleep`) inherits fd 9, and the EXIT trap used to kill
+# only the subshell — the orphaned `sleep` kept the flock for the whole
+# WATCHDOG_S, so report-order-drain (*/2) really ran every ~10 min. Now fd 9
+# is closed for the watchdog (`9>&-`) and the subshell kills its own `sleep`
+# when the EXIT trap signals it.
 WATCHDOG_S=$((TIMEOUT + 30))
-( sleep "$WATCHDOG_S" && kill -TERM -$$ 2>/dev/null ) &
+(
+  trap 'kill "$WATCHDOG_SLEEP_PID" 2>/dev/null; exit 0' TERM
+  sleep "$WATCHDOG_S" &
+  WATCHDOG_SLEEP_PID=$!
+  wait "$WATCHDOG_SLEEP_PID" && kill -TERM -$$ 2>/dev/null
+) 9>&- &
 WATCHDOG_PID=$!
 trap 'kill $WATCHDOG_PID 2>/dev/null' EXIT  # retain lock inode for queued cron invocations
 
@@ -130,8 +145,7 @@ if [ -z "${CRON_SECRET:-}" ]; then
   echo "[cron-runner] FATAL: CRON_SECRET not set in web/.env or web/.env.runtime" >&2
   exit 2
 fi
-LOG="/tmp/blockid-cron.log"
-HEALTH_LOG="/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl"
+HEALTH_LOG="${BLOCKID_CRON_HEALTH_LOG:-/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl}"
 TELEGRAM_BOT="${TELEGRAM_BOT_TOKEN:-$(env_val TELEGRAM_BOT_TOKEN)}"
 TELEGRAM_CHAT="${TELEGRAM_CHAT_ID:-$(env_val TELEGRAM_CHAT_ID)}"
 

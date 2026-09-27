@@ -18,6 +18,13 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAllAgentGoals, type AgentGoal } from "@/lib/agent-goals/goal-tree";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import {
+  orderByStaleness,
+  researchKey,
+  runResearchQueue,
+  type ResearchQueueItem,
+  type ResearchQueueResult,
+} from "@/lib/agent-goals/research-queue";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min max
@@ -62,13 +69,16 @@ function shouldResearchToday(frequency: string): boolean {
 
 // ── Research runner ────────────────────────────────────────────────────
 
-interface ResearchResult {
-  agent: string;
-  topic: string;
-  status: "ok" | "skipped" | "failed" | "no_new_data";
-  summary?: string;
-  error?: string;
-}
+type ResearchResult = ResearchQueueResult;
+
+// Time budget (27/09 health sweep — 6/6 runs killed by curl at 300 s). The
+// crontab gives this job `--timeout 300`; stop starting topics at 230 s so
+// the growth_insights log + response always land inside it.
+const RUN_BUDGET_MS = 230_000;
+const TOPIC_TIMEOUT_MS = 60_000;
+const MIN_START_MS = 20_000;
+// Free-provider RPM floors (Gemini 15, Groq 30) need ~4 s between calls, not 45.
+const STAGGER_MS = 5_000;
 
 async function researchTopic(
   agentGoal: AgentGoal,
@@ -220,51 +230,42 @@ export async function GET(request: Request) {
     });
   }
 
-  // Run research for each scheduled agent
-  const results: ResearchResult[] = [];
-  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  for (const agentGoal of scheduledAgents) {
-    if (!agentGoal.researchTopics.length) continue;
-
-    for (let i = 0; i < agentGoal.researchTopics.length; i++) {
-      const topic = agentGoal.researchTopics[i];
-
-      // Stagger AI calls: 45s gap between requests to stay within rate limits
-      // (OpenRouter: 200 RPM, Groq: 30 RPM, Gemini: 15 RPM)
-      if (results.filter((r) => r.status === "ok").length > 0) {
-        await delay(45_000);
+  // One queue across all scheduled agents, stalest topic first, run inside a
+  // wall-clock budget; whatever does not fit is returned as `deferred`.
+  const queue: ResearchQueueItem<AgentGoal>[] = scheduledAgents.flatMap((agentGoal) =>
+    agentGoal.researchTopics.map((topic) => ({ agent: agentGoal, agentId: agentGoal.agent, topic })),
+  );
+  const supabase = getSupabaseAdmin();
+  const lastUpdated = new Map<string, string>();
+  if (supabase && queue.length > 0) {
+    try {
+      const { data } = await supabase
+        .from("agent_knowledge_base")
+        .select("agent, topic, updated_at")
+        .in("agent", scheduledAgents.map((a) => a.agent));
+      for (const row of (data ?? []) as Array<{ agent: string; topic: string; updated_at: string | null }>) {
+        if (row.updated_at) lastUpdated.set(researchKey(row.agent, row.topic), row.updated_at);
       }
-
-      // Re-check budget between topics (may have been consumed by other crons)
-      if (!canRunUpgradeTasks()) {
-        results.push({
-          agent: agentGoal.agent,
-          topic,
-          status: "skipped",
-          summary: "Budget limit reached mid-run",
-        });
-        continue;
-      }
-
-      try {
-        const result = await researchTopic(agentGoal, topic);
-        results.push(result);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        results.push({
-          agent: agentGoal.agent,
-          topic,
-          status: "failed",
-          error: msg,
-        });
-        console.error(`[agent-research] ${agentGoal.agent}/${topic}: FAILED — ${msg}`);
-      }
+    } catch {
+      /* unknown staleness → goal-tree order */
     }
   }
 
+  const { results, partial } = await runResearchQueue(orderByStaleness(queue, lastUpdated), {
+    runTopic: (item) => researchTopic(item.agent, item.topic),
+    budgetMs: RUN_BUDGET_MS,
+    staggerMs: STAGGER_MS,
+    topicTimeoutMs: TOPIC_TIMEOUT_MS,
+    minStartMs: MIN_START_MS,
+    // Re-check budget between topics (may have been consumed by other crons)
+    canRun: canRunUpgradeTasks,
+    startedAt: now.getTime(),
+  });
+  for (const r of results) {
+    if (r.status === "failed") console.error(`[agent-research] ${r.agent}/${r.topic}: FAILED — ${r.error}`);
+  }
+
   // Log to growth_insights table
-  const supabase = getSupabaseAdmin();
   if (supabase) {
     try {
       await supabase.from("growth_insights").insert({
@@ -298,6 +299,8 @@ export async function GET(request: Request) {
     tasksSkipped: results.filter((r) => r.status === "skipped").length,
     tasksFailed: results.filter((r) => r.status === "failed").length,
     tasksNoNewData: results.filter((r) => r.status === "no_new_data").length,
+    tasksDeferred: results.filter((r) => r.status === "deferred").length,
+    partial,
     results,
   };
 

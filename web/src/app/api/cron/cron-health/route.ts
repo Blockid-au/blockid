@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import * as fs from "fs";
+import * as path from "path";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 
@@ -15,6 +16,10 @@ const HEALTH_LOG = `${WEB_DIR}/content/reports/cron-health.jsonl`;
 const HEARTBEAT_LOG = `${WEB_DIR}/content/reports/routine-heartbeat.jsonl`;
 const REPORTS_DIR = `${WEB_DIR}/content/reports`;
 const CLOUD_ALERT_STATE = "/tmp/blockid-cloud-routine-alert.json";
+// The installed crontab's source of truth + the G30 admission control file
+// cron-runner.sh reads (repo root docs/plans, one level above web/).
+const CRONTAB_FILE = `${WEB_DIR}/scripts/crontab.production`;
+const G30_CONTROL = path.resolve(WEB_DIR, "../docs/plans/g30-execution-control.json");
 
 // Anthropic-hosted cloud routines (separate from local crontab — managed at
 // claude.ai/code/routines). They went dead silently for ~2 weeks when their
@@ -28,6 +33,8 @@ const CLOUD_DAILY_MAX_AGE_MS = 25 * 3_600_000; // 25h
 const CLOUD_WEEKLY_MAX_AGE_MS = 8 * 86_400_000; // 8 days
 
 import { normaliseCronEntry } from "@/lib/ops/cron-health-entry";
+import { activeCrontabEndpoints, scheduledEndpoints } from "@/lib/ops/cron-expectations";
+import { parseG30Ownership } from "@/lib/ops/g30-writer-ownership";
 
 interface CronEntry {
   ts: string;
@@ -37,13 +44,34 @@ interface CronEntry {
   detail: string;
 }
 
+// svi-notify + nurture were retired 25/09 (G34-BT2 EM01) and are gone from
+// this list. Paused (`# PAUSED-EMAIL`) and G30-deferred jobs stay listed but
+// are only EXPECTED while an active crontab line schedules them — see
+// lib/ops/cron-expectations.ts (27/09 health sweep: false "missed" rows).
 const EXPECTED_DAILY = [
-  "svi-snapshot", "svi-notify", "nurture", "vesting",
+  "svi-snapshot", "vesting",
   "agent-upgrade", "growth-insights", "svi-review", "agent-research",
   "publish-insight", "refresh-models", "daily-admin-report", "telegram-report",
 ];
 const EXPECTED_PERIODIC = ["blockchain-sync", "ai-health"];
 const EXPECTED_WEEKLY = ["weekly-insights"];
+
+/** Active crontab jobs, or null when the crontab cannot be read (trust the static lists). */
+function readActiveCrontab(): Set<string> | null {
+  try {
+    return activeCrontabEndpoints(fs.readFileSync(CRONTAB_FILE, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function g30Released(): boolean {
+  try {
+    return parseG30Ownership(fs.readFileSync(G30_CONTROL, "utf8")) === "released";
+  } catch {
+    return false; // cron-runner.sh fails closed on a missing control file too
+  }
+}
 
 export async function GET(request: Request) {
   if (!isCronAuthorised(request)) {
@@ -86,10 +114,19 @@ export async function GET(request: Request) {
       }
     }
 
+    // Only jobs an active crontab line schedules (and G30 admits) can be missed.
+    const scheduled = new Set(
+      scheduledEndpoints([...EXPECTED_DAILY, ...EXPECTED_PERIODIC, ...EXPECTED_WEEKLY], {
+        active: readActiveCrontab(),
+        g30Released: g30Released(),
+      }),
+    );
+
     // Check for missed daily routines
     const missed: string[] = [];
     const hourUTC = now.getUTCHours();
     for (const ep of EXPECTED_DAILY) {
+      if (!scheduled.has(ep)) continue;
       const runs = todayRuns[ep];
       if (!runs || runs.length === 0) {
         // Only flag as missed if we're past its expected time
@@ -181,6 +218,8 @@ export async function GET(request: Request) {
         lastRun: last?.ts ?? null,
         lastDuration: last?.duration_ms ?? null,
         todayRuns: todayCount,
+        // false = paused (# PAUSED-EMAIL), unscheduled or G30-deferred — never "missed".
+        scheduled: scheduled.has(ep),
         isMissed: missed.includes(ep),
       };
     });

@@ -60,7 +60,9 @@ export async function GET(request: NextRequest) {
               fontSize: "18px",
               fontWeight: "bold",
             }}>
-              {stageLabel} — Stage {stage}
+              {/* One string child: Satori throws (→ 502) on a non-flex <div>
+                  with several text nodes, which `{a} — Stage {b}` produces. */}
+              {`${stageLabel} — Stage ${stage}`}
             </div>
           </div>
         </div>
