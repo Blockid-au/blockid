@@ -72,7 +72,12 @@ export function marketReferencesFor(research: MarketResearchResult | null | unde
     kind: "competitor", subject: c.name, figure: [c.funding ? `raised ${c.funding}` : null, c.valuation ? `valued ${c.valuation}` : null].filter(Boolean).join(" · ") || "named competitor",
     date: null, url: c.url, sourceTitle: titleOf.get(c.sourceId) ?? c.url, quote: c.quote,
   }));
-  const multiples = research.facts.comparables.filter((c) => c.metric === "revenue_multiple" && c.value >= 0.1 && c.value <= 200).map((c) => c.value);
+  // The company's own site may name competitors, but it never sets the
+  // multiple the cross-check applies to its ARR — a founder could plant one.
+  const ownSite = new Set(research.sources.filter((s) => s.publisherClass === "official_company").map((s) => s.id));
+  const multiples = research.facts.comparables
+    .filter((c) => c.metric === "revenue_multiple" && c.value >= 0.1 && c.value <= 200 && !ownSite.has(c.sourceId))
+    .map((c) => c.value);
   const used = new Set(rows.map((r) => r.url));
   return {
     sourceCount: marketReferenceSourceCount(research),

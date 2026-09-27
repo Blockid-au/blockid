@@ -602,7 +602,7 @@ describe("gatherData — market research for valuation", () => {
     expect(input).toEqual({ company: "Acme", website: "https://acme.com.au", sector: "SaaS", country: "Australia", stage: "seed" });
     expect(JSON.stringify(input)).not.toMatch(/SECRET|churn|widgets|MRR/);
     expect(opts.allowNetwork).toBe(true);
-    expect(opts.wallMs).toBeLessThanOrEqual(45_000);
+    expect(opts.wallMs).toBeLessThanOrEqual(60_000);
     expect(out.results.marketResearch?.status).toBe("found");
     expect(out.results.diagnostics?.marketResearch).toMatchObject({ status: "ok", note: "found via claude_cli_websearch" });
   });

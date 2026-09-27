@@ -18,6 +18,14 @@ describe("market references block", () => {
     expect(b.revenueMultiples).toEqual({ n: 1, low: 8, median: 8, high: 8 });
   });
 
+  it("a revenue multiple from the company's own website never feeds the cross-check range", () => {
+    const r = sampleMarketResearch();
+    const multiple = r.facts.comparables.find((c) => c.metric === "revenue_multiple")!;
+    r.sources = r.sources.map((s) => (s.id === multiple.sourceId ? { ...s, publisherClass: "official_company" as const } : s));
+    expect(marketReferencesFor(r)!.revenueMultiples).toBeNull();
+    expect(marketReferenceCrossCheck(marketReferencesFor(r), 1_200_000)).toBeNull();
+  });
+
   it("nothing when research found no facts / did not run", () => {
     expect(marketReferencesFor(null)).toBeNull();
     expect(marketReferencesFor(sampleMarketResearch({ status: "unavailable" }))).toBeNull();

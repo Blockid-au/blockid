@@ -26,7 +26,7 @@ import {
 export type { MarketResearchInput } from "./market-research-core";
 
 /** Hard caps (per analysis). */
-export const MARKET_RESEARCH_WALL_MS = 45_000;
+export const MARKET_RESEARCH_WALL_MS = 60_000;
 export const MARKET_RESEARCH_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** An "unavailable" outcome is cached briefly so a burst of analyses does not re-probe dead providers. */
 export const MARKET_RESEARCH_NEGATIVE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -35,6 +35,8 @@ const MAX_FETCHES = 5;
 /** Time kept back from the search phase for fetch (≤ 6 s, parallel) + extraction (≤ 12 s). */
 const FETCH_MS = 6_000;
 const EXTRACT_MS = 12_000;
+/** Minimum search budget left before the Claude CLI fallback is spawned (it needs ~36 s). */
+const CLI_MIN_MS = 35_000;
 
 export type SearchStatus = "ok" | "quota_exhausted" | "unavailable" | "timeout" | "budget_denied" | "not_configured";
 
@@ -75,7 +77,7 @@ export interface MarketResearchDeps {
   extract?: (args: { system: string; user: string; maxTokens: number; timeoutMs: number }) => Promise<string>;
   /** Plain text + <title> from a fetched body (R01 plain-text helper). */
   toText?: (body: string) => { text: string; title: string };
-  /** Wall-clock cap (≤ 45 s). */
+  /** Wall-clock cap (≤ 60 s — the Claude CLI search alone takes ~36 s). */
   wallMs?: number;
   /** false → cache-only (free tier / partial re-run): no search, fetch or AI call. */
   allowNetwork?: boolean;
@@ -167,7 +169,8 @@ async function run(
     const left = remaining(searchBudgetEnd, t.now);
     if (!deps.claudeCli) reasons.push("claude_cli_not_configured");
     else if (searchCalls >= MAX_SEARCH_CALLS) reasons.push("search_call_cap");
-    else if (left < 8_000 || t.signal.aborted) reasons.push("claude_cli_no_time");
+    // A CLI web search takes ~36 s; one that cannot finish is never spawned.
+    else if (left < CLI_MIN_MS || t.signal.aborted) reasons.push("claude_cli_no_time");
     else {
       const out = await safeSearch(deps.claudeCli, queries, { signal: t.signal, timeoutMs: Math.min(60_000, left), jobId, maxCalls: 1 });
       searchCalls += Math.min(out.calls, 1);

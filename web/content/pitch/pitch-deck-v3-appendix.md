@@ -519,9 +519,10 @@ Caveats, quoted **verbatim** from `svi-backtest-latest.json` `caveats[]`:
 1. "Survivorship: every row in this set raised. It says nothing about startups that pitched and did not raise, so ρ cannot be read as predictive power; v1 adds a control group after S40."
 2. "Hand-curated profiles: each pre-raise profile was written by a curator from public sources as of the raise, not from the founder's own evidence. Fields with no public fact were left at the engine's no-evidence default, which is why most rows score below the live median for their stage."
 3. "N is small (49 scorable rows). Stage buckets with fewer than 5 rows report no ρ (pre-seed, series-c, unicorn); every interval is a percentile bootstrap of 1,000 seeded resamples and is wide."
-4. "Rank-only claim: ρ measures whether a higher SVI went with a larger round or valuation inside this set. It is not a valuation model, not a prediction of any single startup's round, and not financial advice."
-5. "Source figures are taken as written from the two hand-entered comparable tables (AUD approximations near the announcement date). Where the two tables disagree the row notes it; nothing was corrected or invented, and a missing figure stays null."
-6. "Stage labels follow the source tables — 'Series B' is a 'Series B or later' bucket in one of them — so within-stage results mix lettered rounds."
+4. "Publication rule: every aggregate is shown with its n. A quartile or stage bucket with fewer than 10 rows publishes no median or quartile figure (“not enough comparable companies”); 10–29 rows are labelled indicative; 30 or more is a benchmark."
+5. "Rank-only claim: ρ measures whether a higher SVI went with a larger round or valuation inside this set. It is not a valuation model, not a prediction of any single startup's round, and not financial advice."
+6. "Source figures are taken as written from the two hand-entered comparable tables (AUD approximations near the announcement date). Where the two tables disagree the row notes it; nothing was corrected or invented, and a missing figure stays null."
+7. "Stage labels follow the source tables — 'Series B' is a 'Series B or later' bucket in one of them — so within-stage results mix lettered rounds."
 
 ### Slide 6 — use of funds, milestones, pre-money (`web/content/pitch/pitch-deck-v3.md` Slide 11, plan §7 F-1/F-2, §2.2, §4)
 

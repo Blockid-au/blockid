@@ -46,12 +46,12 @@ Deck text, criterion notes and financials are never sent to a search engine.
 | Search calls | 5 or fewer (Brave queries + Claude CLI run) |
 | Page fetches | 5 or fewer |
 | Extraction calls | 1 (about US$0.001–0.003) |
-| Wall time | 45 s, absolute |
+| Wall time | 60 s, absolute (search ≤ 42 s: the Claude CLI fallback needs ~36 s) |
 | Brave spend | at most US$0.025 per analysis, within the US$5/month cap |
 
 The ledger's own caps (`BRAVE_FREE_QUERY_CAPS`) are 3 per question, 6 per batch, 30 per day and 900 per month. That means about 6 uncached analyses a day can use Brave. After that the step falls back to the Claude CLI, and the 7-day cache absorbs repeats.
 
-The step runs in parallel with the 60 s research agent, so it does not lengthen the critical path. The free tier and partial re-runs are **cache-only**: they make no call.
+The step runs in parallel with the 60 s research agent and shares its 60 s ceiling, so it lengthens GATHER only when the research agent finishes early. Partial re-runs are **cache-only**: they make no call. The free /analyze reports (the first two per e-mail) run on the `standard` tier and **do** research — one uncached run costs at most one CLI search plus one ~US$0.003 extraction, and the 7-day cache absorbs repeats. The Claude CLI is only spawned when at least 35 s of search budget is left. A revenue multiple found on the company's own website never feeds the cross-check range.
 
 ## Cache
 
@@ -67,7 +67,7 @@ The cache lives in `~/.local/state/blockid-research/market-research-cache/<sha25
 ## Where the results appear
 
 - `appendix.marketResearch` (tier `public_unverified`, never "verified").
-- **Valuation section**: a "Market references" block with up to 5 sources, figures with links and dates. The free tier does not show it.
+- **Valuation section**: a "Market references" block with up to 5 sources, figures with links and dates. It is shown on /analyze free reports too (they run on `standard`); only the `free` report tier hides it.
 - **Cross-check row "Public market references (n sources)"**: the researched revenue multiples × the company's own qualified ARR. It appears only when the valuation chapter itself is available. It never becomes a method, a weight or a consensus input. When the valuation is not estimable, the valuation section shows no figures and the block moves to the appendix.
 - **Dashboard-v4 valuation tile**: a one-line hint, "n public market references".
 - **MPC / market criterion prompt**: a competitor table marked as public and unverified.

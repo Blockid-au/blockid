@@ -219,7 +219,7 @@ export const GATHER_RESEARCH_CALLS = 2;
 /** Research = 2 sequential metered LLM calls; own budget (see run()). */
 export const GATHER_RESEARCH_TIMEOUT_MS = 60_000;
 /** Market research for valuation — hard wall clock (mirrors lib/research/market-research.ts). */
-export const MARKET_RESEARCH_WALL_MS = 45_000;
+export const MARKET_RESEARCH_WALL_MS = 60_000;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -561,7 +561,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
   // Name (only with a public website) + website host + sector category +
   // country; never deck text. Paid full runs search; the free tier and
   // partial re-runs read the 7-day cache only (no call is spent). Runs in
-  // parallel with the 60 s research agent, bounded by its own 45 s wall.
+  // parallel with the 60 s research agent, bounded by its own 60 s wall (same as the research agent — the CLI fallback needs ~36 s).
   const websiteUrl = firstLink(context, "website");
   const marketResearch = run("marketResearch", async () => {
     const t0 = now();
