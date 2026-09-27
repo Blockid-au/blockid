@@ -47,6 +47,14 @@ describe("etasFromRows", () => {
     expect(e.totalSec).toBe(360);
   });
 
+  it("never learns the score stage from old rows (it spanned the queue wait, not the work)", () => {
+    const rows = [
+      { ts: "a", totalMs: 300_000, stages: { score: 600_000, evidence: 30_000 } },
+      { ts: "b", totalMs: 300_000, stages: { score: 900_000, evidence: 30_000 } },
+    ];
+    expect(etasFromRows(rows).stages.score).toBe(DEFAULT_STAGE_SECONDS.score);
+  });
+
   it("only looks at the last ETA_SAMPLE_RUNS runs", () => {
     const old = Array.from({ length: 10 }, (_, i) => ({ ts: "o" + i, totalMs: 1_000_000, stages: { audit: 500_000 } }));
     const recent = Array.from({ length: ETA_SAMPLE_RUNS }, (_, i) => ({ ts: "r" + i, totalMs: 200_000, stages: { audit: 20_000 } }));

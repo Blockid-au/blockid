@@ -11,12 +11,13 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { IntakeProgressCard, LiveRunTimeline, TbrStageTimeline, livenessBand, mergeLiveView } from "./tbr-stage-timeline";
-import { fmtDuration, stageChips } from "./tbr-stage-copy";
+import { fmtDuration, intakeCardTitle, stageChips } from "./tbr-stage-copy";
 import {
   applyPipelineEvent,
   defaultStageEtas,
   finalizeStages,
   initialStages,
+  queuedStages,
   summariseTimeline,
   type TbrTimelineView,
 } from "@/lib/analyses/first-analysis/stage-timeline";
@@ -69,7 +70,8 @@ describe("TbrStageTimeline — a running report", () => {
     expect(html).toContain("9 AI calls answered");
     expect(html).toContain("You can leave this page — the report stays at this link.");
     expect(html).toContain("It is also e-mailed to f******@example.com when it lands.");
-    expect(html).toMatch(/aria-live="polite"[^>]*>Eight dimension chapters — \d+% complete</);
+    // The polite region names the stage only — no percent, so it does not re-speak every poll.
+    expect(html).toMatch(/aria-live="polite"[^>]*>Now: Eight dimension chapters</);
   });
 
   it("never promises an e-mail when no destination is known", () => {
@@ -124,6 +126,52 @@ describe("TbrStageTimeline — other states", () => {
     expect(html).toContain("Your run keeps going on the server.");
   });
 
+  it("queued / held: no worker heartbeat ('running' was a lie) — an honest waiting line, EN + VI", () => {
+    const q = summariseTimeline({ stages: queuedStages(CREATED, {}), etas: defaultStageEtas(), now: new Date(at(30)), state: "queued", createdAt: CREATED });
+    const html = renderToStaticMarkup(<TbrStageTimeline timeline={q} receivedAt={0} locale="en" hasLink />);
+    expect(html).not.toContain("tbr-timeline-heartbeat");
+    expect(html).toContain("Waiting for a report worker — nothing has started yet");
+    const h = summariseTimeline({ stages: queuedStages(CREATED, {}, { heldForCap: true }), etas: defaultStageEtas(), now: new Date(at(30)), state: "held", createdAt: CREATED });
+    const held = renderToStaticMarkup(<TbrStageTimeline timeline={h} receivedAt={0} locale="en" />);
+    expect(held).toContain("Held for the next free-report slot — it starts automatically");
+    expect(held).not.toContain("tbr-timeline-heartbeat");
+    const vi = renderToStaticMarkup(<TbrStageTimeline timeline={q} receivedAt={0} locale="vi" />);
+    expect(vi).toContain("Đang chờ máy phân tích — chưa bắt đầu");
+  });
+
+  it("a running row with no worker write yet says so instead of 'running'", () => {
+    const r = { ...running(), lastUpdateAt: null };
+    const html = renderToStaticMarkup(<TbrStageTimeline timeline={r} receivedAt={0} locale="en" />);
+    expect(html).toContain("Waiting for the first update from the server");
+  });
+
+  it("the live region announces a completion / failure, not a percent", () => {
+    const s = initialStages({ createdAt: CREATED, claimedAt: at(3), document: {} });
+    const failed = summariseTimeline({ stages: s, etas: defaultStageEtas(), now: new Date(at(400)), state: "failed", createdAt: CREATED });
+    const html = renderToStaticMarkup(<TbrStageTimeline timeline={failed} receivedAt={0} locale="en" />);
+    expect(html).toMatch(/aria-live="polite"[^>]*>The report could not be written</);
+  });
+
+  it("after the page stops polling: no ticking claims, no heartbeat or time left — 'Stopped checking' + a reload button (EN + VI)", () => {
+    const html = renderToStaticMarkup(<TbrStageTimeline timeline={running(-100)} receivedAt={0} locale="en" hasLink stoppedChecking />);
+    expect(html).toContain("Stopped checking — reload to see the latest status.");
+    expect(html).toContain("data-testid=" + JSON.stringify("tbr-timeline-check-again"));
+    expect(html).toContain("Reload and check again");
+    expect(html).not.toContain("tbr-timeline-heartbeat");
+    expect(html).not.toContain("restarted automatically");
+    expect(html).not.toContain("tbr-timeline-remaining");
+    expect(html).toMatch(/aria-live="polite"[^>]*>Stopped checking/);
+    const vi = renderToStaticMarkup(<TbrStageTimeline timeline={running()} receivedAt={0} locale="vi" stoppedChecking />);
+    expect(vi).toContain("Đã ngừng kiểm tra — tải lại trang để xem trạng thái mới nhất.");
+    expect(vi).toContain("Tải lại và kiểm tra");
+  });
+
+  it("LiveRunTimeline passes the stopped-polling flag through", () => {
+    const view = { kind: "v2", timeline: running() } as unknown as FullReportView;
+    const html = renderToStaticMarkup(<LiveRunTimeline live={{ analysisId: "a", view, receivedAt: 1, connectionTrouble: false, stoppedPolling: true }} />);
+    expect(html).toContain("tbr-timeline-stopped");
+  });
+
   it("LiveRunTimeline renders nothing for a pre-G28 seven-voice row", () => {
     const view = { kind: "s32", timeline: null } as unknown as FullReportView;
     expect(renderToStaticMarkup(<LiveRunTimeline live={{ analysisId: "a", view, receivedAt: 1, connectionTrouble: false }} />)).toBe("");
@@ -149,6 +197,23 @@ describe("IntakeProgressCard — the upload itself", () => {
     expect(html).toContain("4.0 MB received");
     expect(html).toContain("The server is extracting the text now");
   });
+
+  it("typed text and a website are not 'uploaded': their own titles", () => {
+    const text = renderToStaticMarkup(
+      <IntakeProgressCard progress={{ hasFile: false, source: "text", filename: null, loaded: 0, total: 0, uploaded: false, startedAt: 1000, uploadedAt: null, at: 2000 }} />,
+    );
+    expect(text).toContain("Sending and reading your input");
+    expect(text).not.toContain("Uploading and reading your document");
+    const site = renderToStaticMarkup(
+      <IntakeProgressCard progress={{ hasFile: false, source: "website", filename: null, loaded: 0, total: 0, uploaded: false, startedAt: 1000, uploadedAt: null, at: 2000 }} />,
+    );
+    expect(site).toContain("Reading the website");
+    // A legacy snapshot without `source` and no file reads as text.
+    expect(intakeCardTitle({ hasFile: false }, "en")).toBe("Sending and reading your input");
+    expect(intakeCardTitle({ hasFile: true }, "vi")).toBe("Đang tải lên và đọc tài liệu");
+    expect(intakeCardTitle({ hasFile: false, source: "website" }, "vi")).toBe("Đang đọc trang web");
+    expect(intakeCardTitle({ hasFile: false, source: "text" }, "vi")).toBe("Đang gửi và đọc nội dung của bạn");
+  });
 });
 
 describe("helpers", () => {
@@ -165,6 +230,16 @@ describe("helpers", () => {
     expect(mergeLiveView(null, good)).toBe(good);
     expect(mergeLiveView(good, bad)).toEqual({ ...good, connectionTrouble: true });
     expect(mergeLiveView(null, bad)).toBe(bad);
+  });
+
+  it("mergeLiveView: giving up polling keeps the last payload and flags it stopped (connection flag cleared)", () => {
+    const good = { analysisId: "a", view: { status: "running" }, receivedAt: 1, connectionTrouble: true };
+    const stop = { analysisId: "a", view: null, receivedAt: 9, connectionTrouble: false, stoppedPolling: true };
+    expect(mergeLiveView(good, stop)).toEqual({ ...good, connectionTrouble: false, stoppedPolling: true });
+    expect(mergeLiveView(null, stop)).toBe(stop);
+    // A fresh payload (polling restarted) clears it.
+    const fresh = { analysisId: "a", view: { status: "running" }, receivedAt: 10, connectionTrouble: false };
+    expect(mergeLiveView({ ...good, stoppedPolling: true }, fresh)).toBe(fresh);
   });
 
   it("stageChips: valuation range, unavailable valuation, grounding, reasons", () => {

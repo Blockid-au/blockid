@@ -61,6 +61,8 @@ import {
   lastReportRecordV2,
   newEnvelope,
   makeReportCaller,
+  createProgressSaver,
+  HEARTBEAT_GRACE_MS,
   progressFromEvent,
   upsertChapterDraft,
   runReportV2Job,
@@ -171,13 +173,19 @@ describe("runReportV2Job", () => {
   });
 
   it("orchestrates once as tier standard (the full document), stores the envelope with the document + telemetry, delivers once", async () => {
+    // Real events are separated by model calls; the stub yields between them
+    // so each single-flight progress write settles before the next event.
     const orchestrate = vi.fn(async (input: { onEvent: (e: unknown) => void; tier: string; tierV2: string; userId: unknown }) => {
-      input.onEvent({ type: "context", industry: "SaaS", stage: 2, stageLabel: "Seed", phaseId: "p", tier: "standard", estimatedCalls: 16, estimatedSeconds: 200, dims: [] });
-      input.onEvent({ type: "gather_complete", evidenceRows: 12, connectors: [] });
-      input.onEvent({ type: "progress", completed: 3, total: 8, phase: "analyze" });
-      input.onEvent({ type: "dimension_complete", dim: "tre", chapter: {} });
-      input.onEvent({ type: "executive_complete", summary: "s" });
-      input.onEvent({ type: "done", reportId: "rpt-abc", totalMs: 180_000, calls: 16, costAud: 0.11, costUsd: 0.07, costReportedCalls: 16, degradedSections: ["lco"], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 1, autoCited: 2 });
+      const step = async (e: unknown) => {
+        input.onEvent(e);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      };
+      await step({ type: "context", industry: "SaaS", stage: 2, stageLabel: "Seed", phaseId: "p", tier: "standard", estimatedCalls: 16, estimatedSeconds: 200, dims: [] });
+      await step({ type: "gather_complete", evidenceRows: 12, connectors: [] });
+      await step({ type: "progress", completed: 3, total: 8, phase: "analyze" });
+      await step({ type: "dimension_complete", dim: "tre", chapter: {} });
+      await step({ type: "executive_complete", summary: "s" });
+      await step({ type: "done", reportId: "rpt-abc", totalMs: 180_000, calls: 16, costAud: 0.11, costUsd: 0.07, costReportedCalls: 16, degradedSections: ["lco"], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 1, autoCited: 2 });
       return assembled();
     });
     const r = row();
@@ -474,17 +482,23 @@ describe("runReportV2Job — live stage timeline", () => {
   const chapterDraft = { dim: "tre", title: "Traction", ownerAgent: "cro", score: 51, band: "developing", verdict: "v", degraded: false };
 
   it("saves the timeline as stages flip, stamps deadline + heartbeat, finalises it and feeds the ETA ledger", async () => {
+    // Real events are separated by model calls; the stub yields between them
+    // so each single-flight write settles before the next flip.
     const orchestrate = vi.fn(async (input: { onEvent: Ev }) => {
-      input.onEvent({ type: "context", industry: "SaaS", stage: 2, stageLabel: "Seed", phaseId: "p", tier: "standard", estimatedCalls: 16, estimatedSeconds: 420, dims: ["tre"] });
-      input.onEvent({ type: "gather_complete", evidenceRows: 3, connectors: [], diagnostics: { marketResearch: { ms: 10, status: "ok" } } });
-      input.onEvent({ type: "progress", completed: 15, total: 100, phase: "wave1" });
-      input.onEvent({ type: "progress", completed: 80, total: 100, phase: "wave4" });
-      input.onEvent({ type: "dimension_start", dim: "tre", ownerAgent: "cro" });
-      input.onEvent({ type: "dimension_complete", dim: "tre", chapter: chapterDraft });
-      input.onEvent({ type: "progress", completed: 85, total: 100, phase: "synthesizing" });
-      input.onEvent({ type: "executive_complete", summary: "s" });
-      input.onEvent({ type: "audit_complete", groundedShare: 0.9, revised: 1 });
-      input.onEvent({ type: "done", reportId: "rpt-abc", totalMs: 1000, calls: 16, costAud: 0, costUsd: 0, costReportedCalls: 0, degradedSections: [], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
+      const step = async (e: unknown) => {
+        input.onEvent(e);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      };
+      await step({ type: "context", industry: "SaaS", stage: 2, stageLabel: "Seed", phaseId: "p", tier: "standard", estimatedCalls: 16, estimatedSeconds: 420, dims: ["tre"] });
+      await step({ type: "gather_complete", evidenceRows: 3, connectors: [], diagnostics: { marketResearch: { ms: 10, status: "ok" } } });
+      await step({ type: "progress", completed: 15, total: 100, phase: "wave1" });
+      await step({ type: "progress", completed: 80, total: 100, phase: "wave4" });
+      await step({ type: "dimension_start", dim: "tre", ownerAgent: "cro" });
+      await step({ type: "dimension_complete", dim: "tre", chapter: chapterDraft });
+      await step({ type: "progress", completed: 85, total: 100, phase: "synthesizing" });
+      await step({ type: "executive_complete", summary: "s" });
+      await step({ type: "audit_complete", groundedShare: 0.9, revised: 1 });
+      await step({ type: "done", reportId: "rpt-abc", totalMs: 1000, calls: 16, costAud: 0, costUsd: 0, costReportedCalls: 0, degradedSections: [], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
       return assembled();
     });
     const r = row({ input_filename: "deck.pdf", intake: { signals: sampleIntake().signals, structured: { slides: ["a", "b", "c"] } } });
@@ -546,5 +560,141 @@ describe("runReportV2Job — live stage timeline", () => {
     const saved = h.saves.length;
     await new Promise((resolve) => setTimeout(resolve, 40));
     expect(h.saves.length).toBe(saved);
+  });
+
+  it("a burst of events (8 × dimension_start) never writes out of order: one write in flight, one catch-up with the latest state", async () => {
+    const releases: Array<() => void> = [];
+    const orchestrate = vi.fn(async (input: { onEvent: Ev }) => {
+      input.onEvent({ type: "progress", completed: 80, total: 100, phase: "wave4" });
+      for (const dim of ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"]) input.onEvent({ type: "dimension_start", dim, ownerAgent: "cfo" });
+      // Let the writes in flight settle one by one.
+      while (releases.length > 0) {
+        releases.shift()!();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      return assembled();
+    });
+    const h = harness(row(), orchestrate);
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const initial = h.deps.saveProgress;
+    let first = true;
+    h.deps.saveProgress = async (id, envelope, claim) => {
+      if (first) {
+        first = false;
+        return initial(id, envelope, claim);
+      }
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      const snapshot = JSON.parse(JSON.stringify(envelope)) as FullReportV2Envelope;
+      await new Promise<void>((resolve) => releases.push(resolve));
+      h.saves.push(snapshot);
+      inFlight -= 1;
+      return true;
+    };
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(maxInFlight).toBe(1);
+    // The initial save, the first flip, then ONE catch-up carrying all eight writers.
+    expect(h.saves).toHaveLength(3);
+    const writing = h.saves.map((s) => s.stages?.find((x) => x.key === "dimensions")?.detail?.writing?.length ?? 0);
+    expect(writing).toEqual([...writing].sort((a, b) => a - b));
+    expect(writing.at(-1)).toBe(8);
+  });
+
+  it("every progress write carries this worker's claim stamp (a reclaimed run's old worker cannot overwrite the new attempt)", async () => {
+    const claimedAt = "2026-09-21T10:00:00.123+00:00";
+    const orchestrate = vi.fn(async (input: { onEvent: Ev }) => {
+      input.onEvent({ type: "progress", completed: 15, total: 100, phase: "wave1" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return assembled();
+    });
+    const h = harness(row({ full_report_started_at: claimedAt }), orchestrate);
+    const claims: Array<{ startedAt: string | null } | undefined> = [];
+    h.deps.saveProgress = async (_id, _envelope, claim) => {
+      claims.push(claim);
+      return true;
+    };
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(claims.length).toBeGreaterThanOrEqual(2);
+    expect(claims.every((c) => c?.startedAt === claimedAt)).toBe(true);
+  });
+
+  it("the heartbeat stops once the run is past its deadline + grace", async () => {
+    let jump = 0;
+    const orchestrate = vi.fn(async () => {
+      // The clock is now far past the deadline — a stuck worker.
+      jump = 60 * 60 * 1000;
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      return assembled();
+    });
+    const h = harness(row(), orchestrate);
+    const base = h.deps.now;
+    h.deps.now = () => new Date(base().getTime() + jump);
+    h.deps.heartbeatEveryMs = 10;
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    // Only the initial save — no heartbeat after the deadline + HEARTBEAT_GRACE_MS.
+    expect(HEARTBEAT_GRACE_MS).toBeGreaterThan(0);
+    expect(h.saves).toHaveLength(1);
+  });
+});
+
+describe("createProgressSaver", () => {
+  function deferredWrites() {
+    const pending: Array<() => void> = [];
+    let calls = 0;
+    const write = vi.fn(async () => {
+      calls += 1;
+      await new Promise<void>((resolve) => pending.push(resolve));
+    });
+    return { write, pending, calls: () => calls };
+  }
+
+  it("keeps one write in flight and coalesces later requests into ONE catch-up", async () => {
+    const w = deferredWrites();
+    const saver = createProgressSaver(w.write);
+    saver.request();
+    saver.request();
+    saver.request();
+    expect(w.calls()).toBe(1);
+    w.pending.shift()!();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(w.calls()).toBe(2);
+    w.pending.shift()!();
+    await saver.idle();
+    expect(w.calls()).toBe(2);
+  });
+
+  it("a failed write does not wedge the saver", async () => {
+    let n = 0;
+    const saver = createProgressSaver(async () => {
+      n += 1;
+      if (n === 1) throw new Error("db down");
+    });
+    saver.request();
+    await saver.idle();
+    saver.request();
+    await saver.idle();
+    expect(n).toBe(2);
+  });
+
+  it("stop drops the pending catch-up, waits for the write in flight, and ignores later requests", async () => {
+    const w = deferredWrites();
+    const saver = createProgressSaver(w.write);
+    saver.request();
+    saver.request();
+    const stopped = saver.stop(1_000);
+    w.pending.shift()!();
+    await stopped;
+    saver.request();
+    await saver.idle();
+    expect(w.calls()).toBe(1);
+  });
+
+  it("stop gives up waiting after maxWaitMs when a write hangs", async () => {
+    const saver = createProgressSaver(() => new Promise(() => undefined));
+    saver.request();
+    const t0 = Date.now();
+    await saver.stop(20);
+    expect(Date.now() - t0).toBeLessThan(1_000);
   });
 });

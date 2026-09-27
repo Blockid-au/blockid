@@ -141,7 +141,8 @@ describe("applyPipelineEvent — a full run, event by event", () => {
     const ms = stageDurationsMs(s);
     expect(ms.evidence).toBe(39_000);
     expect(ms.dimensions).toBe(120_000);
-    expect(ms.score).toBe(4_000);
+    // score spans created → claimed (queue / cap-hold time), never an ETA sample.
+    expect(ms).not.toHaveProperty("score");
     expect(ms).not.toHaveProperty("received");
   });
 

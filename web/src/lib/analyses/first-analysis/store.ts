@@ -175,15 +175,28 @@ export async function claimFullReportJob(
   return rows.length === 1 ? rows[0] : null;
 }
 
-/** Write the in-progress report so the page can stream sections in (a first run, or a partial being backfilled). */
-export async function saveFullReportProgress(id: string, report: StoredFullReport): Promise<boolean> {
+/**
+ * Write the in-progress report so the page can stream sections in (a first
+ * run, or a partial being backfilled). Only while the job is still running —
+ * a late write never overwrites a finished row. With `claimStartedAt` (the
+ * `full_report_started_at` the caller's claim stamped) the write also
+ * applies only while that claim still owns the row: after a stuck-run
+ * reclaim the old worker's writes match nothing (27/09 review).
+ */
+export async function saveFullReportProgress(
+  id: string,
+  report: StoredFullReport,
+  opts: { claimStartedAt?: string | null } = {},
+): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return false;
-  const { error } = await supabase
+  let query = supabase
     .from(ANALYSES_TABLE)
     .update({ full_report_json: report })
     .eq("id", id)
     .in("full_report_status", ["running", "done_partial"]);
+  if (opts.claimStartedAt) query = query.eq("full_report_started_at", opts.claimStartedAt);
+  const { error } = await query;
   if (error) {
     console.error("[first-analysis:progress] update failed —", error.message);
     return false;

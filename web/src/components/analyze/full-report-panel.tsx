@@ -97,6 +97,12 @@ export interface LiveViewUpdate {
   view: FullReportView | null;
   receivedAt: number;
   connectionTrouble: boolean;
+  /**
+   * 27/09 — the panel stopped polling after POLL_GIVE_UP_MS. The timeline
+   * keeps the last payload but must stop ticking and say it no longer knows
+   * the run's state (it used to claim "restarted automatically").
+   */
+  stoppedPolling?: boolean;
 }
 
 /** Phase wording for the v2 progress line. Exported for the test. */
@@ -283,6 +289,10 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const startedAt = Date.now();
+    const giveUp = () => {
+      setGaveUp(true);
+      onView?.({ analysisId: analysisId!, view: null, receivedAt: Date.now(), connectionTrouble: false, stoppedPolling: true });
+    };
 
     async function tick() {
       try {
@@ -301,7 +311,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
             return;
           }
           if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, 8000);
-          else setGaveUp(true);
+          else giveUp();
           return;
         }
         setFailedToLoad(false);
@@ -310,7 +320,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         onFinalReport?.({ analysisId: analysisId!, intake, token, report: finalFindingReport(next) });
         if (next.pollAfterSec > 0) {
           if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, Math.max(2, next.pollAfterSec) * 1000);
-          else setGaveUp(true);
+          else giveUp();
         }
       } catch {
         if (!live) return;
@@ -318,7 +328,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         setFailedToLoad(true);
         onView?.({ analysisId: analysisId!, view: null, receivedAt: Date.now(), connectionTrouble: true });
         if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, 6000);
-        else setGaveUp(true);
+        else giveUp();
       }
     }
     void tick();

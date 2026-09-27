@@ -97,7 +97,13 @@ export interface ReportV2JobDeps {
   now: () => Date;
   claim: (id: string) => Promise<FullReportRow | null>;
   load: (id: string) => Promise<FullReportRow | null>;
-  saveProgress: (id: string, envelope: FullReportV2Envelope) => Promise<boolean>;
+  /**
+   * Write the in-progress envelope. `claim.startedAt` is the
+   * `full_report_started_at` this worker's claim stamped (27/09 review): the
+   * write applies only while the row still carries it, so a reclaimed run's
+   * old worker can never overwrite the new attempt.
+   */
+  saveProgress: (id: string, envelope: FullReportV2Envelope, claim?: { startedAt: string | null }) => Promise<boolean>;
   finish: (id: string, outcome: { status: "done" | "failed"; report: FullReportV2Envelope | null; error?: string | null }) => Promise<boolean>;
   orchestrate: Orchestrate;
   /** The dispatcher call the orchestrator makes per section. Bound to the row's user at start. */
@@ -302,6 +308,81 @@ export function lastReportRecordV2(analysisId: string, report: ReportV2, tally: 
   };
 }
 
+/**
+ * The heartbeat keeps stamping this long past the run's deadline (the
+ * orchestrator degrades instead of overrunning, so a worker still alive past
+ * this is stuck — the stale band and the cron's reclaim take over).
+ */
+export const HEARTBEAT_GRACE_MS = 60_000;
+
+/** How long the runner waits for a progress write in flight before it writes the final state. */
+const SAVER_DRAIN_MS = 5_000;
+
+export interface ProgressSaver {
+  /** Ask for the latest envelope to be written. Coalesces while a write is in flight. */
+  request(): void;
+  /** Resolves when no write is in flight and none is pending (the suite). */
+  idle(): Promise<void>;
+  /** Stop accepting requests (a pending catch-up is dropped); resolves when the write in flight settles, or after `maxWaitMs`. */
+  stop(maxWaitMs?: number): Promise<void>;
+}
+
+/**
+ * Single-flight progress writer (27/09 review P1). Events (8 × dimension_start
+ * back to back) and the 10 s heartbeat used to fire overlapping full-envelope
+ * UPDATEs; they could land out of order and the page saw stages / draft
+ * chapters go backwards. Now at most ONE write is in flight; a request that
+ * arrives meanwhile only sets a dirty flag, and ONE catch-up write of the
+ * then-latest envelope follows when the first settles. Writes are therefore
+ * applied in order, and the last one carries the newest state. A failed
+ * write is swallowed (the store logs it) — progress is best effort.
+ */
+export function createProgressSaver(write: () => Promise<unknown>): ProgressSaver {
+  let inFlight: Promise<void> | null = null;
+  let dirty = false;
+  let stopped = false;
+  const run = (): void => {
+    dirty = false;
+    const p: Promise<void> = (async () => {
+      try {
+        await write();
+      } catch {
+        /* progress is best effort */
+      }
+    })().then(() => {
+      if (inFlight === p) inFlight = null;
+      if (dirty && !stopped) run();
+    });
+    inFlight = p;
+  };
+  return {
+    request() {
+      if (stopped) return;
+      if (inFlight) {
+        dirty = true;
+        return;
+      }
+      run();
+    },
+    async idle() {
+      while (inFlight) await inFlight;
+    },
+    async stop(maxWaitMs = SAVER_DRAIN_MS) {
+      stopped = true;
+      dirty = false;
+      const current = inFlight;
+      if (!current) return;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const timeout = new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, maxWaitMs);
+        (timer as { unref?: () => void }).unref?.();
+      });
+      await Promise.race([current, timeout]);
+      if (timer) clearTimeout(timer);
+    },
+  };
+}
+
 export async function runReportV2Job(id: string, deps: ReportV2JobDeps = defaultReportV2Deps()): Promise<ReportV2JobOutcome> {
   return trackOriginWork("report_v2_job", () => runReportV2JobTracked(id, trackedJobDeps("report_v2_job", deps)), id);
 }
@@ -350,9 +431,14 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     baselineSvi: built.analysis.totalSVI,
     stageLabel: built.analysis.stageLabel,
   });
-  envelope.deadlineAt = new Date(deps.now().getTime() + runBudget.deadlineMs).toISOString();
+  const deadlineMs = deps.now().getTime() + runBudget.deadlineMs;
+  envelope.deadlineAt = new Date(deadlineMs).toISOString();
   envelope.heartbeatAt = claimedAt;
-  await deps.saveProgress(id, envelope);
+  // 27/09 review: every progress write is scoped to THIS worker's claim (the
+  // started_at its claim stamped). After a stuck-run reclaim the row carries
+  // the new attempt's stamp and this worker's late writes match nothing.
+  const claim = { startedAt: row.full_report_started_at ?? null };
+  await deps.saveProgress(id, envelope, claim);
 
   const tally: CallTally = new Map();
   const callsSoFar = () => {
@@ -360,6 +446,8 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     for (const t of tally.values()) n += t.n;
     return n;
   };
+  // One write in flight at a time, catch-up after it settles — see createProgressSaver.
+  const saver = createProgressSaver(() => trackOriginWork("report_progress", () => deps.saveProgress(id, envelope, claim)));
   let lastSaved = deps.now().getTime();
   let done: Extract<PipelineEvent, { type: "done" }> | null = null;
   const onEvent = (ev: PipelineEvent) => {
@@ -370,22 +458,34 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     const t = deps.now().getTime();
     if (stageChanged || t - lastSaved >= deps.progressEveryMs || ev.type === "dimension_complete" || ev.type === "gather_complete") {
       lastSaved = t;
-      void trackOriginWork("report_progress", () => deps.saveProgress(id, envelope)).catch(() => undefined);
+      saver.request();
     }
   };
 
   // 26/09 — the heartbeat: while the pipeline is inside a long model call no
   // event fires for a minute or more; the worker still says it is alive (and
   // how many AI calls have answered) so the page never looks hung.
-  const heartbeat =
-    (deps.heartbeatEveryMs ?? 0) > 0
-      ? setInterval(() => {
-          envelope.heartbeatAt = deps.now().toISOString();
-          envelope.progress = { ...envelope.progress, calls: callsSoFar() };
-          void trackOriginWork("report_progress", () => deps.saveProgress(id, envelope)).catch(() => undefined);
-        }, deps.heartbeatEveryMs)
-      : null;
-  (heartbeat as { unref?: () => void } | null)?.unref?.();
+  // 27/09 review: it stops HEARTBEAT_GRACE_MS past the run's deadline — a
+  // worker still going by then is stuck, and the page must be allowed to
+  // say so (stale band) instead of hearing "alive" forever.
+  let heartbeat: ReturnType<typeof setInterval> | null = null;
+  const stopHeartbeat = () => {
+    if (heartbeat) clearInterval(heartbeat);
+    heartbeat = null;
+  };
+  if ((deps.heartbeatEveryMs ?? 0) > 0) {
+    heartbeat = setInterval(() => {
+      const nowMs = deps.now().getTime();
+      if (nowMs > deadlineMs + HEARTBEAT_GRACE_MS) {
+        stopHeartbeat();
+        return;
+      }
+      envelope.heartbeatAt = new Date(nowMs).toISOString();
+      envelope.progress = { ...envelope.progress, calls: callsSoFar() };
+      saver.request();
+    }, deps.heartbeatEveryMs);
+    (heartbeat as { unref?: () => void }).unref?.();
+  }
 
   const t0 = deps.now().getTime();
   let report: AssembledReport;
@@ -420,6 +520,11 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     });
     assertReportUsable(report);
   } catch (err) {
+    // No progress write may land after the final state: stop the saver and
+    // let the write in flight settle first (the store's status guard is the
+    // backstop for one that outlives the drain wait).
+    stopHeartbeat();
+    await saver.stop();
     const message = err instanceof Error ? err.message : String(err);
     const fully = err instanceof Error && err.name === "ReportFullyDegradedError";
     console.error(`[report-v2-job] pipeline ${fully ? "fully degraded" : "failed"} —`, message, { analysisId: id });
@@ -462,8 +567,9 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     }
     return { outcome: "failed", error: message, retryable };
   } finally {
-    if (heartbeat) clearInterval(heartbeat);
+    stopHeartbeat();
   }
+  await saver.stop();
 
   const stats = done as Extract<PipelineEvent, { type: "done" }> | null;
   const reportV2 = report.reportV2 ?? null;
@@ -654,7 +760,7 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     now: () => new Date(),
     claim: (id) => claimFullReportJob(id),
     load: loadFullReportRow,
-    saveProgress: (id, envelope) => saveFullReportProgress(id, envelope),
+    saveProgress: (id, envelope, claim) => saveFullReportProgress(id, envelope, { claimStartedAt: claim?.startedAt ?? null }),
     finish: (id, outcome) => finishFullReport(id, outcome),
     releaseGrant: releaseGrantForFailedAnalysis,
     refundCredits: refundIntakeCreditsForFailedAnalysis,
