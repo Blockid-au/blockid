@@ -38,7 +38,8 @@ import { readStreamValuation } from "@/lib/svi/stream-valuation";
 import { createHash } from "crypto";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import type { CriterionCard, DimensionChapter, ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
-import { insertImmutableReportRevision, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { commitFinalReport } from "@/lib/report-v2/commit-final-report";
 import { withMethodMeta } from "@/lib/report-v2/method-meta";
 import { DIM_LEGACY_ORDER, DIM_ORDER, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION, assertReportUsable, orchestrateReport, type AICallerInput, type PipelineEvent } from "./orchestrator";
@@ -366,12 +367,16 @@ async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snap
       const document = withMethodMeta({ ...reportV2, snapshotId, projectId: ctx.projectId }, ctx.sviAnalysis.version);
       reportV2Saved = await writeSnapshotReportV2(db as unknown as Parameters<typeof writeSnapshotReportV2>[0], snapshotId, document);
       if (reportV2Saved) {
-        reportRevisionSaved = Boolean(await insertImmutableReportRevision(db as unknown as Parameters<typeof insertImmutableReportRevision>[0], {
+        // G34 F02/S3: the shared commit path; the stream reports its save status.
+        const revision = await commitFinalReport(db as unknown as Parameters<typeof commitFinalReport>[0], {
+          source: "stream_pipeline",
           snapshotId,
           accountId: ctx.account.id,
           projectId: ctx.projectId,
           report: document,
-        }));
+          sviVersion: ctx.sviAnalysis.version,
+        });
+        reportRevisionSaved = revision.status === "committed";
       }
     }
   }

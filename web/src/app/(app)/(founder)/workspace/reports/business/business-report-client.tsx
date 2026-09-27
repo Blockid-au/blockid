@@ -40,6 +40,7 @@ import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { ActionPlan } from "@/components/score/ActionPlan";
 import type { TbrAssessmentBenchmarks } from "@/components/tbr/v2/assessment";
 import { TbrReportV2, tbrV2TocGroups, type TbrRevisionInfo, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
+import type { TrendBaseline } from "@/lib/report-v2/trend";
 import { TbrClaritySurvey } from "@/components/tbr/tbr-clarity-survey";
 import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
 import { ReportOrderBlocked, reportOrderExportHref } from "@/components/paywall/ReportOrderView";
@@ -362,6 +363,11 @@ export interface BusinessReportClientProps {
   /** G34 BT3 (spec §3): the share page's revision position — the page-1 "Viewing rev N · Latest rev M" banner. */
   revision?: TbrRevisionInfo | null;
   /**
+   * G34 F02/S3: the previous same-project revision (`loadTrendBaseline`) for the
+   * scorecard trend of `initialReportV2`. Omitted → no trend.
+   */
+  trendBaseline?: TrendBaseline | null;
+  /**
    * G34 BT3: where a share-link reader's "Request evidence from founder" goes —
    * the share page passes the anchor of the lead form it mounts (the existing
    * founder-contact path). Omitted → no evaluator next step.
@@ -369,7 +375,7 @@ export interface BusinessReportClientProps {
   requestEvidenceHref?: string | null;
 }
 
-export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null, benchmarks, revision = null, requestEvidenceHref = null }: BusinessReportClientProps) {
+export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null, benchmarks, revision = null, trendBaseline, requestEvidenceHref = null }: BusinessReportClientProps) {
   const t = getTbrStrings(locale);
   const router = useRouter();
   const [data, setData] = useState<PersistedState | null>(initialData ?? null);
@@ -911,6 +917,8 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               // share page's existing lead form (never in PDF mode, never on the static sample or the demo).
               nextStep={founderMode ? { viewer: "founder" } : shareToken && !pdfMode && requestEvidenceHref ? { viewer: "evaluator", href: requestEvidenceHref } : null}
               revision={revision}
+              // G34 F02/S3: the baseline belongs to the server-loaded document only.
+              trendBaseline={initialReportV2 && report.reportId === initialReportV2.reportId ? trendBaseline : undefined}
               afterExecutive={showSurvey && surveySnapshotId ? <TbrClaritySurvey snapshotId={surveySnapshotId} surface={surface} locale={locale} /> : null}
               afterChapters={
                 /* Wave 28C: Personalised 30-Day Action Plan (live widget). */

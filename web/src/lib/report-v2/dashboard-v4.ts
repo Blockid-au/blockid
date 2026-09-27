@@ -47,6 +47,7 @@ import { ensureExecutiveStructured } from "./executive-structure";
 import { clause, dimName, investmentLocale, investmentViewFor, isAssessed, type InvestmentLocale } from "./investment-view";
 import { buildInvestorScreening, type InvestorScreeningSignal, type InvestorSignalKey } from "./investor-screening";
 import { isValuationAvailable, type EvidenceRow, type InvestmentBand, type InvestmentView, type ReportV2 } from "./schema";
+import { computeDimensionTrends, signedDelta, trendDate, type TrendBaseline, type TrendStatus } from "./trend";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,8 +114,8 @@ export interface V4ScoreRow {
   evidencePct: number | null;
   /** 0–6 filled segments of the confidence meter. */
   segments: number;
-  /** Only when a previous revision used the same method (not stored yet → always null). */
-  trend: { delta: number; label: string } | null;
+  /** Only when the previous revision of the same project used the same method (trend.ts); null otherwise. */
+  trend: { delta: number; label: string; ariaLabel: string } | null;
   href: string;
   pending: boolean;
   /** Written analysis unavailable for this chapter (quality.degradedSections / chapter.degraded). */
@@ -239,6 +240,8 @@ export interface DashboardV4 {
   roundReadiness: V4RoundReadiness | null;
   calibration: V4Calibration;
   nextStep: V4NextStep;
+  /** G34 F02/S3: why the scorecard does / does not show a trend (`note` = the "—" tooltip). */
+  trend: TrendStatus & { note: string };
 }
 
 export interface DashboardV4Options {
@@ -253,6 +256,12 @@ export interface DashboardV4Options {
    * surface did not load it (the line links the methodology without figures).
    */
   calibration?: SviBacktestHeadline | null;
+  /**
+   * G34 F02/S3: the previous immutable revision of the same project
+   * (server: `loadTrendBaseline()`). null = loaded, this is the first
+   * revision; omitted = this surface did not load history (no trend).
+   */
+  trendBaseline?: TrendBaseline | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -528,6 +537,14 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
   const keyMetrics: DashboardV4["keyMetrics"] = [arr, growth, notEvidenced("nrr"), notEvidenced("gross_margin"), runway, notEvidenced("burn_multiple")];
 
   // ── Scorecard ──
+  const trends = computeDimensionTrends(report, opts.trendBaseline);
+  const since = trends.status.state === "compared" ? trendDate(trends.status.since) : "";
+  const trendFor = (dim: DimKey, pending: boolean): V4ScoreRow["trend"] => {
+    const delta = trends.deltas[dim];
+    if (pending || typeof delta !== "number") return null;
+    const signed = signedDelta(delta);
+    return { delta, label: s.trendDelta(signed, since), ariaLabel: s.trendDeltaAria(signed, since) };
+  };
   const stage = screeningStageFor(c.stage, c.stageLabel, inputs?.stage);
   const degradedSet = new Set(report.quality.degradedSections.map((d) => d.trim().toLowerCase()));
   const byDim = new Map(report.dimensions.map((d) => [d.dim, d] as const));
@@ -554,7 +571,7 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
       bandLabel: bandWord[band],
       evidencePct,
       segments: segmentsFor(evidencePct),
-      trend: null,
+      trend: trendFor(dim, pending),
       href: `#tbr-dim-${dim}`,
       pending,
       degraded: Boolean(ch.degraded) || degradedSet.has(dim),
@@ -672,7 +689,22 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
     roundReadiness: round ? { lastRound: round.lastRound, runwayMonths: round.runwayMonths, source: round.source, text: round.text } : null,
     calibration: calibrationFor(opts.calibration, s, locale),
     nextStep,
+    trend: { ...trends.status, note: trendNote(trends.status, s) },
   };
+}
+
+function trendNote(status: TrendStatus, s: DashboardV4Strings): string {
+  if (status.state === "compared") return s.trendNotBoth;
+  switch (status.reason) {
+    case "first_revision":
+      return s.trendFirst;
+    case "method_changed":
+      return s.trendMethodChanged;
+    case "method_unknown":
+      return s.trendMethodUnknown;
+    default:
+      return s.trendUnavailable;
+  }
 }
 
 /** The BT6 page-1 position line (stage ladder · peer · spike · round readiness) for the plain surfaces (e-mail, DOCX). */

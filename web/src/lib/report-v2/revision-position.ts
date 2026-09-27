@@ -15,6 +15,8 @@
 // finalised document, not by a founder's share action).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isReportV2 } from "./schema";
+import { trendBaselineFrom, type TrendBaseline } from "./trend";
 
 export interface RevisionRowLike {
   id: string;
@@ -112,5 +114,54 @@ export async function loadRevisionPosition(token: string, db: SupabaseClient | n
     return revisionPositionFrom(list as RevisionRowLike[], current.id, current.project_id);
   } catch {
     return null;
+  }
+}
+
+// ── G34 F02/S3: the trend baseline ──────────────────────────────────────────
+
+/**
+ * Pure: the revision immediately before `currentId` in the project's history
+ * (same ordering as `revisionPositionFrom`: created_at, then id), skipping
+ * revoked rows. undefined = `currentId` absent; null = it is the first.
+ */
+export function previousRevisionFrom(rows: readonly RevisionRowLike[], currentId: string): RevisionRowLike | null | undefined {
+  const ordered = [...rows].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id));
+  const idx = ordered.findIndex((r) => r.id === currentId);
+  if (idx < 0) return undefined;
+  for (let i = idx - 1; i >= 0; i -= 1) {
+    if (!ordered[i].revoked_at) return ordered[i];
+  }
+  return null;
+}
+
+/**
+ * The previous immutable revision of the same project as a trend baseline
+ * (dashboard-v4 `trendBaseline`). null = this revision is the project's
+ * first; undefined = not a revision token / no table / unreadable → the
+ * scorecard shows no trend. Whether the two methods match is decided by
+ * `computeDimensionTrends`, never here.
+ */
+export async function loadTrendBaseline(token: string, db: SupabaseClient | null): Promise<TrendBaseline | null | undefined> {
+  if (!db || !token) return undefined;
+  try {
+    const { data: row, error } = await db.from("report_revisions").select("id, project_id").eq("share_token", token).is("revoked_at", null).maybeSingle();
+    const current = row as { id?: unknown; project_id?: unknown } | null;
+    if (error || !current || typeof current.id !== "string" || typeof current.project_id !== "string") return undefined;
+    const { data: list, error: listError } = await db
+      .from("report_revisions")
+      .select("id, share_token, created_at, revoked_at")
+      .eq("project_id", current.project_id)
+      .order("created_at", { ascending: true })
+      .limit(500);
+    if (listError || !Array.isArray(list)) return undefined;
+    const prev = previousRevisionFrom(list as RevisionRowLike[], current.id);
+    if (prev === undefined) return undefined;
+    if (prev === null) return null;
+    const { data: doc, error: docError } = await db.from("report_revisions").select("report_json").eq("id", prev.id).maybeSingle();
+    const json = (doc as { report_json?: unknown } | null)?.report_json;
+    if (docError || !json || !isReportV2(json)) return undefined;
+    return trendBaselineFrom(json, prev.id, prev.created_at);
+  } catch {
+    return undefined;
   }
 }

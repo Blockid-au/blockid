@@ -548,3 +548,52 @@ describe("runReportV2Job — live stage timeline", () => {
     expect(h.saves.length).toBe(saved);
   });
 });
+
+describe("runReportV2Job — G34 F02/S3 immutable revision hook", () => {
+  it("commits the finished envelope once, after the row is done and before delivery, with the baseline SVI version", async () => {
+    const order: string[] = [];
+    const h = harness(row({ user_id: "u-1" }));
+    const commitRevision = vi.fn(async () => {
+      order.push(`commit:${h.finishes.map((f) => f.status).join(",")}`);
+      return { status: "committed" };
+    });
+    h.deps.commitRevision = commitRevision;
+    h.deliver.mockImplementation(async () => {
+      order.push("deliver");
+      return "sent";
+    });
+    const out = await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(out).toMatchObject({ outcome: "done", emailed: "sent" });
+    expect(commitRevision).toHaveBeenCalledTimes(1);
+    const [committedRow, envelope, version] = commitRevision.mock.calls[0] as unknown as [FullReportRow, FullReportV2Envelope, string];
+    expect(committedRow.id).toBe(SAMPLE_ANALYSIS_ID);
+    expect(envelope.report?.dimensions).toHaveLength(8);
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(order).toEqual(["commit:done", "deliver"]);
+  });
+
+  it.each([
+    ["rejects", () => Promise.reject(new Error("report_revisions unavailable"))],
+    ["throws synchronously", () => { throw new Error("boom"); }],
+    ["reports failed", () => Promise.resolve({ status: "failed", reason: "unconfirmed" })],
+  ])("a revision commit that %s never fails the run or its delivery", async (_label, impl) => {
+    const h = harness(row({ user_id: "u-1" }));
+    h.deps.commitRevision = vi.fn(impl as () => Promise<unknown>);
+    const out = await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(out).toMatchObject({ outcome: "done", emailed: "sent" });
+    expect(h.finishes).toEqual([{ status: "done", error: null, hasReport: true }]);
+    expect(h.deliver).toHaveBeenCalledTimes(1);
+  });
+
+  it("no commit for a failed run or a re-delivered (already done) envelope", async () => {
+    const failed = harness(row(), vi.fn().mockRejectedValue(new Error("engine_overloaded")));
+    failed.deps.commitRevision = vi.fn();
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, failed.deps);
+    expect(failed.deps.commitRevision).not.toHaveBeenCalled();
+    const existing = { ...newEnvelope(SAMPLE_ANALYSIS_ID, "Acme", NOW), report: demoReportV2(), reportId: "rpt-old", completedAt: NOW.toISOString() };
+    const again = harness(row({ full_report_status: "failed", full_report_json: existing }));
+    again.deps.commitRevision = vi.fn();
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, again.deps);
+    expect(again.deps.commitRevision).not.toHaveBeenCalled();
+  });
+});

@@ -106,11 +106,14 @@ export function DimensionScorecard({ v4, locale = "en", footer }: { v4: Dashboar
                 </td>
                 <td className="hidden px-3 py-2.5 align-middle lg:table-cell">
                   {row.trend ? (
-                    <span className={cn("text-xs text-secondary", FIGURE_CLASS)}>{row.trend.label}</span>
+                    <span data-tbr-trend={row.trend.delta} className={cn("text-xs text-secondary", FIGURE_CLASS)} title={row.trend.ariaLabel}>
+                      <span aria-hidden="true">{row.trend.label}</span>
+                      <span className="sr-only">{row.trend.ariaLabel}</span>
+                    </span>
                   ) : (
-                    <span className={cn("text-xs text-muted", FIGURE_CLASS)} title={s.trendUnavailable}>
+                    <span className={cn("text-xs text-muted", FIGURE_CLASS)} title={v4.trend.note}>
                       {s.trendNone}
-                      <span className="sr-only"> {s.trendUnavailable}</span>
+                      <span className="sr-only"> {v4.trend.note}</span>
                     </span>
                   )}
                 </td>

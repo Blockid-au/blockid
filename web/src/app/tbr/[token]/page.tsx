@@ -19,7 +19,7 @@ import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
 import { TBR_REQUEST_EVIDENCE_HASH } from "@/lib/report-v2/request-evidence";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
-import { loadRevisionPosition, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
+import { loadRevisionPosition, loadTrendBaseline, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
 import { getCurrentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -167,6 +167,35 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
   return { row, persisted };
 }
 
+/**
+ * G34 F02/S3: an immutable revision with no daily snapshot (a paid order or a
+ * first analysis, committed through `commitFinalReport`) renders from its
+ * stored document alone — the old-version view of those reports. No snapshot
+ * id is handed to the client (no action plan / survey keyed on it).
+ */
+function revisionOnlyResult(loaded: Awaited<ReturnType<typeof loadReportV2ByShareToken>>): { row: SnapshotRow; persisted: PersistedState } | null {
+  if (!loaded || loaded.path !== "stored") return null;
+  const r = loaded.report;
+  const dimStates = toDimStates(Object.fromEntries(r.dimensions.map((d) => [d.dim, { status: "complete", score: d.score }])));
+  const savedAt = Date.parse(r.generatedAt);
+  return {
+    row: { id: loaded.snapshotId, project_id: loaded.projectId, svi_total: r.cover.svi.total, created_at: r.generatedAt, criterion_results: null, dim_results: null, dimension_scores: null, analysis_json: null },
+    persisted: {
+      savedAt: Number.isFinite(savedAt) ? savedAt : 0,
+      dimStates,
+      criterionStates: [],
+      completed: DIM_KEYS.filter((k) => dimStates[k].score !== null).length,
+      total: 8,
+      totalMs: null,
+      done: true,
+      industry: r.cover.sector || null,
+      stage: r.cover.stageLabel || null,
+      snapshotId: null,
+      sviTotal: r.cover.svi.total,
+    },
+  };
+}
+
 /** G13-W1-R1: stored ReportV2 for the row (null until migration 0395 + a pipeline write). */
 export default async function TbrSharePage({
   params,
@@ -177,13 +206,15 @@ export default async function TbrSharePage({
 }) {
   const { token } = await params;
   const { pdf } = await searchParams;
-  const result = await fetchByToken(token);
-  if (!result) notFound();
   // All public readers use the same stored-document/legacy-adapter bridge.
   // This keeps the web report aligned with PDF and export readers while the
   // immutable revision table is introduced in a later schema phase.
   const loaded = await loadReportV2ByShareToken(token);
+  const result = (await fetchByToken(token)) ?? revisionOnlyResult(loaded);
+  if (!result) notFound();
   const initialReportV2 = loaded?.report ?? null;
+  // G34 F02/S3: the previous same-project revision → the scorecard trend (same method only).
+  const trendBaseline = await loadTrendBaseline(token, getSupabaseAdmin());
   // G21 P1: benchmark for the Assessment Card, published only under the n-rule.
   const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null, initialReportV2?.cover.sector ?? null);
   // G34 BT6 (RQ21): the published SVI backtest headline for the page-1 calibration line.
@@ -202,6 +233,7 @@ export default async function TbrSharePage({
         pdfMode={pdfMode}
         benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, calibration }}
         revision={revision}
+        trendBaseline={trendBaseline}
         requestEvidenceHref={pdfMode ? null : TBR_REQUEST_EVIDENCE_HASH}
       />
       {/* Wave 26A — anonymous open-tracking beacon. Never runs in PDF export. */}

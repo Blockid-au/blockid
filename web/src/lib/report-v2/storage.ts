@@ -73,17 +73,25 @@ export async function insertCompletedAssembledReport(db: Db, row: Record<string,
  * rewritten.  Fail closed when the authority table is unavailable or the
  * read-back does not match, so callers cannot publish a mutable link while
  * claiming immutable history.
+ *
+ * G34 F02/S3: `snapshotId` / `accountId` may be null — a paid order (an
+ * `assembled_reports` row) and a first analysis (an `analyses` row) have no
+ * daily snapshot, and a first analysis may have no svi_accounts row. The
+ * revision is keyed on `projectId` (the subject revision history, the
+ * old-version banner and the trend read by), which stays required. Callers go
+ * through `commitFinalReport()` (commit-final-report.ts), not this directly.
  */
 export async function insertImmutableReportRevision(
   db: Db,
   args: {
-    snapshotId: string;
-    accountId: string;
+    snapshotId: string | null;
+    accountId: string | null;
     projectId: string;
     report: ReportV2;
   },
 ): Promise<{ revisionId: string; shareToken: string } | null> {
-  if (!args.snapshotId || !args.accountId || !args.projectId || !isReportV2(args.report)) return null;
+  if (!args.projectId || !isReportV2(args.report)) return null;
+  const snapshotId = args.snapshotId || null;
   const revisionId = randomUUID();
   const shareToken = nanoid(32);
   const document = JSON.parse(JSON.stringify(args.report));
@@ -94,10 +102,11 @@ export async function insertImmutableReportRevision(
     // O08/T02 unknown-commit recovery: a caller may lose the response after
     // PostgREST commits. Reuse the exact prior revision before attempting a
     // second insert, preserving one public token per immutable document.
-    const { data: existing, error: lookupError } = await db
-      .from("report_revisions")
-      .select("id, share_token, report_json, revoked_at")
-      .eq("snapshot_id", args.snapshotId)
+    // Snapshot-less revisions (paid order, first analysis) dedupe within the project.
+    const lookup = db.from("report_revisions").select("id, share_token, report_json, revoked_at");
+    const { data: existing, error: lookupError } = await (snapshotId
+      ? lookup.eq("snapshot_id", snapshotId)
+      : lookup.eq("project_id", args.projectId).is("snapshot_id", null))
       .eq("report_hash", reportHash)
       .is("revoked_at", null)
       .maybeSingle();
@@ -108,8 +117,8 @@ export async function insertImmutableReportRevision(
       .from("report_revisions")
       .insert({
         id: revisionId,
-        snapshot_id: args.snapshotId,
-        account_id: args.accountId,
+        snapshot_id: snapshotId,
+        account_id: args.accountId || null,
         project_id: args.projectId,
         share_token: shareToken,
         report_json: document,

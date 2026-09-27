@@ -16,6 +16,8 @@ import { investmentViewFor } from "./investment-view";
 import { investorScreeningStrings } from "./investor-screening";
 import { isValuationAvailable, unavailableValuation, type ReportV2 } from "./schema";
 import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "./screening-leak-fixture";
+import { withMethodMeta } from "./method-meta";
+import { trendBaselineFrom, type TrendBaseline } from "./trend";
 
 function v4For(report: ReportV2, opts: AssessmentCardOptions = {}, extra: { lockCards?: boolean; locale?: string; calibration?: SviBacktestHeadline | null } = {}) {
   const aligned = alignReportWithAssessmentCard(report, opts);
@@ -408,5 +410,41 @@ describe("buildDashboardV4 — RQ21 calibration disclosure (always present, neve
     setBenchmarks(report, { tre: { percentile: 95, n: 41 } }, { percentile: 50, n: 41 });
     const v4 = v4For(report, {}, { calibration: { rho: 0.76, n: 41, asOf: "2026-09-17T00:00:00Z" } });
     expect(JSON.stringify({ peer: v4.peer, ladder: v4.stageLadder, spike: v4.spike, round: v4.roundReadiness, calibration: v4.calibration })).not.toMatch(/weight/i);
+  });
+});
+
+describe("buildDashboardV4 — trend (G34 F02/S3)", () => {
+  const stampedDemo = (sviVersion = "2.2.0"): ReportV2 => {
+    const { methodMeta: _drop, ...rest } = demoReportV2() as ReportV2;
+    return withMethodMeta(rest as ReportV2, sviVersion);
+  };
+  const build = (report: ReportV2, trendBaseline?: TrendBaseline | null, locale = "en") =>
+    buildDashboardV4(report, alignReportWithAssessmentCard(report, {}).card, null, { locale, ...(trendBaseline !== undefined ? { trendBaseline } : {}) });
+
+  it("no baseline loaded → every row null, status not_loaded with the default note", () => {
+    const v4 = build(stampedDemo());
+    expect(v4.scorecard.every((r) => r.trend === null)).toBe(true);
+    expect(v4.trend).toMatchObject({ state: "unavailable", reason: "not_loaded", note: "No same-method revision to compare" });
+  });
+
+  it("same-method previous revision → signed delta + date label per assessed row (EN / VI)", () => {
+    const prevDoc = stampedDemo();
+    const tre = prevDoc.dimensions.find((d) => d.dim === "tre")!;
+    const cur = { ...stampedDemo(), dimensions: stampedDemo().dimensions.map((d) => (d.dim === "tre" ? { ...d, score: tre.score + 5 } : d)) };
+    const base = trendBaselineFrom(prevDoc, "rev-1", "2026-08-12T10:00:00Z");
+    const v4 = build(cur, base);
+    expect(v4.trend).toMatchObject({ state: "compared", revisionId: "rev-1", note: "Not assessed in both revisions" });
+    expect(v4.scorecard.find((r) => r.dim === "tre")!.trend).toEqual({ delta: 5, label: "+5 since 12/08/2026", ariaLabel: expect.stringContaining("+5") });
+    expect(v4.scorecard.find((r) => r.dim === "ftv")!.trend).toMatchObject({ delta: 0, label: "±0 since 12/08/2026" });
+    expect(build(cur, base, "vi").scorecard.find((r) => r.dim === "tre")!.trend?.label).toBe("+5 so với 12/08/2026");
+  });
+
+  it("different method → every row null, status method_changed with its note; first revision → first_revision", () => {
+    const changed = build(stampedDemo("2.2.0"), trendBaselineFrom(stampedDemo("2.1.0"), "rev-1", "2026-08-12T10:00:00Z"));
+    expect(changed.scorecard.every((r) => r.trend === null)).toBe(true);
+    expect(changed.trend).toMatchObject({ state: "unavailable", reason: "method_changed", note: "Scoring method changed since the previous revision: not compared" });
+    const first = build(stampedDemo(), null);
+    expect(first.scorecard.every((r) => r.trend === null)).toBe(true);
+    expect(first.trend).toMatchObject({ reason: "first_revision", note: "First revision: nothing earlier to compare" });
   });
 });
