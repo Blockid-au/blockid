@@ -62,6 +62,8 @@ const HEALTH_LOG = "/home/dovanlong/blockid.au/web/content/reports/cron-health.j
 const HEARTBEAT_LOG = "/home/dovanlong/blockid.au/web/content/reports/routine-heartbeat.jsonl";
 const REPORTS_DIR = "/home/dovanlong/blockid.au/web/content/reports";
 const CLOUD_ALERT_STATE = "/tmp/blockid-cloud-routine-alert.json";
+const CRONTAB_FILE = "/home/dovanlong/blockid.au/web/scripts/crontab.production";
+const G30_CONTROL = "/home/dovanlong/blockid.au/docs/plans/g30-execution-control.json";
 
 function req(method: "GET" | "POST", headers: Record<string, string> = {}): Request {
   return new Request("http://x/api/cron/cron-health", { method, headers });
@@ -90,8 +92,16 @@ function installFs(opts: {
   heartbeatLines?: string[];
   reportsDir?: Record<string, number>;
   alertState?: { ts: number; agents?: string[] } | null;
+  crontab?: string;
+  g30Status?: "active" | "released";
 } = {}): void {
   const files: Record<string, string> = {};
+  if (opts.crontab !== undefined) files[CRONTAB_FILE] = opts.crontab;
+  if (opts.g30Status) {
+    files[G30_CONTROL] = JSON.stringify({
+      version: 1, owner: "g30", status: opts.g30Status, source_of_truth: "docs/plans/SOURCE-OF-TRUTH.md",
+    });
+  }
   if (opts.healthLines) files[HEALTH_LOG] = opts.healthLines.join("\n");
   if (opts.heartbeatLines) files[HEARTBEAT_LOG] = opts.heartbeatLines.join("\n");
   if (opts.alertState) files[CLOUD_ALERT_STATE] = JSON.stringify(opts.alertState);
@@ -191,8 +201,10 @@ describe("GET /api/cron/cron-health — empty state (no logs)", () => {
     const res = await GET(req("GET", auth()));
     const body = await res.json();
     const endpoints = body.routines.map((r: { endpoint: string }) => r.endpoint);
-    // 12 daily + 2 periodic + 1 weekly = 15 rows
-    expect(endpoints).toHaveLength(15);
+    // 10 daily + 2 periodic + 1 weekly = 13 rows (svi-notify + nurture retired 25/09)
+    expect(endpoints).toHaveLength(13);
+    expect(endpoints).not.toContain("svi-notify");
+    expect(endpoints).not.toContain("nurture");
     expect(endpoints).toContain("svi-snapshot");
     expect(endpoints).toContain("ai-health");
     expect(endpoints).toContain("weekly-insights");
@@ -335,6 +347,71 @@ describe("GET /api/cron/cron-health — missed-daily detection", () => {
     const res = await GET(req("GET", auth()));
     const body = await res.json();
     expect(body.missed).toContain("svi-snapshot");
+  });
+});
+
+// 27/09 health sweep: retired, `# PAUSED-EMAIL` and G30-deferred jobs were
+// reported "missed" every night. Expectations now follow the active crontab.
+describe("GET /api/cron/cron-health — expectations follow the active crontab", () => {
+  const CRONTAB = [
+    "RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh",
+    "0 16 * * * bash $RUN svi-snapshot",
+    "15 16 * * * bash $RUN vesting",
+    "0 17 * * * bash $RUN agent-upgrade --timeout 120",
+    "0 18 * * * bash $RUN growth-insights --timeout 120",
+    "# PAUSED-EMAIL 26/09/2026 (founder: tạm không gửi email): 0 19 * * * bash $RUN svi-review",
+    "0 20 * * * bash $RUN agent-research --timeout 300",
+    "5 21 * * * bash $RUN refresh-models",
+    "30 21 * * * bash $RUN publish-insight --timeout 120",
+    "30 22 * * * bash $RUN daily-admin-report --timeout 180",
+    "30 23 * * * bash $RUN telegram-report",
+    "*/15 * * * * bash $RUN blockchain-sync",
+    "0 */3 * * * bash $RUN ai-health",
+    "# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 30 20 * * 0 bash $RUN weekly-insights --timeout 120",
+  ].join("\n");
+
+  function lateNight(): void {
+    vi.useFakeTimers();
+    const late = new Date();
+    late.setUTCHours(23, 30, 0, 0);
+    vi.setSystemTime(late);
+  }
+
+  it("a # PAUSED-EMAIL job and a G30-deferred job are never missed; scheduled jobs still are", async () => {
+    lateNight();
+    installFs({ crontab: CRONTAB, g30Status: "active" });
+    const body = await (await GET(req("GET", auth()))).json();
+    expect(body.missed).not.toContain("svi-review");
+    expect(body.missed).not.toContain("publish-insight");
+    expect(body.missed).toContain("svi-snapshot");
+    expect(body.missed).toContain("daily-admin-report");
+    const row = (ep: string) => body.routines.find((r: { endpoint: string }) => r.endpoint === ep);
+    expect(row("svi-review").scheduled).toBe(false);
+    expect(row("weekly-insights").scheduled).toBe(false);
+    expect(row("publish-insight").scheduled).toBe(false);
+    expect(row("svi-snapshot").scheduled).toBe(true);
+  });
+
+  it("lifting the pause (uncommenting the line) re-arms the check with no code change", async () => {
+    lateNight();
+    installFs({ crontab: `${CRONTAB}\n0 19 * * * bash $RUN svi-review`, g30Status: "active" });
+    const body = await (await GET(req("GET", auth()))).json();
+    expect(body.missed).toContain("svi-review");
+  });
+
+  it("publish-insight is expected again once G30 ownership is released", async () => {
+    lateNight();
+    installFs({ crontab: CRONTAB, g30Status: "released" });
+    const body = await (await GET(req("GET", auth()))).json();
+    expect(body.missed).toContain("publish-insight");
+  });
+
+  it("an unreadable crontab falls back to the static list (G30 still fails closed)", async () => {
+    lateNight();
+    installFs();
+    const body = await (await GET(req("GET", auth()))).json();
+    expect(body.missed).toContain("svi-review");
+    expect(body.missed).not.toContain("publish-insight");
   });
 });
 
