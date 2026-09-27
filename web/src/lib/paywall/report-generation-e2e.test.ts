@@ -211,7 +211,9 @@ class FakeDb {
           },
         };
       },
-    };
+      // O08 widened MinimalSupabase to one chainable builder; this double
+      // implements only the chains the success path walks.
+    } as unknown as MinimalSupabase;
   }
 
   generatorClient(): GeneratorSupabase {

@@ -14,14 +14,23 @@
  * Env vars required:
  *   * CRON_SECRET — shared secret for cron auth (set in web/.env)
  *
+ * Lease reclaim (O08): before draining, `reclaimExpiredOrders()` re-queues
+ * `running` rows whose worker died (no heartbeat for > 10 min, claim older
+ * than the pipeline budget), or fails + refunds them once their attempts
+ * are spent. A no-op until pending-authority/0472 is applied.
+ *
  * Response:
- *   { ok: true, processed, remaining, results[] }
+ *   { ok: true, processed, remaining, results[], reclaimed[] }
  *   { ok: false, error }
  */
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { processNextQueuedOrder } from "@/lib/paywall/report-order-worker";
+import {
+  processNextQueuedOrder,
+  reclaimExpiredOrders,
+  type ReclaimResult,
+} from "@/lib/paywall/report-order-worker";
 import { generateTrustReportForOrder } from "@/lib/paywall/report-generator";
 import { refundFailedOrder } from "@/lib/paywall/report-refund";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
@@ -78,6 +87,18 @@ async function handle(request: Request): Promise<Response> {
     return NextResponse.json(
       { ok: false, error: "Supabase not configured" },
       { status: 503 },
+    );
+  }
+
+  // ── Lease reclaim first, so a re-queued order can be drained this tick.
+  let reclaim: ReclaimResult = { checked: 0, reclaimed: [] };
+  try {
+    reclaim = await reclaimExpiredOrders({ refundOrder });
+  } catch (err) {
+    // Never block the drain on the sweep — next tick retries it.
+    console.error(
+      "[blockid:report-order-drain] reclaim threw",
+      err instanceof Error ? err.message : String(err),
     );
   }
 
@@ -140,8 +161,15 @@ async function handle(request: Request): Promise<Response> {
     processed,
     remaining,
     results,
+    reclaimed: reclaim.reclaimed.map((r) => ({
+      orderId: r.orderId,
+      action: r.action,
+      attempts: r.attempts,
+      refunded: r.refunded,
+    })),
   };
-  if (processed === 0 && remaining === 0) {
+  if (reclaim.skipped) body.reclaimSkipped = reclaim.skipped;
+  if (processed === 0 && remaining === 0 && reclaim.reclaimed.length === 0) {
     body.noop = true;
   }
 
