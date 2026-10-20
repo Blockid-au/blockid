@@ -8,7 +8,12 @@
 #
 # Usage:
 #   source /home/dovanlong/blockid.au/scripts/lib/ops-alert.sh
-#   ops_alert "⚠️ *DB backup failed*" "detail line"
+#   ops_alert "⚠️ *DB backup failed*" "detail line" [P0|P1|P2]
+#
+# O1 / L1-12: the e-mail fallback dedups per (kind, level, UTC day) — P0/P1
+# always sent, a P2 once per kind per day, repeats in the 00:07 UTC digest
+# (web/scripts/lib/ops-alert-dedup.mjs). The optional 3rd arg pins the level;
+# without it the level is inferred from the title + detail.
 
 OPS_REPO_ROOT="${OPS_REPO_ROOT:-/home/dovanlong/blockid.au}"
 
@@ -18,7 +23,7 @@ ops_env_val() {
 }
 
 ops_alert() {
-  local title="$1" detail="${2:-}"
+  local title="$1" detail="${2:-}" level="${3:-}"
   local bot chat
   bot="${TELEGRAM_BOT_TOKEN:-$(ops_env_val TELEGRAM_BOT_TOKEN)}"
   chat="${TELEGRAM_CHAT_ID:-$(ops_env_val TELEGRAM_CHAT_ID)}"
@@ -37,7 +42,11 @@ $(printf '%s' "$detail" | head -c 400)"
   fi
   # G15 review 2026-09-18: Telegram token is 401 → e-mail fallback (ADMIN_EMAIL).
   if [ -z "$ok" ] && [ -f "$OPS_REPO_ROOT/web/scripts/ops-alert-email.mjs" ]; then
-    printf '%s' "$msg" | node "$OPS_REPO_ROOT/web/scripts/ops-alert-email.mjs" "$title" >/dev/null 2>&1 || true
+    if [ -n "$level" ]; then
+      printf '%s' "$msg" | node "$OPS_REPO_ROOT/web/scripts/ops-alert-email.mjs" --level "$level" "$title" >/dev/null 2>&1 || true
+    else
+      printf '%s' "$msg" | node "$OPS_REPO_ROOT/web/scripts/ops-alert-email.mjs" "$title" >/dev/null 2>&1 || true
+    fi
   fi
 }
 
