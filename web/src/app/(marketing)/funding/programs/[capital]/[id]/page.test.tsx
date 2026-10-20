@@ -3,7 +3,7 @@
 // shell is a pass-through. Rendered through renderToReadableStream so the
 // nested async JSON-LD components resolve (see ../../../grants/page.test.tsx).
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToReadableStream } from "react-dom/server";
 import type { AuGrant, AuProgram } from "@/lib/funding/data";
 
@@ -140,6 +140,19 @@ vi.mock("@/lib/funding/data", () => ({
 
 import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import ProgramDetailPage, { generateMetadata, generateStaticParams, revalidate } from "./page";
+
+// The full row opens 2026-10-01 and closes 2026-11-08; "future" / "open" /
+// "overdue" are relative to today — pin the clock before the window opens.
+const NOW = new Date("2026-09-20T00:00:00Z");
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 async function render(capital: string, id: string): Promise<string> {
   const el = await ProgramDetailPage({ params: Promise.resolve({ capital, id }) });

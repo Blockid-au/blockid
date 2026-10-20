@@ -182,7 +182,7 @@ beforeEach(() => {
   calculateVestingScheduleMock.mockReturnValue([]);
 });
 
-afterEach(() => { vi.clearAllMocks(); });
+afterEach(() => { vi.clearAllMocks(); vi.useRealTimers(); });
 
 // ─────────────────────────────────────────────────────────────
 describe("route module exports", () => {
@@ -309,6 +309,9 @@ describe("GET /api/equity/grants", () => {
       error: null,
     };
     // Any past event(s) then a future event — route picks last past for cumulative.
+    // Pin "now" between the two events so 2027-01-01 stays in the future.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-20T00:00:00Z"));
     calculateVestingScheduleMock.mockReturnValue([
       { eventDate: "2026-01-01", sharesVested: 25_000, cumulativeVested: 25_000, isCliff: true },
       { eventDate: "2027-01-01", sharesVested: 25_000, cumulativeVested: 50_000, isCliff: false },

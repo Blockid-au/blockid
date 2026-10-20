@@ -14,7 +14,7 @@
 //   * privacy invariant — consent_state_events.metadata contains NO PII
 //     (no full user-agent, no IP, no recipient email, no watermark)
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -247,8 +247,16 @@ const LIVE_CONSENT = {
 };
 
 describe("enforceConsent — DB integration", () => {
+  // LIVE_CONSENT expires 2027-01-01 — pin "now" to the fixtures' day
+  // (2026-07-30) so the live consent never lapses under the real clock.
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-30T12:00:00Z"));
     getSupabaseAdminMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("fails closed (403) when Supabase admin client is unavailable", async () => {

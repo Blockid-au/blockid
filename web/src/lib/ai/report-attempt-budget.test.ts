@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const home = mkdtempSync(join(tmpdir(), "report-spend-"));
 // Production has ~/.local/state; the ledger root itself is created (0700) by the module.
@@ -16,6 +16,23 @@ import { reserveResearchAttempt, settleResearchAttempt } from "./research-attemp
 import { REPORT_ADMITTED_MODELS } from "./report-admitted-models";
 
 afterAll(() => vi.restoreAllMocks());
+
+// The price policy (deepinfra-standard-2026-09-23) refuses every reservation
+// from 2026-10-23T00:00Z (EXPIRES in the module). Pin the clock inside the
+// policy window so these budget tests do not depend on the real date; the
+// clock still advances (shouldAdvanceTime) so the 3.5 s ledger-lock wait can
+// time out. The expiry itself is pinned by its own test below.
+const IN_POLICY = new Date("2026-09-26T00:00:00Z");
+const POLICY_EXPIRY = new Date("2026-10-23T00:00:00Z");
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+  vi.setSystemTime(IN_POLICY);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const FLASH = "deepseek-ai/DeepSeek-V4-Flash";
 const payload = (n: number) => JSON.stringify({ model: FLASH, messages: [{ role: "user", content: "x".repeat(n) }] });
@@ -116,6 +133,17 @@ describe("report attempt budget (G33-T06)", () => {
       expect(line.scope).toMatch(/^[a-f0-9]{12}$/);
       expect(lines[0]).not.toContain("blockid:analysis");
       expect(lines[0]).not.toContain("xxxx");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("refuses every reservation once the observed price policy expires (re-verify prices, then move EXPIRES)", async () => {
+    vi.setSystemTime(POLICY_EXPIRY);
+    const budget = createReportAttemptBudget(scope());
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(reserveResearchAttempt(budget, FLASH, payload(100), 100)).rejects.toThrow(/price or request not admitted/);
     } finally {
       warn.mockRestore();
     }
