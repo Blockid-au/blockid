@@ -65,6 +65,9 @@ export interface ProviderBalance {
   source: string;
   checked_at: string;
   details?: Record<string, number | string | boolean | null>;
+  /** Low balance on a provider we deliberately do not spend on (no paid burn):
+   *  routing flags still apply, but no ops/founder alert is sent (G35 alert fatigue). */
+  alert_suppressed?: string;
 }
 
 export interface BalancesSnapshot {
@@ -252,9 +255,18 @@ export async function readOpenRouterBalance(fetchImpl: FetchLike, key: string | 
       reasons.push(`free-model daily requests exhausted (${freeLimit ?? "?"}/day)`);
       if (lvl === "ok") lvl = "warn";
     }
+    // Paid OpenRouter is optional (G30: DeepInfra is the paid primary). A low
+    // balance with zero paid burn only means paid OR models stay off — the flag
+    // still applies, but it is not worth a daily e-mail. Free-request exhaustion
+    // and rejected keys still alert.
+    const freeExhausted = freeRemaining !== null && freeRemaining <= 0;
+    const alertSuppressed = lvl !== "ok" && !freeExhausted && (burn ?? 0) === 0
+      ? "no paid OpenRouter usage — paid OR models stay disabled, :free models unaffected"
+      : undefined;
     return {
       ...base, configured: true, balance_usd: balance, burn_usd_per_day: burn, runway_days: runway, level: lvl, reasons,
       details: { total_credits: total, total_usage: used, usage_daily: daily, usage_weekly: weekly, free_requests_remaining: freeRemaining, free_requests_limit: freeLimit },
+      ...(alertSuppressed ? { alert_suppressed: alertSuppressed } : {}),
     };
   } catch (err) {
     return { ...base, configured: true, balance_usd: null, burn_usd_per_day: ledgerBurn, runway_days: null, level: "unknown", reasons: [errText(err)] };
@@ -438,7 +450,7 @@ export async function runBalanceCheck(deps: BalanceCheckDeps): Promise<BalanceCh
     const d = k.split(":").pop() ?? "";
     return d >= new Date(now - 3 * DAY_MS).toISOString().slice(0, 10);
   }));
-  const due = BALANCE_PROVIDERS.map((p) => providers[p]).filter((p) => (p.level === "warn" || p.level === "critical") && !sent[`${p.provider}:${p.level}:${day}`]);
+  const due = BALANCE_PROVIDERS.map((p) => providers[p]).filter((p) => (p.level === "warn" || p.level === "critical") && !p.alert_suppressed && !sent[`${p.provider}:${p.level}:${day}`]);
   for (const p of due) sent[`${p.provider}:${p.level}:${day}`] = snapshot.updated_at;
   if (due.length > 0) {
     try { await atomicWrite(deps.paths.alertState, JSON.stringify({ sent }, null, 2)); } catch { /* still alert */ }

@@ -129,6 +129,18 @@ describe("A3 acceptance — OpenRouter low", () => {
     expect(r.providers.openrouter.details).toMatchObject({ free_requests_remaining: 941 });
     expect(r.providers.deepinfra.level).toBe("ok");
     expect(r.flags).toMatchObject({ openrouter_paid_disabled: true, deepinfra_critical: false });
+    // G35: no paid OpenRouter burn → the flag applies but no daily e-mail (alert fatigue).
+    expect(r.providers.openrouter.alert_suppressed).toMatch(/no paid OpenRouter usage/);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("credit US$1.55 WITH paid OpenRouter burn → critical alert is sent", async () => {
+    const r = await runBalanceCheck(deps({ diBalance: 67.37, orCredits: 30, orUsage: 28.45 }, {
+      history: Array.from({ length: 7 }, (_, i) => ({ day: `2026-10-${String(13 + i).padStart(2, "0")}`, spent_usd: 0.5, by_provider: { openrouter: 0.5 } })),
+      today: null,
+    }));
+    expect(r.providers.openrouter.level).toBe("critical");
+    expect(r.providers.openrouter.alert_suppressed).toBeUndefined();
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toMatch(/paid OpenRouter models disabled; :free models keep serving/);
   });
