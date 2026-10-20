@@ -16,9 +16,10 @@
 //          lands IN_REVIEW (the human review is what Verified sells)
 //   charge.refunded (fully refunded charge, any report SKU)
 //     → refundReportOrderForCharge(): READY / IN_REVIEW / PAID → REFUNDED;
-//        the report stays readable at its tier; a refunded Verified loses
-//        the "BlockID Reviewed" badge (`reviewed=false`) + audit row; a
-//        refunded upgrade drops the report back to the tier it lifted from.
+//        the report stays readable at its tier; a refunded Verified goes
+//        through W4's `onVerifiedOrderRefunded()` (badge off + open review
+//        cancelled) + an audit row here; a refunded upgrade drops the report
+//        back to the tier it lifted from.
 //
 // Idempotency (the outer `stripe_webhook_events` claim dedupes the event id):
 //   - the PAID flip is a guarded UPDATE … WHERE status IN (CHECKOUT_INITIATED,
@@ -40,6 +41,7 @@ import { tierForOrderSku } from "@/lib/report-v2/order-tier";
 import { verifiedSlaDueAt } from "@/lib/time/au-business-days";
 import { PAYG_SKUS, PAYG_PRICING_VERSION, isPaygSkuId, type PaygSkuId, type PaygTier } from "./v5-payg";
 import { UPGRADEABLE_ORDER_STATUSES } from "./payg-offer";
+import { onVerifiedOrderRefunded } from "@/lib/verified-review/refund";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, unknown>;
@@ -440,7 +442,7 @@ export async function refundReportOrderForCharge(
   db: Db,
   charge: Pick<Stripe.Charge, "id" | "payment_intent" | "refunded" | "amount" | "amount_refunded">,
   event: Pick<Stripe.Event, "id">,
-  deps: Pick<PaygFulfilDeps, "audit"> = {},
+  deps: Pick<PaygFulfilDeps, "audit"> & { onVerifiedRefunded?: typeof onVerifiedOrderRefunded } = {},
 ): Promise<RefundOutcome> {
   if (charge.refunded !== true) return { handled: false, reason: "partial_refund" };
   const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : (charge.payment_intent as { id?: string } | null)?.id ?? null;
@@ -494,24 +496,20 @@ export async function refundReportOrderForCharge(
   const tier = tierForOrderSku(sku);
   let badgeRemoved = false;
   let tierReverted = false;
+  if (tier === "verified") {
+    // W4 hook (lib/verified-review/refund.ts): badge off + any open review
+    // cancelled. Idempotent, never throws; the audit row is ours (below).
+    const hook = await (deps.onVerifiedRefunded ?? onVerifiedOrderRefunded)(db, { orderId, reportId }).catch(() => ({ badgeRevoked: false, reviewsCancelled: false }));
+    badgeRemoved = hook.badgeRevoked;
+  }
   if (reportId && isPaygSkuId(sku)) {
     const s = PAYG_SKUS[sku];
-    const patch: Row = {};
-    if (tier === "verified") {
-      patch.reviewed = false;
-      patch.reviewed_at = null;
-      badgeRemoved = true;
-    }
     if (s.kind === "upgrade" && s.fromTier && s.tier) {
-      // The upgrade's money came back → the report returns to the tier it lifted from.
-      patch.payg_tier = s.fromTier;
-      tierReverted = true;
-    }
-    if (Object.keys(patch).length > 0) {
-      let q = db.from("assembled_reports").update(patch).eq("id", reportId);
-      if (tierReverted) q = q.eq("payg_tier", s.tier!);
-      const { error } = await q;
-      if (error) console.warn("[blockid:payg] refunded report patch failed", { orderId, reportId, code: error.code });
+      // The upgrade's money came back → the report returns to the tier it
+      // lifted from (guarded: only while it still sits at the upgraded tier).
+      const { error } = await db.from("assembled_reports").update({ payg_tier: s.fromTier }).eq("id", reportId).eq("payg_tier", s.tier);
+      if (error) console.warn("[blockid:payg] refunded upgrade tier revert failed", { orderId, reportId, code: error.code });
+      else tierReverted = true;
     }
   }
 

@@ -286,16 +286,19 @@ describe("refundReportOrderForCharge (G5)", () => {
   const charge = (over: Partial<Stripe.Charge> = {}) =>
     ({ id: "ch_1", payment_intent: "pi_1", refunded: true, amount: 14900, amount_refunded: 14900, ...over }) as Stripe.Charge;
 
-  it("READY Verified → REFUNDED, badge removed, audit row", async () => {
+  it("READY Verified → REFUNDED, W4 hook clears the badge + cancels the open review, audit row", async () => {
     const db = freshDb({
       report_orders: [{ id: "o1", status: "READY", user_id: USER, product_sku: "report_verified", report_id: "rpt-1", stripe_payment_intent_id: "pi_1" }],
       assembled_reports: [{ id: "rpt-1", payg_tier: "verified", reviewed: true, reviewed_at: "2026-10-21T00:00:00Z" }],
+      report_reviews: [{ id: "rv1", order_id: "o1", status: "in_progress" }],
     });
     const audit = vi.fn(async () => ({}));
     const out = await refundReportOrderForCharge(db as never, charge(), { id: "evt_ref" }, { audit });
     expect(out).toMatchObject({ handled: true, from: "READY", to: "REFUNDED", badgeRemoved: true });
     expect(db.row("report_orders", "o1")?.status).toBe("REFUNDED");
-    expect(db.row("assembled_reports", "rpt-1")).toMatchObject({ reviewed: false, reviewed_at: null, payg_tier: "verified" });
+    // The order moved BEFORE the hook ran; the report stays readable at its tier.
+    expect(db.row("assembled_reports", "rpt-1")).toMatchObject({ reviewed: false, payg_tier: "verified" });
+    expect(db.row("report_reviews", "rv1")?.status).toBe("cancelled");
     await flush();
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ action: "report_order.refunded.badge_removed", subjectId: "o1" }));
   });
@@ -344,6 +347,22 @@ describe("refundReportOrderForCharge (G5)", () => {
     });
     expect(await refundReportOrderForCharge(db as never, charge({ payment_intent: "pi_l" }), { id: "e" })).toMatchObject({ to: "REFUNDED", badgeRemoved: false, tierReverted: false });
     expect(db.row("assembled_reports", "rpt-l")).toEqual({ id: "rpt-l", payg_tier: null, reviewed: false });
+  });
+
+  it("the Verified hook is called with the order + report after the REFUNDED flip (injectable)", async () => {
+    const db = freshDb({
+      report_orders: [{ id: "o9", status: "IN_REVIEW", user_id: USER, product_sku: "upgrade_full_verified", report_id: "rpt-9", stripe_payment_intent_id: "pi_9" }],
+      assembled_reports: [{ id: "rpt-9", payg_tier: "verified", reviewed: false }],
+    });
+    const hook = vi.fn(async () => {
+      expect(db.row("report_orders", "o9")?.status).toBe("REFUNDED");
+      return { badgeRevoked: true, reviewsCancelled: true };
+    });
+    const out = await refundReportOrderForCharge(db as never, charge({ payment_intent: "pi_9" }), { id: "e9" }, { onVerifiedRefunded: hook });
+    expect(hook).toHaveBeenCalledWith(db, { orderId: "o9", reportId: "rpt-9" });
+    // a refunded Full → Verified upgrade also drops the report back to Full
+    expect(out).toMatchObject({ badgeRemoved: true, tierReverted: true });
+    expect(db.row("assembled_reports", "rpt-9")?.payg_tier).toBe("full");
   });
 });
 
