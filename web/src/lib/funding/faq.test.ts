@@ -76,7 +76,8 @@ describe("directoryFaq", () => {
   it("localises through the VI catalogue (funding.copy.faq.*) with the same satellite sentence", () => {
     const items = directoryFaq("grants", VI);
     expect(items[0].question).toBe(VI["funding.copy.faq.grantsFreeQ"]);
-    expect(items[0].answer).toBe(VI["funding.copy.faq.grantsFreeA"]);
+    // The catalogue holds the {fundingPrice} token; flag OFF (default) fills the legacy price.
+    expect(items[0].answer).toBe(VI["funding.copy.faq.grantsFreeA"]!.replace("{fundingPrice}", "A$3"));
     const cities = directoryFaq("programs", VI)[0];
     expect(cities.answer).toContain("Wollongong");
     expect(cities.answer).not.toContain("{satellites}");

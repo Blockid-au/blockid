@@ -37,7 +37,7 @@ export const ALLOW: Readonly<Record<string, string>> = {
   "app/(marketing)/one-click-report/one-click-form.tsx":
     "The /one-click-report checkout landing — the price IS the offer (A$3 inc. GST, invoice note); the submit reads 'Pay A$3 & get my report'.",
   "components/funding/funding-paywall.tsx":
-    "Money Finder A$3 paywall — price inc. GST, one-off, posts to /api/funding/checkout from the 'Pay A$3 & unlock' button only.",
+    "Money Finder paywall — price from the payg_enabled view (G35 D25) inc. GST, one-off, posts to /api/funding/checkout from the 'Pay {price} & unlock' button only.",
   "components/paywall/ReportPaywallGate.tsx":
     "G16 quote-then-pay gate — 'Confirm & Pay A$3' after the quoted number; posts to /api/reports/checkout.",
   "components/svi/svi-entrance.tsx":
