@@ -7,6 +7,7 @@ import {
   getDeployHealth24h,
   getGrowth7d,
   getReleaseInfo,
+  getLinkHealth,
   getSecurityPosture,
 } from "@/lib/ops-metrics";
 
@@ -35,6 +36,7 @@ export async function GET() {
     experiments,
     growth,
     posture,
+    linkHealth,
   ] = await Promise.all([
     getReleaseInfo(),
     getDeployHealth24h(),
@@ -43,6 +45,7 @@ export async function GET() {
     getActiveExperiments(),
     getGrowth7d(),
     getSecurityPosture(),
+    getLinkHealth(),
   ]);
 
   return NextResponse.json({
@@ -54,5 +57,6 @@ export async function GET() {
     experiments,
     growth,
     posture,
+    linkHealth,
   });
 }

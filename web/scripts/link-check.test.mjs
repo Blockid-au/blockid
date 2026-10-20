@@ -11,28 +11,40 @@
 //   - the sitemap "ok" count including a URL that redirects;
 //   - --dry-run writing a report or exiting non-zero.
 
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  MAX_FOLLOW_HOPS,
   MAX_REDIRECT_HOPS,
+  QUERY_VARIANT_CAP,
   classify,
   decodeEntities,
   externalIsBroken,
+  externalVerdict,
   extractIds,
+  extractJsonLdLinks,
   extractLinks,
+  extractMetaLinks,
+  formatChangeAlert,
   formatSummary,
   internalIsBroken,
   isAssetPath,
   isEdgeInjectedPath,
   isNoCrawlPath,
+  isTrackingOnlyQuery,
   makeSite,
   normalizeUrl,
+  oldestOpenSince,
   parseArgs,
   parseRobots,
   parseSitemap,
+  reconcileOpen,
+  reportNameFor,
   robotsAllows,
+  seedOpenFromHistory,
+  shouldParseQueryPage,
   summarize,
   toFetchUrl,
   toSiteUrl,
@@ -420,10 +432,320 @@ describe("link-check.mjs — crawl over the fake site", () => {
     const latest = JSON.parse(readFileSync(join(dir, "link-check-latest.json"), "utf8"));
     expect(latest.broken.length).toBe(real.summary.broken.length);
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatch(/link-check: \d+ broken/);
+    expect(sent[0]).toMatch(/link-check blockid\.au: \d+ open \(\+\d+ new/);
+    expect(latest.open.every((o) => typeof o.open_since === "string")).toBe(true);
 
     const quiet = await main(["--base", "https://blockid.au", "--out-dir", dir, "--no-alert", "--timeout", "2000"], deps);
     expect(quiet.exitCode).toBe(1);
     expect(sent).toHaveLength(1);
+
+    // W1: same broken set again → no alert (only a change alerts).
+    const again = await main(["--base", "https://blockid.au", "--out-dir", dir, "--timeout", "2000"], deps);
+    expect(again.exitCode).toBe(1);
+    expect(sent).toHaveLength(1);
+    expect(again.summary.changes).toEqual({ added: [], resolved: [], escalated: [] });
+  });
+});
+
+// ─── W1 (2026-10-20, docs/pricing-v5-plan.md § 5) ────────────────────────────
+// Silent regressions this block guards against:
+//   - a JSON-LD breadcrumb / og:image / hreflang pointing at a 404 going
+//     unnoticed (/vi/solutions, /og/pricing.png, bare /checkout/review);
+//   - a 403/429/999 external disappearing from the report instead of being
+//     recorded as `unverifiable`;
+//   - an external redirect loop / > 5 hops passing as OK, or a login wall that
+//     only loops on HEAD (investmentcouncil.com.au) reported as broken;
+//   - every nightly run re-alerting the same broken set (alert fatigue), or a
+//     long-open link never escalating / escalating every night;
+//   - a startupvalueindex.com run overwriting the BlockID report.
+
+const W1_HOME = `<!doctype html><html><head>
+<meta property="og:image" content="https://blockid.au/og/missing.png">
+<meta name="twitter:image" content="/opengraph-image">
+<meta property="og:url" content="https://blockid.au/">
+<link rel="alternate" hreflang="vi" href="https://blockid.au/vi/missing">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Home","item":"https://blockid.au/"},
+  {"@type":"ListItem","position":2,"name":"Hub","item":{"@id":"https://blockid.au/hub-missing","name":"Hub"}}]}</script>
+<script type="application/ld+json">{"@type":"Organization","@id":"https://blockid.au/#org","logo":"https://blockid.au/logo.png",
+  "sameAs":["https://linkedin.com/company/blockid"],
+  "potentialAction":{"@type":"SearchAction","target":"https://blockid.au/search?q={search_term_string}"}}</script>
+<script type="application/ld+json">{ not json </script>
+</head><body>
+<a href="/directory">Directory</a>
+<a href="https://loop.example/a">Loop</a>
+<a href="https://hops.example/1">Seven hops</a>
+<a href="https://headwall.example/">HEAD-only login wall</a>
+<a href="https://ratelimited.example/">429</a>
+<a href="https://chain.example/1">3-hop external chain</a>
+</body></html>`;
+const DIRECTORY = `<html><body><a href="/directory?state=ACT">ACT</a><a href="/directory?utm_source=x">utm</a></body></html>`;
+const DIRECTORY_ACT = `<html><body><a href="/only-on-filtered-view">deep</a><a href="/directory?state=ACT&amp;stage=mvp">combo</a></body></html>`;
+const DIRECTORY_COMBO = `<html><body><a href="/never-reached-from-combo">x</a></body></html>`;
+
+function fakeSiteW1() {
+  const calls = [];
+  const html = (body, status = 200) => new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8" } });
+  const redirect = (to, status = 302) => new Response("", { status, headers: { location: to } });
+  const fetchImpl = async (url, init = {}) => {
+    const u = new URL(url);
+    const method = init.method ?? "GET";
+    calls.push({ url: url.toString(), method });
+    if (u.hostname === "loop.example") return redirect(u.pathname === "/a" ? "/b" : "/a");
+    if (u.hostname === "hops.example") return redirect(`/${Number(u.pathname.slice(1)) + 1}`);
+    if (u.hostname === "headwall.example") {
+      if (method === "HEAD") return redirect(`/login?ReturnUrl=${encodeURIComponent(u.pathname + u.search)}`);
+      return html("<html>ok</html>");
+    }
+    if (u.hostname === "ratelimited.example") return new Response("", { status: 429 });
+    if (u.hostname === "linkedin.com") return { status: 999, url: url.toString(), headers: new Headers(), text: async () => "" };
+    if (u.hostname === "chain.example") {
+      const n = Number(u.pathname.slice(1));
+      return n < 4 ? redirect(`/${n + 1}`, 301) : html("<html>end</html>");
+    }
+    if (u.origin !== "https://blockid.au") return new Response("", { status: 404 });
+    if (u.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\nSitemap: https://blockid.au/sitemap-extra.xml\n", { status: 200 });
+    if (u.pathname === "/sitemap.xml") return new Response("<urlset><url><loc>https://blockid.au/</loc></url></urlset>", { status: 200 });
+    if (u.pathname === "/sitemap-extra.xml") return new Response("<urlset><url><loc>https://blockid.au/from-robots-sitemap</loc></url></urlset>", { status: 200 });
+    if (u.pathname === "/") return html(W1_HOME);
+    if (u.pathname === "/directory") {
+      if (u.searchParams.get("stage")) return html(DIRECTORY_COMBO);
+      if (u.searchParams.get("state")) return html(DIRECTORY_ACT);
+      return html(DIRECTORY);
+    }
+    if (u.pathname === "/opengraph-image" || u.pathname === "/logo.png") return new Response(new Uint8Array([0]), { status: 200, headers: { "content-type": "image/png" } });
+    if (u.pathname === "/only-on-filtered-view" || u.pathname === "/from-robots-sitemap") return html("<html>ok</html>");
+    return html("<html>404</html>", 404);
+  };
+  return { fetchImpl, calls };
+}
+
+describe("W1 — extraction of meta, JSON-LD and hreflang links", () => {
+  it("extractLinks adds og:image / twitter:image / og:url, JSON-LD url properties and labels hreflang", () => {
+    const links = extractLinks(W1_HOME);
+    const byRaw = {};
+    for (const l of links) byRaw[l.raw] ??= l.kind; // first occurrence
+    expect(byRaw["https://blockid.au/og/missing.png"]).toBe("meta:og:image");
+    expect(byRaw["/opengraph-image"]).toBe("meta:twitter:image");
+    expect(byRaw["https://blockid.au/"]).toBe("meta:og:url");
+    expect(byRaw["https://blockid.au/vi/missing"]).toBe("link:hreflang");
+    expect(byRaw["https://blockid.au/hub-missing"]).toBe("jsonld:item");
+    expect(byRaw["https://blockid.au/logo.png"]).toBe("jsonld:logo");
+    expect(byRaw["https://linkedin.com/company/blockid"]).toBe("jsonld:sameAs");
+    // identifiers and URL templates are not links; malformed JSON is skipped
+    expect(Object.keys(byRaw)).not.toContain("https://blockid.au/#org");
+    expect(Object.keys(byRaw).some((r) => r.includes("{search_term_string}"))).toBe(false);
+    // meta + JSON-LD links come after every tag link (the live-qa lane samples the first N)
+    const firstExtra = links.findIndex((l) => /^(meta|jsonld):/.test(l.kind));
+    expect(links.slice(firstExtra).every((l) => /^(meta|jsonld):/.test(l.kind))).toBe(true);
+    expect(links.findIndex((l) => l.raw === "/directory")).toBeLessThan(firstExtra);
+  });
+
+  it("extractMetaLinks / extractJsonLdLinks handle attribute order, arrays and object forms", () => {
+    expect(extractMetaLinks(`<meta content="/a.png" property="og:image"><meta name="description" content="/x">`)).toEqual([{ raw: "/a.png", kind: "meta:og:image" }]);
+    const ld = extractJsonLdLinks(`<script type="application/ld+json">[{"url":"/u","image":[{"@type":"ImageObject","url":"/i.png"}],"mainEntityOfPage":{"@type":"WebPage","@id":"https://blockid.au/p"}}]</script>`);
+    expect(ld).toEqual([
+      { raw: "/u", kind: "jsonld:url" },
+      { raw: "/i.png", kind: "jsonld:image" },
+      { raw: "https://blockid.au/p", kind: "jsonld:mainEntityOfPage" },
+    ]);
+    expect(extractJsonLdLinks(`<script type="application/ld+json">{oops</script>`)).toEqual([]);
+  });
+
+  it("parseRobots returns Sitemap: lines regardless of group", () => {
+    expect(parseRobots("Sitemap: https://x.example/s.xml\nUser-agent: *\nDisallow: /api/\n").sitemaps).toEqual(["https://x.example/s.xml"]);
+  });
+});
+
+describe("W1 — verdicts, query pages, reconciliation", () => {
+  it("externalVerdict: broken vs unverifiable vs ok", () => {
+    for (const s of [404, 410, 500, 502, 503, null, 0]) expect(externalVerdict(s), String(s)).toBe("broken");
+    for (const s of [401, 403, 405, 429, 451, 999, 400]) expect(externalVerdict(s), String(s)).toBe("unverifiable");
+    for (const s of [200, 204, 301, 304]) expect(externalVerdict(s), String(s)).toBe("ok");
+    expect(externalVerdict(null, "redirect_loop")).toBe("broken");
+    expect(externalVerdict(null, "too_many_redirects")).toBe("broken");
+    expect(externalVerdict(null, "timeout")).toBe("broken");
+    expect(externalVerdict(null, "skipped_private")).toBe("unverifiable");
+    expect(MAX_FOLLOW_HOPS).toBe(5);
+  });
+
+  it("shouldParseQueryPage: one level deep, tracking-only = bare page, capped per pathname", () => {
+    const base = { url: "https://blockid.au/d?state=ACT", from: "https://blockid.au/d" };
+    expect(shouldParseQueryPage({ url: "https://blockid.au/d", from: "x" })).toBe(true);
+    expect(shouldParseQueryPage(base)).toBe(true);
+    expect(shouldParseQueryPage({ ...base, from: "https://blockid.au/d?state=NSW" })).toBe(false);
+    expect(shouldParseQueryPage({ ...base, from: "https://blockid.au/d?utm_source=x" })).toBe(true);
+    expect(shouldParseQueryPage({ ...base, variantsSeen: QUERY_VARIANT_CAP })).toBe(false);
+    expect(shouldParseQueryPage({ ...base, from: "(sitemap)", isSeed: true, variantsSeen: 999 })).toBe(true);
+    expect(shouldParseQueryPage({ url: "https://blockid.au/d?utm_source=x&gclid=1", from: "https://blockid.au/" })).toBe(false);
+    expect(isTrackingOnlyQuery("?utm_source=a&utm_medium=b")).toBe(true);
+    expect(isTrackingOnlyQuery("?state=ACT&utm_source=a")).toBe(false);
+  });
+
+  it("reconcileOpen keeps open_since, reports added/resolved, escalates once after 48 h", () => {
+    const t0 = new Date("2026-10-01T03:40:00Z");
+    const b = (url) => ({ url, from: "https://blockid.au/", status: 404, kind: "a", internal: true });
+    const r1 = reconcileOpen([], [b("https://blockid.au/x"), b("https://blockid.au/y")], { now: t0 });
+    expect(r1.added.map((o) => o.url)).toEqual(["https://blockid.au/x", "https://blockid.au/y"]);
+    expect(r1.open.every((o) => o.open_since === t0.toISOString() && o.escalated_at === null)).toBe(true);
+
+    const t1 = new Date("2026-10-02T03:40:00Z"); // 24 h — no escalation yet
+    const r2 = reconcileOpen(r1.open, [b("https://blockid.au/x")], { now: t1 });
+    expect(r2.added).toEqual([]);
+    expect(r2.resolved.map((o) => o.url)).toEqual(["https://blockid.au/y"]);
+    expect(r2.escalated).toEqual([]);
+    expect(r2.open[0]).toMatchObject({ open_since: t0.toISOString(), last_seen: t1.toISOString() });
+
+    const t2 = new Date("2026-10-03T04:00:00Z"); // > 48 h
+    const r3 = reconcileOpen(r2.open, [b("https://blockid.au/x")], { now: t2 });
+    expect(r3.escalated.map((o) => o.url)).toEqual(["https://blockid.au/x"]);
+    expect(r3.open[0].escalated_at).toBe(t2.toISOString());
+
+    const r4 = reconcileOpen(r3.open, [b("https://blockid.au/x")], { now: new Date("2026-10-04T04:00:00Z") });
+    expect(r4.escalated).toEqual([]); // once
+    expect(formatChangeAlert({ base: "https://blockid.au", broken: [b("x")], open_count: 1 }, r4)).toBeNull();
+    const text = formatChangeAlert({ base: "https://blockid.au", site: "https://blockid.au", broken: [], open_count: 1 }, r3);
+    expect(text).toContain("1 open > 48 h");
+    expect(text).toContain("OPEN since 2026-10-01T03:40:00.000Z");
+    expect(oldestOpenSince(r3.open)).toBe(t0.toISOString());
+  });
+
+  it("seedOpenFromHistory backdates open_since over the unbroken run of history rows", () => {
+    const row = (ts, urls, extra = {}) => ({ ts, broken: urls.map((url) => ({ url, from: "/", status: 404, kind: "a", internal: false })), ...extra });
+    const open = seedOpenFromHistory([
+      row("2026-10-15T03:40:00.000Z", ["https://a.example/"]),
+      row("2026-10-16T03:40:00.000Z", []),
+      row("2026-10-17T03:40:00.000Z", ["https://a.example/", "https://b.example/"]),
+      row("2026-10-18T03:40:00.000Z", ["https://a.example/", "https://b.example/"], { dry_run: true }),
+      row("2026-10-19T03:40:00.000Z", ["https://a.example/", "https://b.example/"]),
+      row("2026-10-20T03:40:00.000Z", ["https://a.example/"]),
+    ]);
+    expect(open.map((o) => [o.url, o.open_since])).toEqual([["https://a.example/", "2026-10-17T03:40:00.000Z"]]);
+    expect(seedOpenFromHistory([])).toEqual([]);
+  });
+
+  it("reportNameFor + --report-name: blockid.au keeps link-check, other sites get their own stem", () => {
+    expect(reportNameFor("https://blockid.au")).toBe("link-check");
+    expect(reportNameFor("https://www.blockid.au")).toBe("link-check");
+    expect(reportNameFor("https://startupvalueindex.com")).toBe("link-check-startupvalueindex-com");
+    expect(parseArgs(["--report-name", "svi nightly"]).reportName).toBe("svi-nightly");
+  });
+});
+
+describe("W1 — crawl + main over the W1 fake site", () => {
+  const args = (over = {}) => ({ ...parseArgs(["--base", "https://blockid.au", "--concurrency", "4", "--timeout", "2000"]), ...over });
+
+  it("flags JSON-LD / og:image / hreflang 404s, loops and > 5 hops; records 403/429/999 as unverifiable; follows one query level", async () => {
+    const site = fakeSiteW1();
+    const { summary, records } = await crawl(args({ includeSitemap: true }), { fetchImpl: site.fetchImpl, log: () => {} });
+    const byUrl = Object.fromEntries(records.map((r) => [r.url, r]));
+    const broken = Object.fromEntries(summary.broken.map((b) => [b.url, b]));
+    expect(broken["https://blockid.au/og/missing.png"]).toMatchObject({ kind: "meta:og:image", status: 404, internal: true });
+    expect(broken["https://blockid.au/vi/missing"]).toMatchObject({ kind: "link:hreflang", status: 404 });
+    expect(broken["https://blockid.au/hub-missing"]).toMatchObject({ kind: "jsonld:item", status: 404 });
+    expect(broken["https://loop.example/a"]).toMatchObject({ internal: false, error: "redirect_loop" });
+    expect(broken["https://hops.example/1"]).toMatchObject({ internal: false, error: "too_many_redirects" });
+    // HEAD bounces through a login wall, GET answers 200 → ok, not broken
+    expect(broken["https://headwall.example/"]).toBeUndefined();
+    expect(byUrl["https://headwall.example/"]).toMatchObject({ status: 200 });
+    // bot refusals are recorded, not dropped and not broken
+    expect(summary.unverifiable.map((u) => u.url).sort()).toEqual(["https://linkedin.com/company/blockid", "https://ratelimited.example/"]);
+    expect(summary.unverifiable_count).toBe(2);
+    // an external 3-hop chain is reported (internal:false) — the href should be updated
+    expect(summary.redirect_chains.find((c) => c.url === "https://chain.example/1")).toMatchObject({ hops: 3, internal: false });
+    // query pages: /directory?state=ACT (linked from /directory) is parsed …
+    expect(byUrl["https://blockid.au/directory?state=ACT"]).toMatchObject({ crawled: true });
+    expect(byUrl["https://blockid.au/only-on-filtered-view"]).toMatchObject({ status: 200 });
+    // … the combination linked from it is only status-checked
+    expect(byUrl["https://blockid.au/directory?state=ACT&stage=mvp"]).toMatchObject({ status: 200 });
+    expect(byUrl["https://blockid.au/directory?state=ACT&stage=mvp"].crawled).toBeUndefined();
+    expect(byUrl["https://blockid.au/never-reached-from-combo"]).toBeUndefined();
+    // robots.txt Sitemap: lines are seeds too
+    expect(byUrl["https://blockid.au/from-robots-sitemap"]).toMatchObject({ status: 200 });
+    // JSON-LD @id fragments are not fragment-checked
+    expect(summary.broken.some((b) => b.fragment_missing === "org")).toBe(false);
+  });
+
+  it("main(): open_since persists, alerts on change only, escalates once after 48 h, resolved alerts; exit ignores external chains", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "link-check-w1-"));
+    const sent = [];
+    let clock = new Date("2026-10-01T03:40:00Z");
+    let broken = true;
+    const base = fakeSiteW1();
+    // Toggle: once "fixed", the og:image answers 200.
+    const fetchImpl = async (url, init) => (!broken && String(url).endsWith("/og/missing.png") ? new Response(new Uint8Array([0]), { status: 200, headers: { "content-type": "image/png" } }) : base.fetchImpl(url, init));
+    const deps = { fetchImpl, log: () => {}, skipLock: true, now: () => clock, sendTelegram: async (text) => (sent.push(text), { sent: true }) };
+    const argv = ["--base", "https://blockid.au", "--out-dir", dir, "--timeout", "2000"];
+
+    const r1 = await main(argv, deps);
+    expect(r1.exitCode).toBe(1);
+    expect(sent).toHaveLength(1);
+    const first = JSON.parse(readFileSync(join(dir, "link-check-latest.json"), "utf8"));
+    const og = first.open.find((o) => o.url === "https://blockid.au/og/missing.png");
+    expect(og.open_since).toBe("2026-10-01T03:40:00.000Z");
+    expect(first.open_count).toBe(first.broken.length);
+
+    clock = new Date("2026-10-02T03:40:00Z");
+    await main(argv, deps);
+    expect(sent).toHaveLength(1); // unchanged → quiet
+
+    clock = new Date("2026-10-03T03:41:00Z");
+    const r3 = await main(argv, deps);
+    expect(sent).toHaveLength(2); // escalation
+    expect(sent[1]).toContain("open > 48 h");
+    expect(r3.summary.changes.escalated.length).toBe(r3.summary.open_count);
+
+    clock = new Date("2026-10-04T03:40:00Z");
+    await main(argv, deps);
+    expect(sent).toHaveLength(2); // escalated once only
+
+    broken = false;
+    clock = new Date("2026-10-05T03:40:00Z");
+    const r5 = await main(argv, deps);
+    expect(sent).toHaveLength(3);
+    expect(sent[2]).toContain("✓ resolved https://blockid.au/og/missing.png");
+    expect(r5.summary.changes.resolved).toEqual(["https://blockid.au/og/missing.png"]);
+    const latest = JSON.parse(readFileSync(join(dir, "link-check-latest.json"), "utf8"));
+    expect(latest.open.find((o) => o.url === "https://blockid.au/vi/missing").open_since).toBe("2026-10-01T03:40:00.000Z");
+  });
+
+  it("main(): a pre-W1 latest file (no `open`) is seeded from the jsonl history", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "link-check-w1-seed-"));
+    const old = (ts) => ({ ts, base: "https://blockid.au", broken: [{ url: "https://blockid.au/vi/missing", from: "https://blockid.au/", status: 404, kind: "link:alternate", internal: true }] });
+    writeFileSync(join(dir, "link-check.jsonl"), `${JSON.stringify(old("2026-09-28T03:40:00.000Z"))}\n${JSON.stringify(old("2026-09-29T03:40:00.000Z"))}\n`);
+    writeFileSync(join(dir, "link-check-latest.json"), JSON.stringify(old("2026-09-29T03:40:00.000Z")));
+    const sent = [];
+    const site = fakeSiteW1();
+    const r = await main(["--base", "https://blockid.au", "--out-dir", dir, "--no-external", "--timeout", "2000"], {
+      fetchImpl: site.fetchImpl,
+      log: () => {},
+      skipLock: true,
+      now: () => new Date("2026-10-01T03:40:00Z"),
+      sendTelegram: async (text) => (sent.push(text), { sent: true }),
+    });
+    const vi = r.summary.open.find((o) => o.url === "https://blockid.au/vi/missing");
+    expect(vi.open_since).toBe("2026-09-28T03:40:00.000Z");
+    expect(vi.escalated_at).toBe("2026-10-01T03:40:00.000Z"); // > 48 h on the first W1 run
+    expect(r.summary.changes.added).not.toContain("https://blockid.au/vi/missing");
+  });
+
+  it("main(): a startupvalueindex.com run writes its own files and never touches link-check-latest.json", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "link-check-svi-"));
+    const fetchImpl = async (url) => {
+      const u = new URL(url);
+      if (u.origin !== "https://startupvalueindex.com") return new Response("", { status: 404 });
+      if (u.pathname === "/robots.txt") return new Response("User-agent: *\nDisallow: /api/\nSitemap: https://startupvalueindex.com/sitemap.xml\n", { status: 200 });
+      if (u.pathname === "/sitemap.xml") return new Response("<urlset><url><loc>https://startupvalueindex.com/about</loc></url></urlset>", { status: 200 });
+      return new Response(`<html><body><a href="https://www.startupvalueindex.com/about">about</a></body></html>`, { status: 200, headers: { "content-type": "text/html" } });
+    };
+    const r = await main(["--base", "https://startupvalueindex.com", "--include-sitemap", "--no-external", "--out-dir", dir, "--no-alert", "--timeout", "2000"], { fetchImpl, log: () => {}, skipLock: true });
+    expect(r.exitCode).toBe(0);
+    expect(r.summary.report_name).toBe("link-check-startupvalueindex-com");
+    expect(r.summary.sitemap).toEqual({ urls: 1, ok: 1, failed: 0 });
+    expect(existsSync(join(dir, "link-check-startupvalueindex-com-latest.json"))).toBe(true);
+    expect(existsSync(join(dir, "link-check-startupvalueindex-com.jsonl"))).toBe(true);
+    expect(existsSync(join(dir, "link-check-latest.json"))).toBe(false);
+    // www. is the same site (internal), not an external
+    expect(r.summary.external).toBe(0);
   });
 });

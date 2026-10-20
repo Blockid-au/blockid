@@ -1467,13 +1467,21 @@ else
 fi
 
 # G17 D7 (2026-09-19): internal link check against the temp build — every
-# <a>/<img>/<script> on the marketing pages must answer 200 before the swap.
-# DEPLOY_LINK_CHECK=0 skips; external hosts are never probed here.
-if [ "${G30_DEFER_EXTENDED_REVIEW:-0}" = "1" ]; then
-  echo "  ⏭  SKIPPED: Broad internal-link crawl deferred by founder; NOT a pass"
-elif [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs" ]; then
-  echo "  ▶ Internal link check against :$TEMP_PORT ..."
-  if (cd "$WEB_DIR" && node scripts/link-check.mjs --base "http://127.0.0.1:$TEMP_PORT" --max 600 --concurrency 8 --no-external --no-alert --out-dir /tmp/blockid-deploy-link-check > /tmp/blockid-deploy-link-check.log 2>&1); then
+# <a>/<img>/<script>/<meta og:image>/JSON-LD URL on the marketing pages must
+# answer 200 before the swap. DEPLOY_LINK_CHECK=0 skips (emergency only);
+# external hosts are never probed here.
+# W1 (2026-10-20, docs/pricing-v5-plan.md § 5, founder-approved): every
+# sitemap URL is a seed (--include-sitemap — the 9 /funding/grants?state=*
+# 404s shipped because only pages reachable from / were crawled), and the
+# gate runs even under G30_DEFER_EXTENDED_REVIEW=1: that flag (22/09) deferred
+# the broad crawl for speed; W1 supersedes it for this gate. The deferral
+# still covers gate 11 (hydrated/contrast suite).
+if [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs" ]; then
+  if [ "${G30_DEFER_EXTENDED_REVIEW:-0}" = "1" ]; then
+    echo "  ℹ  G30_DEFER_EXTENDED_REVIEW=1 no longer skips the link check (W1) — running it"
+  fi
+  echo "  ▶ Internal link check (+ sitemap) against :$TEMP_PORT ..."
+  if (cd "$WEB_DIR" && node scripts/link-check.mjs --base "http://127.0.0.1:$TEMP_PORT" --include-sitemap --max 800 --concurrency 8 --no-external --no-alert --out-dir /tmp/blockid-deploy-link-check > /tmp/blockid-deploy-link-check.log 2>&1); then
     echo "  ✅ link check passed ($(grep -oE '[0-9]+ pages · [0-9]+ links' /tmp/blockid-deploy-link-check.log | head -1))"
   else
     echo "  ❌ link check FAILED — /tmp/blockid-deploy-link-check.log"

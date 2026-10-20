@@ -452,3 +452,71 @@ export async function getSecurityPosture(): Promise<SecurityPosture | null> {
     };
   });
 }
+
+// ── 7. Link health (W1, 2026-10-20) ─────────────────────────────────────
+// scripts/link-check.mjs writes <name>-latest.json nightly: `link-check`
+// for blockid.au, `link-check-startupvalueindex-com` for the SVI site. Each
+// broken link carries `open_since` (run-over-run), so the tile shows how many
+// are open and for how long instead of re-reading the alert e-mails.
+
+export interface LinkHealthSite {
+  /** Report stem (`link-check`, `link-check-startupvalueindex-com`). */
+  name: string;
+  site: string;
+  lastRunAt: string | null;
+  openCount: number;
+  openInternal: number;
+  oldestOpenSince: string | null;
+  escalatedOpen: number;
+  unverifiable: number;
+  sitemapFailed: number | null;
+  topOpen: Array<{ url: string; status: number | null; openSince: string | null }>;
+}
+
+export const LINK_HEALTH_REPORTS = ["link-check", "link-check-startupvalueindex-com"] as const;
+
+interface LinkCheckLatest {
+  ts?: string;
+  site?: string;
+  base?: string;
+  broken?: Array<{ url?: string; status?: number | null; internal?: boolean }>;
+  open?: Array<{ url?: string; status?: number | null; internal?: boolean; open_since?: string; escalated_at?: string | null }>;
+  open_count?: number;
+  oldest_open_since?: string | null;
+  unverifiable_count?: number;
+  sitemap?: { failed?: number } | null;
+}
+
+/** Pure: one latest-report object → the tile row (pre-W1 files have no `open`). */
+export function linkHealthFromReport(name: string, file: LinkCheckLatest): LinkHealthSite {
+  const open = Array.isArray(file.open)
+    ? file.open
+    : (Array.isArray(file.broken) ? file.broken : []).map((b) => ({ ...b, open_since: undefined, escalated_at: null }));
+  const sorted = open
+    .filter((o) => typeof o.url === "string")
+    .slice()
+    .sort((a, b) => String(a.open_since ?? "9999").localeCompare(String(b.open_since ?? "9999")));
+  return {
+    name,
+    site: file.site ?? file.base ?? name,
+    lastRunAt: typeof file.ts === "string" ? file.ts : null,
+    openCount: typeof file.open_count === "number" ? file.open_count : open.length,
+    openInternal: open.filter((o) => o.internal).length,
+    oldestOpenSince: file.oldest_open_since ?? null,
+    escalatedOpen: open.filter((o) => Boolean(o.escalated_at)).length,
+    unverifiable: typeof file.unverifiable_count === "number" ? file.unverifiable_count : 0,
+    sitemapFailed: typeof file.sitemap?.failed === "number" ? file.sitemap.failed : null,
+    topOpen: sorted.slice(0, 3).map((o) => ({ url: String(o.url), status: typeof o.status === "number" ? o.status : null, openSince: o.open_since ?? null })),
+  };
+}
+
+export async function getLinkHealth(): Promise<LinkHealthSite[]> {
+  return memo("linkHealth", async () => {
+    const out: LinkHealthSite[] = [];
+    for (const name of LINK_HEALTH_REPORTS) {
+      const file = safeReadJson<LinkCheckLatest>(path.join(REPORTS_DIR, `${name}-latest.json`));
+      if (file && typeof file === "object") out.push(linkHealthFromReport(name, file));
+    }
+    return out;
+  });
+}

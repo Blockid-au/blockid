@@ -155,6 +155,8 @@ import {
   getActiveExperiments,
   getGrowth7d,
   getSecurityPosture,
+  getLinkHealth,
+  linkHealthFromReport,
 } from "./ops-metrics";
 
 // ─── path helpers ──────────────────────────────────────────────────────
@@ -906,5 +908,53 @@ describe("memoisation", () => {
     vi.setSystemTime(new Date(clock + 61_000));
     const busted = await getCronHealth24h();
     expect(busted).toHaveLength(2);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// getLinkHealth (W1, 2026-10-20) — the /admin/ops "Link health" tile
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("getLinkHealth", () => {
+  const LINK_LATEST = path.join(REPORTS_DIR, "link-check-latest.json");
+  const SVI_LATEST = path.join(REPORTS_DIR, "link-check-startupvalueindex-com-latest.json");
+
+  it("returns [] when no link-check report exists", async () => {
+    expect(await getLinkHealth()).toEqual([]);
+  });
+
+  it("reads the open set per site: count, oldest, escalated, top 3 oldest first", async () => {
+    writeFile(
+      LINK_LATEST,
+      JSON.stringify({
+        ts: "2026-10-20T03:41:00.000Z",
+        site: "https://blockid.au",
+        open_count: 4,
+        oldest_open_since: "2026-10-10T03:40:00.000Z",
+        unverifiable_count: 32,
+        sitemap: { urls: 464, ok: 464, failed: 0 },
+        open: [
+          { url: "https://c.example/", status: 503, internal: false, open_since: "2026-10-19T03:40:00.000Z", escalated_at: null },
+          { url: "https://blockid.au/x", status: 404, internal: true, open_since: "2026-10-10T03:40:00.000Z", escalated_at: "2026-10-12T03:40:00.000Z" },
+          { url: "https://b.example/", status: 404, internal: false, open_since: "2026-10-15T03:40:00.000Z", escalated_at: "2026-10-17T03:40:00.000Z" },
+          { url: "https://d.example/", status: null, internal: false, open_since: "2026-10-20T03:40:00.000Z", escalated_at: null },
+        ],
+      }),
+    );
+    writeFile(SVI_LATEST, JSON.stringify({ ts: "2026-10-20T03:55:00.000Z", site: "https://startupvalueindex.com", open_count: 0, open: [] }));
+    const rows = await getLinkHealth();
+    expect(rows.map((r) => r.name)).toEqual(["link-check", "link-check-startupvalueindex-com"]);
+    expect(rows[0]).toMatchObject({ openCount: 4, openInternal: 1, escalatedOpen: 2, unverifiable: 32, sitemapFailed: 0, oldestOpenSince: "2026-10-10T03:40:00.000Z" });
+    expect(rows[0].topOpen.map((o) => o.url)).toEqual(["https://blockid.au/x", "https://b.example/", "https://c.example/"]);
+    expect(rows[1]).toMatchObject({ site: "https://startupvalueindex.com", openCount: 0, topOpen: [] });
+  });
+
+  it("a pre-W1 report (broken[], no open[]) still counts its broken links; malformed JSON is skipped", async () => {
+    writeFile(LINK_LATEST, JSON.stringify({ ts: "2026-10-19T03:41:00.000Z", base: "https://blockid.au", broken: [{ url: "https://x.example/", status: 404, internal: false }] }));
+    writeFile(SVI_LATEST, "{not json");
+    const rows = await getLinkHealth();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ openCount: 1, oldestOpenSince: null, escalatedOpen: 0, unverifiable: 0, sitemapFailed: null });
+    expect(linkHealthFromReport("link-check", {}).openCount).toBe(0);
   });
 });

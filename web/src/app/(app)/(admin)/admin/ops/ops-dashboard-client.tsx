@@ -10,6 +10,7 @@ import {
   UserPlus,
   ShieldAlert,
   RefreshCw,
+  Link2Off,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import type {
@@ -18,6 +19,7 @@ import type {
   CronHealthEntry,
   DeployHealth,
   Growth7d,
+  LinkHealthSite,
   ReleaseInfo,
   SecurityPosture,
 } from "@/lib/ops-metrics";
@@ -31,6 +33,8 @@ interface Props {
   experiments: ActiveExperiment[];
   growth: Growth7d;
   posture: SecurityPosture | null;
+  /** W1: nightly link-check open set per site (blockid.au, startupvalueindex.com). */
+  linkHealth?: LinkHealthSite[];
 }
 
 // ── Small utilities ────────────────────────────────────────────────────
@@ -199,6 +203,7 @@ export function OpsDashboardClient({
   experiments,
   growth,
   posture,
+  linkHealth = [],
 }: Props) {
   const router = useRouter();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -426,6 +431,46 @@ export function OpsDashboardClient({
                   )}
                 </ul>
               </>
+            )}
+          </Tile>
+
+          {/* Tile 7 — Link health (W1): nightly link-check open set */}
+          <Tile title="Link health" icon={Link2Off}>
+            {linkHealth.length === 0 ? (
+              <Empty>No link-check report yet.</Empty>
+            ) : (
+              <ul className="space-y-3 text-xs" data-testid="ops-link-health">
+                {linkHealth.map((s) => (
+                  <li key={s.name}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate font-medium text-ink-800">{s.site.replace(/^https?:\/\//, "")}</span>
+                      <span
+                        data-testid={`ops-link-open-${s.name}`}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
+                          s.openCount === 0 ? SEVERITY_PILL.low : s.escalatedOpen > 0 ? SEVERITY_PILL.critical : SEVERITY_PILL.medium
+                        }`}
+                      >
+                        {s.openCount} open
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-ink-600">
+                      Last run {fmtDateTime(s.lastRunAt)}
+                      {s.oldestOpenSince ? ` · oldest since ${fmtDate(s.oldestOpenSince)}` : ""}
+                      {s.escalatedOpen > 0 ? ` · ${s.escalatedOpen} open > 48 h` : ""}
+                      {s.unverifiable > 0 ? ` · ${s.unverifiable} unverifiable` : ""}
+                    </div>
+                    {s.topOpen.length > 0 ? (
+                      <ul className="mt-1 space-y-0.5">
+                        {s.topOpen.map((o) => (
+                          <li key={o.url} className="truncate font-mono text-[11px] text-ink-700" title={o.url}>
+                            {o.status ?? "ERR"} {o.url}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
             )}
           </Tile>
         </div>
