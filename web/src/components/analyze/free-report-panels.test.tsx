@@ -145,7 +145,8 @@ describe("FreeReportPayPanel — the quote before the pay", () => {
   });
 
   it("G35 P5: a payg quote label replaces the legacy label on screen; the sku attribute is untouched", () => {
-    const out = html(<FreeReportPayPanel {...base} authenticated={false} guestSellable={false} paygQuoteLabel="Full A$49 inc. GST" />);
+    const onCopy = freeReportCopy(getMessagesSync("en"), "en", PAYG_ON_VIEW).pay;
+    const out = html(<FreeReportPayPanel {...base} copy={onCopy} authenticated={false} guestSellable={false} paygQuoteLabel="Full A$49 inc. GST" />);
     expect(out).toContain("Full A$49 inc. GST");
     expect(out).not.toContain("A$3 inc. GST");
     expect(out).toContain('data-sku="sku_trust_report_5aud"');

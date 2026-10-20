@@ -44,7 +44,7 @@ export function planDisplayName(planId: string): string {
 /**
  * Price labels read from the SKU / cost constants — never typed by hand
  * (G20-F3). G35 P5: they follow the server-read PaygView — OFF = the legacy
- * "A$3" / "A$1", ON = "Full A$49" / "1 credit" (D27).
+ * legacy A$ amounts, ON = the Full tier price / "1 credit" (D27).
  */
 function priceLabels(view: PaygView): { tbr: string; rescore: string } {
   return { tbr: view.enabled ? `${reportPriceLabelFor(view)} report` : `Trusted Business Report ${reportPriceLabelFor(view)}`, rescore: rescoreLabel(view) };

@@ -48,50 +48,45 @@ const STARTER = PLANS_V2.find((p) => p.id === "founder_starter");
 // Feature label + description map
 // ---------------------------------------------------------------------------
 
-// `costLabel` is the legacy (flag OFF) fallback shown when the caller passes
-// no cost; `credits` is the same figure in credits for the D27 view (flag ON
-// → "N credits", never an A$ amount). Mirrors FEATURE_COSTS (lib/credits.ts).
-const FEATURE_INFO: Record<string, { label: string; description: string; costLabel: string; credits?: number }> = {
+// The fallback cost line (shown when the caller passes no cost). `credits`
+// mirrors FEATURE_COSTS (lib/credits.ts): flag OFF prints it at the legacy
+// one-A$-per-credit rate ("A$0.50"), flag ON (D27) as "N credits" — never A$.
+// `costLabel` is for rows with no fixed credit cost.
+type FeatureInfo = { label: string; description: string; costLabel?: string; credits?: number };
+const FEATURE_INFO: Record<string, FeatureInfo> = {
   svi_analysis: {
     label: "SVI Analysis",
     description: "AI-powered startup value index analysis of your business idea.",
-    costLabel: "A$0.50",
     credits: 0.5,
   },
   svi_report: {
     label: "SVI Report",
     description: "Full 10-page AI-generated startup analysis report with actionable insights.",
-    costLabel: "A$0.50",
     credits: 0.5,
   },
   rnd_report: {
     label: "R&D Report",
     description: "Standard 10-page R&D report with SSE streaming analysis.",
-    costLabel: "A$1.00",
     credits: 1,
   },
   rnd_deep_dive: {
     label: "Deep Dive Report",
     description: "Extended R&D analysis with detailed competitor profiles and growth tactics.",
-    costLabel: "A$1.50",
     credits: 1.5,
   },
   term_sheet: {
     label: "Term Sheet AI",
     description: "AI-assisted term sheet generation and analysis for fundraising.",
-    costLabel: "A$1.00",
     credits: 1,
   },
   research: {
     label: "Competitive Research",
     description: "AI-powered market and competitive landscape research for your startup.",
-    costLabel: "A$0.50",
     credits: 0.5,
   },
   ai_score: {
     label: "AI Score",
     description: "Enhanced AI scoring for your startup across multiple dimensions.",
-    costLabel: "A$0.25",
     credits: 0.25,
   },
   grant_match: {
@@ -108,18 +103,16 @@ const FEATURE_INFO: Record<string, { label: string; description: string; costLab
   trust_report: {
     label: "Trusted Business Report",
     description: "Trusted Business Report — 8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words",
-    costLabel: "A$3.00",
     credits: 3,
   },
   trust_report_rescore: {
     label: "Re-score",
     description: "Re-score an existing startup",
-    costLabel: "A$1.00",
     credits: 1,
   },
 };
 
-function getFeatureInfo(feature: string): { label: string; description: string; costLabel: string; credits?: number } {
+function getFeatureInfo(feature: string): FeatureInfo {
   return (
     FEATURE_INFO[feature] ?? {
       label: feature.replace(/_/g, " "),
@@ -162,7 +155,12 @@ export function CreditGate({
   const info = getFeatureInfo(feature);
   const ctxPayg = usePaygView();
   const payg = paygEnabled ?? ctxPayg.enabled;
-  const fallbackCost = payg && typeof info.credits === "number" ? creditsLabel(info.credits) : info.costLabel;
+  const fallbackCost =
+    typeof info.credits === "number"
+      ? payg
+        ? creditsLabel(info.credits)
+        : `A$${info.credits.toFixed(2)}`
+      : (info.costLabel ?? "Varies");
 
   const [buyLoading, setBuyLoading] = React.useState<string | false>(false);
   const [planLoading, setPlanLoading] = React.useState(false);

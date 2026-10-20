@@ -27,7 +27,7 @@ const STEP_LABELS: ReadonlyArray<{ key: keyof FunnelCounts; label: string; note:
   { key: "analyses", label: "Analyses", note: "svi_analyze — distinct founders / sessions" },
   { key: "report_views", label: "Report views", note: "report_view — TBR page render" },
   { key: "paywall_views", label: "Paywall views", note: "paywall_view — free-tier cut rendered" },
-  { key: "checkouts", label: "Checkouts", note: "checkout — A$3 Stripe session created" },
+  { key: "checkouts", label: "Checkouts", note: "checkout — one-off report Stripe session created" },
   { key: "paid", label: "Paid", note: "trust_report_purchased — Stripe webhook" },
   // G25-D — plans / packs / SKUs go through the review step; these two rows are that edge.
   { key: "review_views", label: "Review views", note: "checkout_review_viewed — /checkout/review rendered (plans, packs, SKUs)" },

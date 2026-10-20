@@ -87,7 +87,7 @@ function analysesFor(credits: number): number {
 }
 
 /**
- * Legacy one-off guest report amount line ("A$3.00"), derived from the v3
+ * Legacy one-off guest report amount line (two decimals), derived from the v3
  * SKU — the tax-invoice / recovery fallback when the caller does not pass
  * the order's own amount.
  */

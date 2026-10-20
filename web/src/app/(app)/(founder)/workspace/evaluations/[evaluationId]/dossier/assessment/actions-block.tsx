@@ -55,7 +55,7 @@ export function ActionsBlock({
   view: DossierView;
   plan?: string | null;
   batchAllowed?: boolean;
-  /** G35 P5 — server-read Pricing v5 view. OFF (default) = today's "A$1" / "A$3"; ON = "1 credit" / "Full A$49" (D27). */
+  /** G35 P5 — server-read Pricing v5 view. OFF (default) = today's legacy A$ amounts; ON = "1 credit" / the Full tier price (D27). */
   payg?: PaygView;
 }) {
   const founder = view.viewer.role === "founder";
