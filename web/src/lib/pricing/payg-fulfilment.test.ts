@@ -200,6 +200,15 @@ describe("fulfilPaygReportCheckout — report tiers", () => {
     expect(out).toMatchObject({ ok: true, orderId: "order-1", status: "PAID", duplicate: false });
     expect(db.row("report_orders", "order-1")).toMatchObject({ status: "PAID", user_id: USER });
     expect(db.rows("report_generation_queue")).toHaveLength(1);
+    // P2-1: the paid e-mail links the order-scoped view, not the founder page.
+    expect(h.mails.paid).toHaveBeenCalledWith(expect.objectContaining({ orderId: "order-1", evaluator: true }));
+  });
+
+  it("a founder's paid e-mail carries no evaluator flag (founder link unchanged)", async () => {
+    const h = harness(db);
+    await fulfilPaygReportCheckout(db as never, session(), { id: "evt_f1" }, "report_full", h.deps);
+    const [args] = h.mails.paid.mock.calls[0] as unknown as [Record<string, unknown>];
+    expect(args).not.toHaveProperty("evaluator");
   });
 
   it("never trusts metadata.order_id that points at another user's order", async () => {
@@ -401,6 +410,17 @@ describe("notifyPaygOrderSettled (G4 report-delivery e-mails)", () => {
     const due = verifiedSlaDueAt(NOW, 2);
     await notifyPaygOrderSettled(db as never, { orderId: "o1", status: "IN_REVIEW", paygTier: "verified", slaDueAt: due }, { email: { ready, inReview }, slaBusinessDays: async () => 2 });
     expect(inReview).toHaveBeenCalledWith({ to: "f@example.com", orderId: "o1", dueAt: due, slaBusinessDays: 2 });
+  });
+
+  it("P2-1: an evaluator order's ready / in-review e-mail is flagged evaluator (order-scoped link)", async () => {
+    const db = freshDb({ report_orders: [{ id: "o1", user_id: USER, metadata: { buyer_role: "evaluator", evaluation_id: "eval-1" } }] });
+    const ready = vi.fn(async () => ({}));
+    const inReview = vi.fn(async () => ({}));
+    await notifyPaygOrderSettled(db as never, { orderId: "o1", status: "READY", paygTier: "full", slaDueAt: null }, { email: { ready, inReview } });
+    expect(ready).toHaveBeenCalledWith({ to: "f@example.com", orderId: "o1", tier: "full", evaluator: true });
+    const due = verifiedSlaDueAt(NOW, 2);
+    await notifyPaygOrderSettled(db as never, { orderId: "o1", status: "IN_REVIEW", paygTier: "verified", slaDueAt: due }, { email: { ready, inReview }, slaBusinessDays: async () => 2 });
+    expect(inReview).toHaveBeenCalledWith({ to: "f@example.com", orderId: "o1", dueAt: due, slaBusinessDays: 2, evaluator: true });
   });
 
   it("no order / no e-mail → nothing sent", async () => {
