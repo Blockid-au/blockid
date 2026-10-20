@@ -105,6 +105,11 @@ export type AnalyticsEvent =
   | { name: "payg_checkout_started"; params: { tier: PaygTier; sku: PaygSkuId; surface: string; amount_cents: number; is_upgrade: boolean; project_id?: string; qa?: boolean } }
   | { name: "payg_paid"; params: { tier: PaygTier | "funding"; sku: PaygSkuId; paid_via: "card" | "credits"; gross_aud_cents: number; order_id: string; session_id?: string; user_id?: string; qa?: boolean } }
   | { name: "payg_upgrade"; params: { from_tier: PaygTier; to_tier: PaygTier; sku: PaygSkuId; gross_aud_cents: number; order_id: string; upgrade_of_order_id: string; user_id?: string; qa?: boolean } }
+  // G35 P4 Verified review (server; lib/verified-review/*):
+  //   payg_verified_reviewed  — an admin marked a Verified order reviewed (order → READY, badge on, Investor Pack e-mailed)
+  //   payg_verified_sla_alert — an IN_REVIEW Verified order alerted the admin (once per order per level)
+  | { name: "payg_verified_reviewed"; params: { order_id: string; project_id?: string; sla_met: boolean | null; accepted: number; rejected: number; verification_level: number; evidence_confidence: number; investor_pack: boolean; email_sent: boolean; qa?: boolean } }
+  | { name: "payg_verified_sla_alert"; params: { order_id: string; level: "overdue" | "due_soon"; overdue_ms: number; business_ms_left: number; qa?: boolean } }
   // ── G25-C free allowance (server-side; lib/analytics/funnel.ts emitFreeReport*) ──
   //   free_report_submitted — a free report was reserved for an address (sequence_no 1 | 2, source guest | account)
   //   free_report_delivered — the PDF e-mail for that report was accepted by the provider

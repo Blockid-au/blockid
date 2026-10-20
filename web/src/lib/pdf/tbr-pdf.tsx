@@ -662,6 +662,8 @@ function Dashboard({ report, card, dash, v4, locale, preparedWith }: { report: R
         <Chip label={c.stageLabel} />
         <Chip label={c.sector} />
         <Chip label={phase} />
+        {/* G35 P4: "BlockID Reviewed · date · reviewer" — server-attached only for a reviewed Verified order. */}
+        {report.reviewBadge ? <Chip label={report.reviewBadge.label} colour={C.navy} /> : null}
       </View>
       {source ? <Text style={s.tiny}>{t(source)}</Text> : null}
       {/* G34 BT3: page 1 is dense; the purpose line lives on the web / DOCX only. */}

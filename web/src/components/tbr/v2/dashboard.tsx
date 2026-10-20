@@ -27,6 +27,7 @@ import { ConfidenceMeter, DimensionScorecard } from "./dimension-scorecard";
 import { KeyMetricsStrip } from "./key-metrics-strip";
 import { RedFlagPanel, WhyStopAskLists } from "./red-flag-panel";
 import { SignalChipStrip } from "./signal-chip-strip";
+import { TbrReviewedBadge } from "./reviewed-badge";
 import { signalChipStripData } from "@/lib/report-v2/signal-chip-data";
 import { CalibrationLine, PeerStageStrip } from "./peer-stage-strip";
 
@@ -262,6 +263,7 @@ export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards
           <p className="flex flex-wrap items-center gap-2 font-display text-2xl font-bold tracking-tight text-primary md:text-3xl">
             {c.startupName}
             {c.verification && <AbnBadge level={c.verification.level} />}
+            {report.reviewBadge && <TbrReviewedBadge badge={report.reviewBadge} />}
           </p>
           <p className="mt-1 text-sm text-secondary">
             {c.sector} · {c.stageLabel} · {tc.phase}:{" "}
