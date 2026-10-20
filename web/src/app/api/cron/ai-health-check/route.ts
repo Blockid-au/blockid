@@ -19,6 +19,10 @@
 //     AI_MODEL_PRUNE_STRIKES (3) consecutive checks is removed from
 //     ai-free-models.json and kept out of refresh/discovery for 7 days.
 //
+// W0 (2026-10-20): also warns ops (Telegram → ops-alert e-mail fallback, once
+// per UTC day) when the report price policy in lib/ai/report-attempt-budget.ts
+// expires in < 7 days — past it, every report-scoped AI call is refused.
+//
 // Auth: Bearer CRON_SECRET.
 
 import { NextResponse } from "next/server";
@@ -41,6 +45,8 @@ import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { probeProviders, type ProviderStatusFile } from "@/lib/ai/provider-status";
 import { applyHealthResults, compactStrikes, pruneDeadModels, pruneThreshold, readStrikes, writeStrikes } from "@/lib/ai/model-strikes";
+import { REPORT_PRICE_POLICY_EXPIRES_AT } from "@/lib/ai/report-attempt-budget";
+import { maybeAlertReportPricePolicyExpiry } from "@/lib/ai/report-price-policy-alert";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -227,6 +233,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     await sendTelegram(lines).catch(() => { /* best-effort */ });
   }
 
+  const pricePolicy = await maybeAlertReportPricePolicyExpiry({
+    expiresAt: REPORT_PRICE_POLICY_EXPIRES_AT,
+    send: (text) => sendTelegram(mdEscape(text)),
+  });
+
   const providers = await providerProbe;
   const providerSummary = providers
     ? Object.fromEntries(Object.values(providers.providers).map((p) => [p.provider, p.status]))
@@ -245,6 +256,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     primary_chain_size: primaryChain.length,
     fallback_pool_size: fallbackPool.length,
     providers: providerSummary,
+    report_price_policy: {
+      expires_at: pricePolicy.expiresAt,
+      days_left: Math.round(pricePolicy.daysLeft * 10) / 10,
+      warn: pricePolicy.warn,
+      alerted: pricePolicy.alerted,
+    },
   });
 }
 

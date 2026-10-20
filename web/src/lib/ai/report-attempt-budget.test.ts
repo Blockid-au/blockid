@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const home = mkdtempSync(join(tmpdir(), "report-spend-"));
 // Production has ~/.local/state; the ledger root itself is created (0700) by the module.
@@ -11,11 +11,22 @@ vi.mock("node:os", async (importOriginal) => {
   return { ...actual, userInfo: () => ({ ...actual.userInfo(), homedir: home }) };
 });
 
-import { createReportAttemptBudget } from "./report-attempt-budget";
+import { createReportAttemptBudget, REPORT_PRICE_POLICY, REPORT_PRICE_POLICY_EXPIRES_AT } from "./report-attempt-budget";
 import { reserveResearchAttempt, settleResearchAttempt } from "./research-attempt-budget";
 import { REPORT_ADMITTED_MODELS } from "./report-admitted-models";
 
 afterAll(() => vi.restoreAllMocks());
+
+// W0: reserve() refuses everything once the price policy expires, so the suite
+// must never depend on the real clock. Only Date is faked (and keeps advancing
+// with real time) — the ledger lock wait and coordinator timeout still need
+// real timers.
+const BEFORE_EXPIRY = Date.parse("2026-10-20T00:00:00Z");
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+  vi.setSystemTime(BEFORE_EXPIRY);
+});
+afterEach(() => { vi.useRealTimers(); });
 
 const FLASH = "deepseek-ai/DeepSeek-V4-Flash";
 const payload = (n: number) => JSON.stringify({ model: FLASH, messages: [{ role: "user", content: "x".repeat(n) }] });
@@ -131,6 +142,44 @@ describe("report attempt budget (G33-T06)", () => {
     try {
       await expect(reserveResearchAttempt(budget, "moonshotai/Kimi-K2.6", payload(999), 100)).rejects.toThrow(/not admitted/);
       expect(JSON.parse(String(warn.mock.calls.at(-1)?.[0]))).toMatchObject({ event: "ai.budget.refused", budget: "report_price_admission", max_output_tokens: 16384, requested_output_tokens: 100 });
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
+describe("report price policy expiry (W0, founder 2026-10-20)", () => {
+  const EXPIRY = Date.parse(REPORT_PRICE_POLICY_EXPIRES_AT);
+
+  it("is extended to 2026-11-22 without changing the ledger-pinned policy id", () => {
+    expect(REPORT_PRICE_POLICY_EXPIRES_AT).toBe("2026-11-22T00:00:00Z");
+    expect(REPORT_PRICE_POLICY).toBe("deepinfra-standard-2026-09-23");
+  });
+
+  it("admits a reservation on the old 23/10 cut-off and 1 ms before the new expiry", async () => {
+    for (const t of [Date.parse("2026-10-23T00:00:00Z"), EXPIRY - 1]) {
+      vi.setSystemTime(t);
+      const budget = createReportAttemptBudget(scope());
+      const permit = await reserveResearchAttempt(budget, FLASH, payload(500), 200);
+      expect(permit.dispatchAllowed).toBe(true);
+      expect(permit.pricePolicyId).toBe(REPORT_PRICE_POLICY);
+      // The permit never outlives the price policy.
+      expect(permit.expiresAt).toBeLessThanOrEqual(EXPIRY);
+      await settleResearchAttempt(budget, permit, { prompt_tokens: 100, completion_tokens: 50 });
+    }
+  });
+
+  it("refuses every reservation at and after the expiry instant", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      for (const t of [EXPIRY, EXPIRY + 86_400_000]) {
+        vi.setSystemTime(t);
+        const budget = createReportAttemptBudget(scope());
+        const err = await reserveResearchAttempt(budget, FLASH, payload(500), 200).catch((e) => e);
+        expect(err).toBeInstanceOf(Error);
+        expect(err.message).toMatch(/price or request not admitted/);
+        expect(err.detail).toMatchObject({ budget: "report_price_admission" });
+      }
     } finally {
       warn.mockRestore();
     }
