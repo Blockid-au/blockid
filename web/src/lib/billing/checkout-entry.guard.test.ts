@@ -33,13 +33,15 @@ export const ALLOW: Readonly<Record<string, string>> = {
   // Review v3.26.0 P2: the one-off report / funding quote panels. Each shows
   // the price inc. GST and posts ONLY from an explicit "Pay A$X …" button.
   "components/analyze/guest-paid-checkout.tsx":
-    "A$3 guest report quote panel — price inc. GST + e-mail, posts to /api/guest-analysis/create-order from the 'Pay {price} & get my report' button only.",
+    "A$3 guest report quote panel — price inc. GST + e-mail, posts to /api/guest-analysis/create-order from the 'Pay {price} & get my report' button only. (G35 D26: with payg_enabled the guest first picks Snapshot / Full on the same panel.)",
   "app/(marketing)/one-click-report/one-click-form.tsx":
     "The /one-click-report checkout landing — the price IS the offer (A$3 inc. GST, invoice note); the submit reads 'Pay A$3 & get my report'.",
   "components/funding/funding-paywall.tsx":
-    "Money Finder A$3 paywall — price inc. GST, one-off, posts to /api/funding/checkout from the 'Pay A$3 & unlock' button only.",
+    "Money Finder A$3 paywall — price inc. GST, one-off, posts to /api/funding/checkout from the 'Pay A$3 & unlock' button only. (G35 D25: A$19 from /api/pricing/payg when payg_enabled; the button stays disabled until the price loads.)",
   "components/paywall/ReportPaywallGate.tsx":
-    "G16 quote-then-pay gate — 'Confirm & Pay A$3' after the quoted number; posts to /api/reports/checkout.",
+    "G16 quote-then-pay gate — 'Confirm & Pay A$3' after the quoted number; posts to /api/reports/checkout. (G35: with payg_enabled it renders <PaygTierPicker> instead.)",
+  "components/paywall/payg-tier-picker.tsx":
+    "G35 Pricing v5 review step — Snapshot / Full / Verified (+ D28 upgrade) with what is included, price 'one-off, GST incl.' and delivery time; selecting a tier charges nothing, only the explicit 'Confirm & Pay A$X' button posts to /api/reports/checkout.",
   "components/svi/svi-entrance.tsx":
     "Quick Report option — first click opens the review block (price inc. GST, one-off, PDF by e-mail); only its 'Pay A$3 now' button posts to /api/stripe/analysis.",
 };

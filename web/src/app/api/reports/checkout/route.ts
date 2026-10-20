@@ -24,6 +24,20 @@
  *
  * Auth: requires a signed-in Supabase user. Free registration + login
  * (§8.1) is unchanged; the paywall only trips on this route.
+ *
+ * G35 Pricing v5 (wave P3, docs/pricing-v5-plan.md §6.4) — behind
+ * `platform_config.payg_enabled` (default false):
+ *
+ *   flag OFF  → exactly the A$3 path above, plus the ATO tax invoice
+ *               (`invoice_creation` + Seller ABN + GST footer — gap G3, a
+ *               compliance fix). A body naming `tier` / `upgradeFrom` → 403.
+ *   flag ON   → `{ businessId, tier: 'snapshot'|'full'|'verified' }` or
+ *               `{ businessId, upgradeFrom: 'snapshot'|'full' }` is REQUIRED
+ *               (no tier → 400; the legacy A$3 SKU is no longer sold). See
+ *               `paygCheckout()` below: Stripe Price from `priceIdForSku()`,
+ *               Verified cap (409), upgrade ownership (403 / 409), Stripe
+ *               customer reuse, order row inserted BEFORE Stripe so
+ *               `metadata.order_id` is set, never a discount (founder rule).
  */
 
 import { NextResponse } from "next/server";
@@ -39,6 +53,22 @@ import { apiRoute } from "@/lib/audit/api-route";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isQaEmail } from "@/lib/analytics/events";
 import { emitCheckout } from "@/lib/analytics/funnel";
+import { oneOffInvoiceCreation } from "@/lib/stripe/one-off-invoice";
+import { readPaygConfig } from "@/lib/pricing/payg-flag";
+import {
+  PAYG_PRICING_VERSION,
+  PAYG_SKUS,
+  isPaygTier,
+  priceIdForSku,
+  reportSkuForTier,
+  type PaygConfig,
+  type PaygSkuId,
+  type PaygTier,
+} from "@/lib/pricing/v5-payg";
+import { VERIFIED_FULL_MESSAGE, paygTierLabel, resolveUpgradeSource, verifiedCapacityLeft } from "@/lib/pricing/payg-offer";
+import { countOpenVerifiedOrders, inFlightOrderFor, listBuyerOrders } from "@/lib/pricing/payg-orders";
+import { assertProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 interface CheckoutBody {
   businessId?: unknown;
@@ -47,6 +77,10 @@ interface CheckoutBody {
   // Trust Report paywall (e.g. "IFV20", "DVL10"). Resolved via
   // @/lib/reseller/resolve-promo; unknown/expired → 400.
   promoCode?: unknown;
+  // G35 Pricing v5 (payg_enabled only): buy a tier outright, or lift a
+  // delivered lower tier (D28). Exactly one of the two.
+  tier?: unknown;
+  upgradeFrom?: unknown;
 }
 
 const ORIGIN_FALLBACK = "https://blockid.au";
@@ -102,6 +136,24 @@ async function POST_handler(request: Request) {
       { ok: false, reason: "businessId must be a uuid" },
       { status: 400 },
     );
+  }
+
+  // ── G35 Pricing v5 switch ─────────────────────────────────────────
+  // Fails closed: an unreadable platform_config means PAYG is off.
+  const wantsPayg = body.tier !== undefined || body.upgradeFrom !== undefined;
+  const payg = await readPaygConfig();
+  if (wantsPayg && !payg.payg_enabled) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "payg_disabled",
+        reason: "Snapshot, Full and Verified reports are not on sale yet.",
+      },
+      { status: 403 },
+    );
+  }
+  if (payg.payg_enabled) {
+    return paygCheckout(request, user, body, businessId, payg);
   }
 
   // Path A requires the pre-provisioned Stripe Price for the Trust Report.
@@ -238,6 +290,10 @@ async function POST_handler(request: Request) {
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       automatic_tax: { enabled: true },
+      // G35 gap G3: ATO tax invoice (Seller ABN + GST footer), same block as
+      // the guest / Money Finder one-off routes. Compliance-only — the price,
+      // SKU and fulfilment of the A$3 path are unchanged.
+      invoice_creation: oneOffInvoiceCreation(TRUST_REPORT_5AUD.name ?? "Trusted Business Report"),
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
@@ -378,6 +434,321 @@ async function POST_handler(request: Request) {
     orderId: order.id,
     url: session.url,
     appliedDiscount,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// G35 Pricing v5 — pay-as-you-go tier checkout (payg_enabled only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CheckoutUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+type AdminDb = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
+
+interface PaygTarget {
+  sku: PaygSkuId;
+  tier: PaygTier;
+  upgradeOfOrderId: string | null;
+}
+
+function paygError(status: number, code: string, reason: string, extra: Record<string, unknown> = {}) {
+  return NextResponse.json({ ok: false, code, reason, ...extra }, { status });
+}
+
+/**
+ * Reseller attribution for a v5 order — the same body-code → `blockid_via`
+ * cookie priority as the A$3 path, but ATTRIBUTION ONLY: a v5 session never
+ * carries a Stripe discount (founder rule: no coupons / discounts; resellers
+ * never touch Stripe). Unknown typed code → 400, like today.
+ */
+async function resolvePaygAttribution(
+  body: CheckoutBody,
+): Promise<
+  | { ok: true; promo: Awaited<ReturnType<typeof resolvePromoCode>>; origin: "body" | "cookie" | null }
+  | { ok: false; response: Response }
+> {
+  const raw = typeof body.promoCode === "string" ? body.promoCode.trim() : "";
+  if (raw.length > 0) {
+    const promo = await resolvePromoCode(raw);
+    if (!promo) return { ok: false, response: paygError(400, "unknown_promo", "Unknown or expired promotion code") };
+    return { ok: true, promo, origin: "body" };
+  }
+  try {
+    const cookieStore = await cookies();
+    const code = normaliseResellerCode(cookieStore.get("blockid_via")?.value ?? null);
+    if (code) {
+      const promo = await resolvePromoCode(code);
+      if (promo) return { ok: true, promo, origin: "cookie" };
+    }
+  } catch {
+    // attribution is opportunistic — never block a checkout on it
+  }
+  return { ok: true, promo: null, origin: null };
+}
+
+async function readOrderSessionId(supabase: AdminDb, orderId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from("report_orders").select("stripe_session_id").eq("id", orderId).maybeSingle();
+    const sid = (data as { stripe_session_id?: unknown } | null)?.stripe_session_id;
+    return typeof sid === "string" && sid.length > 0 ? sid : null;
+  } catch {
+    return null;
+  }
+}
+
+async function closeStaleCheckout(supabase: AdminDb, orderId: string, reason: string): Promise<void> {
+  try {
+    await supabase
+      .from("report_orders")
+      .update({ status: "FAILED", failure_reason: reason })
+      .eq("id", orderId)
+      .eq("status", "CHECKOUT_INITIATED");
+  } catch {
+    /* the insert below surfaces a real conflict as 409 */
+  }
+}
+
+async function paygCheckout(
+  request: Request,
+  user: CheckoutUser,
+  body: CheckoutBody,
+  businessId: string,
+  payg: PaygConfig,
+): Promise<Response> {
+  // ── 1. Which SKU ─────────────────────────────────────────────────────
+  const hasTier = body.tier !== undefined && body.tier !== null;
+  const hasUpgrade = body.upgradeFrom !== undefined && body.upgradeFrom !== null;
+  if (hasTier === hasUpgrade) {
+    return paygError(400, "tier_required", "Choose Snapshot, Full or Verified (or an upgrade) — reload the page to see the options.");
+  }
+  if (hasTier && !isPaygTier(body.tier)) return paygError(400, "invalid_tier", "tier must be snapshot, full or verified");
+  if (hasUpgrade && !isPaygTier(body.upgradeFrom)) return paygError(400, "invalid_upgrade", "upgradeFrom must be snapshot or full");
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return paygError(503, "db_unavailable", "Database not configured");
+
+  // The buyer must be able to see the business they are buying a report on.
+  try {
+    await assertProjectScope({ id: user.id, email: user.email ?? "" }, businessId, "viewer");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+
+  const orders = await listBuyerOrders(supabase, user.id, businessId);
+  if (!orders) return paygError(503, "orders_unavailable", "Could not check your existing reports. Please try again.");
+
+  let target: PaygTarget;
+  if (hasUpgrade) {
+    const src = resolveUpgradeSource(orders, body.upgradeFrom as PaygTier);
+    if (!src.ok) {
+      const status = src.code === "not_owned" ? 403 : src.code === "no_upgrade_path" ? 400 : 409;
+      return paygError(status, src.code, src.reason);
+    }
+    target = { sku: src.sku, tier: src.to, upgradeOfOrderId: src.orderId };
+  } else {
+    const tier = body.tier as PaygTier;
+    target = { sku: reportSkuForTier(tier), tier, upgradeOfOrderId: null };
+  }
+
+  // ── 2. Verified capacity (D29) — fails closed on an unreadable count ──
+  if (target.tier === "verified") {
+    const open = await countOpenVerifiedOrders(supabase);
+    if (open === null || !verifiedCapacityLeft(payg, open)) {
+      return paygError(409, "verified_full", VERIFIED_FULL_MESSAGE);
+    }
+  }
+
+  const sku = PAYG_SKUS[target.sku];
+  const priceId = priceIdForSku(target.sku);
+  if (!priceId) {
+    return paygError(503, "price_not_provisioned", `${sku.label} price not provisioned in Stripe. Run scripts/stripe/mint-payg-v5.mjs and set ${sku.envVar}.`);
+  }
+
+  const stripe = getStripe();
+  if (!stripe) return paygError(503, "payments_unavailable", "Payments not configured");
+
+  // ── 3. One in-flight order per SKU (0474 partial unique index) ───────
+  // A CHECKOUT_INITIATED row whose Stripe session is still open is resumed
+  // (the buyer closed the tab); an expired / never-stamped one is closed so
+  // a fresh session can start. Anything further along is in flight → 409.
+  const inflight = inFlightOrderFor(orders, target.sku);
+  if (inflight) {
+    if (inflight.status !== "CHECKOUT_INITIATED") {
+      return paygError(409, "in_flight", "This report is already paid for and being prepared.", { orderId: inflight.id, status: inflight.status });
+    }
+    const priorSessionId = await readOrderSessionId(supabase, inflight.id);
+    if (!priorSessionId) {
+      await closeStaleCheckout(supabase, inflight.id, "checkout_abandoned");
+    } else {
+      let prior: Awaited<ReturnType<typeof stripe.checkout.sessions.retrieve>> | null = null;
+      try {
+        prior = await stripe.checkout.sessions.retrieve(priorSessionId);
+      } catch {
+        prior = null;
+      }
+      if (prior?.status === "open" && prior.url) {
+        return NextResponse.json({ ok: true, orderId: inflight.id, url: prior.url, resumed: true, sku: target.sku, tier: target.tier, amountCents: sku.amountCents, appliedDiscount: null });
+      }
+      if (prior?.status === "expired") {
+        await closeStaleCheckout(supabase, inflight.id, "checkout_expired");
+      } else {
+        return paygError(409, "in_flight", "A payment for this report is already in progress.", { orderId: inflight.id, status: inflight.status });
+      }
+    }
+  }
+
+  const attribution = await resolvePaygAttribution(body);
+  if (!attribution.ok) return attribution.response;
+  const promo = attribution.promo;
+
+  // ── 4. Stripe customer reuse (G7) ────────────────────────────────────
+  let customerId: string | null = null;
+  try {
+    const { data: urow } = await supabase.from("app_users").select("stripe_customer_id").eq("id", user.id).maybeSingle();
+    const cid = (urow as { stripe_customer_id?: unknown } | null)?.stripe_customer_id;
+    customerId = typeof cid === "string" && cid.startsWith("cus_") ? cid : null;
+  } catch {
+    customerId = null;
+  }
+
+  // ── 5. Order row BEFORE Stripe, so metadata.order_id names it ────────
+  const firstTouch = typeof body.firstTouch === "string" ? body.firstTouch.slice(0, 200) : "";
+  const { data: order, error: insertErr } = await supabase
+    .from("report_orders")
+    .insert({
+      business_id: businessId,
+      user_id: user.id,
+      product_sku: target.sku,
+      tier: target.tier,
+      currency: "aud",
+      upgrade_of_order_id: target.upgradeOfOrderId,
+      amount_aud: sku.amountCents,
+      credits_used: 0,
+      status: "CHECKOUT_INITIATED",
+      // G9: a one-off v5 report does not expire.
+      expires_at: null,
+      metadata: {
+        sku: target.sku,
+        stripe_price_id: priceId,
+        pricing_version: PAYG_PRICING_VERSION,
+        payment_path: "card",
+        ...(firstTouch ? { first_touch: firstTouch } : {}),
+      },
+    })
+    .select("id")
+    .single();
+  if (insertErr || !order) {
+    const code = (insertErr as { code?: string } | null)?.code;
+    if (code === "23505") return paygError(409, "in_flight", "This report is already being paid for.");
+    console.error("[blockid:reports/checkout] v5 order insert failed", {
+      code,
+      message: (insertErr as { message?: string } | null)?.message,
+    });
+    return paygError(503, "order_insert_failed", "Could not start the order. Please try again.");
+  }
+  const orderId = String((order as { id: unknown }).id);
+
+  // ── 6. Stripe Checkout Session ───────────────────────────────────────
+  const origin = siteOrigin(request);
+  const params: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [{ price: priceId, quantity: 1 }],
+    client_reference_id: user.id,
+    ...(customerId
+      ? { customer: customerId, customer_update: { address: "auto" as const, name: "auto" as const } }
+      : { customer_email: user.email ?? undefined, customer_creation: "always" as const }),
+    automatic_tax: { enabled: true },
+    invoice_creation: oneOffInvoiceCreation(sku.productName),
+    success_url: `${origin}/workspace/reports/order?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/workspace/reports/business?pid=${encodeURIComponent(businessId)}&report_order=cancel`,
+    metadata: {
+      bid_scope: "report_order",
+      bid_sku: target.sku,
+      bid_tier: target.tier,
+      bid_business_id: businessId,
+      bid_user_id: user.id,
+      order_id: orderId,
+      pricing_version: PAYG_PRICING_VERSION,
+      bid_first_touch: firstTouch,
+      ...(target.upgradeOfOrderId ? { bid_upgrade_of_order_id: target.upgradeOfOrderId } : {}),
+      ...(isQaEmail(user.email) ? { bid_qa: "1" } : {}),
+      ...(promo
+        ? {
+            bid_reseller_id: promo.resellerId,
+            bid_reseller_code: promo.resellerCode,
+            bid_promo_code: promo.code,
+            // attribution only — a v5 session never carries a discount
+            bid_promo_tier_pct: "0",
+          }
+        : {}),
+    },
+    payment_intent_data: {
+      description: `BlockID.au — ${paygTierLabel(target.tier)}${target.upgradeOfOrderId ? " (upgrade)" : ""}`,
+      metadata: { bid_scope: "report_order", order_id: orderId, bid_sku: target.sku },
+    },
+  };
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create(params, {
+      idempotencyKey: sessionIdempotencyKey("report_checkout_v5", [user.id, businessId, target.sku, orderId]),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Stripe error";
+    await closeStaleCheckout(supabase, orderId, `stripe: ${message}`.slice(0, 500));
+    return paygError(502, "stripe_failed", `Stripe checkout failed: ${message}`);
+  }
+
+  const { error: stampErr } = await supabase.from("report_orders").update({ stripe_session_id: session.id }).eq("id", orderId);
+  if (stampErr) {
+    // Not fatal: the webhook finds the order by metadata.order_id.
+    console.warn("[blockid:reports/checkout] v5 stripe_session_id stamp failed", stampErr.message);
+  }
+
+  if (promo) {
+    try {
+      await supabase.from("reseller_attributions").insert({
+        reseller_id: promo.resellerId,
+        subject_type: "user",
+        subject_user_id: user.id,
+        status: "active",
+        source: "code",
+        promotion_code_id: promo.promoRowId,
+        metadata: {
+          scope: "report_order",
+          business_id: businessId,
+          stripe_session_id: session.id,
+          promo_origin: attribution.origin,
+          applied_discount_pct: 0,
+          pricing_version: PAYG_PRICING_VERSION,
+        },
+      });
+    } catch (attrErr) {
+      console.warn("[blockid:reports/checkout] v5 promo attribution write failed", attrErr);
+    }
+  }
+
+  emitCheckout({
+    userId: user.id,
+    email: user.email,
+    sku: target.sku,
+    amountCents: sku.amountCents,
+    projectId: businessId,
+    orderId,
+    stripeSessionId: session.id,
+  });
+
+  if (!session.url) return paygError(502, "stripe_no_url", "Stripe returned no checkout URL");
+  return NextResponse.json({
+    ok: true,
+    orderId,
+    url: session.url,
+    sku: target.sku,
+    tier: target.tier,
+    amountCents: sku.amountCents,
+    appliedDiscount: null,
   });
 }
 

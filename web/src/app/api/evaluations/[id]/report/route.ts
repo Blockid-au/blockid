@@ -41,7 +41,7 @@ import { isAIConfigured } from "@/lib/ai-client";
 import { grantCredits, spendCredits } from "@/lib/credits";
 import { canAccessProjectAsEvaluator, getEvaluationForUser } from "@/lib/evaluations";
 import {
-  REPORT_KIND_FEATURE,
+  reportKindFeature,
   findRecentEvaluationReport,
   normaliseIdempotencyKey,
   pdfUrlForToken,
@@ -54,6 +54,9 @@ import {
 import { runRescoreForProject, runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { apiRoute } from "@/lib/audit/api-route";
+import { isPaygEnabled } from "@/lib/pricing/payg-flag";
+import { PAYG_SKUS, displayPriceCents } from "@/lib/pricing/v5-payg";
+import { priceLabelCents } from "@/lib/pricing/payg-offer";
 import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 export const dynamic = "force-dynamic";
@@ -156,7 +159,9 @@ async function POST_handler(request: Request, { params }: Ctx) {
   if (!access.allowed) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
   // Cost preview — always computed, always returned.
-  const cost = await previewReportCharge(user, kind);
+  // G35 Pricing v5: beyond the quota a full report is the PAYG Full (49 credits).
+  const payg = await isPaygEnabled();
+  const cost = await previewReportCharge(user, kind, { payg });
   const costPayload = {
     via: cost.via,
     credits: cost.credits,
@@ -166,6 +171,16 @@ async function POST_handler(request: Request, { params }: Ctx) {
     quota: { limit: cost.quota.limit, used: cost.quota.used, remaining: cost.quota.remaining, unlimited: cost.quota.unlimited },
     // S7-C: the dialog reads this to say "Included in your trial" vs credits.
     trial: cost.quota.trial ?? null,
+    // G35: the dialog offers PAYG Full or a plan change once the quota is used.
+    ...(payg
+      ? {
+          payg: {
+            enabled: true,
+            full_price_label: priceLabelCents(displayPriceCents("report_full")),
+            full_credits: PAYG_SKUS.report_full.creditCost,
+          },
+        }
+      : {}),
   };
   if (!confirmed) {
     return NextResponse.json({ ok: true, preview: true, kind, cost: costPayload });
@@ -205,7 +220,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
   // spendCredits is the only thing standing between two concurrent confirms
   // and one balance — a failed spend means no run and no share token.
   const paidVia = cost.via;
-  const feature = REPORT_KIND_FEATURE[kind];
+  const feature = reportKindFeature(kind, payg);
   const spendMeta = { evaluation_id: evaluation.id, project_id: evaluation.projectId, kind, idempotency_key: idempotencyKey };
   let creditsSpent = 0;
   let balance = cost.balance;

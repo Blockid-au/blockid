@@ -217,6 +217,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   // test). Verified is card-only — deliberately no key.
   report_snapshot: 19,
   report_full: 49,
+  // D25 Money Finder full report, credits rail (POST /api/funding/report) once
+  // payg_enabled flips; until then that rail keeps charging `grant_match`.
+  report_funding: 19,
 
   // ── Per-Criterion AI Analysis ───────────────────────────────────────
   criterion_ai_score: 0.25,         // Score one criterion with AI

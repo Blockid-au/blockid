@@ -348,7 +348,8 @@ describe("status → HTTP", () => {
 
   for (const [status, expected] of Object.entries(EXPECTED)) {
     it(`${status} → ${expected}`, async () => {
-      seedOrder({ status });
+      // REFUNDED here = a refund of an order that never delivered (no report).
+      seedOrder(status === "REFUNDED" ? { status, report_id: null } : { status });
       seedReport();
       const res = await call();
       expect(res.status).toBe(expected);
@@ -377,8 +378,18 @@ describe("status → HTTP", () => {
     expect(body.failureReason).toContain("orchestration_failed");
   });
 
+  it("G35 G5: REFUNDED after delivery keeps the report readable at its tier (200)", async () => {
+    seedOrder({ status: "REFUNDED" });
+    seedReport();
+    const res = await call();
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; status: string; message: string };
+    expect(body).toMatchObject({ ok: true, status: "REFUNDED" });
+    expect(body.message).toMatch(/refunded.*stays available/i);
+  });
+
   it("REFUNDED states plainly that the money came back", async () => {
-    seedOrder({ status: "REFUNDED", failure_reason: "generation_failed after 3 retries" });
+    seedOrder({ status: "REFUNDED", report_id: null, failure_reason: "generation_failed after 3 retries" });
     const res = await call();
     const body = (await res.json()) as { refunded: boolean; message: string };
     expect(res.status).toBe(410);

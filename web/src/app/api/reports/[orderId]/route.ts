@@ -20,6 +20,8 @@
  *   PAYMENT_PENDING      │ 402  │ payment has not settled
  *   FAILED               │ 410  │ + failureReason, refunded:false
  *   REFUNDED             │ 410  │ + refunded:true (money came back)
+ *     … with a report     │ 200  │ G35 G5: a refund AFTER delivery keeps the
+ *                         │      │ report readable at its tier (plan §6.4.5)
  *   EXPIRED              │ 410  │ + regenerable:true (paid_at + 90d)
  *
  *   anonymous            │ 401
@@ -186,7 +188,12 @@ export async function GET(
   const order = toOrderView(orderRow, status);
 
   // ── 3. Non-deliverable states ────────────────────────────────────────
-  if (disposition.kind !== "deliver") {
+  // G35 Pricing v5 (plan §6.4.5, gap G5): `charge.refunded` after delivery
+  // moves the order to REFUNDED but the report stays readable at its tier.
+  // A REFUNDED order without a report (failed generation, auto-refund) is
+  // still "gone".
+  const refundedWithReport = status === "REFUNDED" && typeof orderRow.report_id === "string" && orderRow.report_id.length > 0;
+  if (disposition.kind !== "deliver" && !refundedWithReport) {
     const body: Record<string, unknown> = {
       ok: false,
       status,
@@ -306,7 +313,7 @@ export async function GET(
         ok: true,
         status,
         reason: disposition.reason,
-        message: disposition.message,
+        message: refundedWithReport ? "This order was refunded. Your report stays available to read." : disposition.message,
         order,
         tier,
         report: projectReportViewForTier(toReportView(report, reportRow, reportV2), tier),

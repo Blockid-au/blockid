@@ -19,10 +19,30 @@
  * The guest API only accepts `pitch_file` and `website_url`, so a typed idea
  * cannot be sold this way — the caller is responsible for only rendering this
  * dialog for deck/site inputs.
+ *
+ * G35 D26 (Pricing v5, GET /api/pricing/payg): with `payg_enabled` on the
+ * guest chooses Snapshot or Full (name, what is included, price "one-off,
+ * GST incl.", delivery) before the explicit Pay button; Verified needs an
+ * account, so it shows a sign-in link instead. While the price loads the Pay
+ * button is disabled. Flag off → the A$3 dialog, unchanged.
  */
 
 import * as React from "react";
-import { ArrowRight, Loader2, X } from "lucide-react";
+import { ArrowRight, Check, Loader2, X } from "lucide-react";
+import { usePaygPricing } from "@/lib/pricing/use-payg-pricing";
+import { emitClientEvent } from "@/lib/analytics/client-emit";
+import type { PaygTierOffer } from "@/lib/pricing/payg-offer";
+
+export type GuestPaygTier = "snapshot" | "full";
+
+/** Pure: the tiers a guest can buy (Snapshot / Full) and the Verified card (sign-in only). */
+export function guestPaygTiers(tiers: readonly PaygTierOffer[] | undefined): { buyable: PaygTierOffer[]; verified: PaygTierOffer | null } {
+  const list = tiers ?? [];
+  return {
+    buyable: list.filter((t) => t.tier === "snapshot" || t.tier === "full"),
+    verified: list.find((t) => t.tier === "verified") ?? null,
+  };
+}
 
 export type GuestInputType = "pitch_file" | "website_url";
 
@@ -61,6 +81,8 @@ export async function startGuestCheckout(opts: {
   inputType: GuestInputType;
   file?: File | null;
   url?: string;
+  /** G35 D26: Pricing v5 tier (only sent when payg_enabled). */
+  tier?: GuestPaygTier;
 }): Promise<string> {
   let inputValue: string;
   let inputFilename: string | undefined;
@@ -94,6 +116,7 @@ export async function startGuestCheckout(opts: {
       inputType: opts.inputType,
       inputValue,
       inputFilename,
+      ...(opts.tier ? { tier: opts.tier } : {}),
     }),
   });
   const orderData = (await orderRes.json()) as CreateOrderResponse;
@@ -121,6 +144,22 @@ export function GuestPaidCheckout({
   const [consent, setConsent] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  // G35 D26: Pricing v5 tiers (null = PAYG off / unreadable → the A$3 dialog).
+  const pricing = usePaygPricing();
+  const payg = pricing.status === "ready" && pricing.pricing.enabled ? pricing.pricing : null;
+  const { buyable, verified } = guestPaygTiers(payg?.tiers);
+  const [tier, setTier] = React.useState<GuestPaygTier>("full");
+  const chosen = buyable.find((t) => t.tier === tier) ?? buyable[0] ?? null;
+  const priceLoading = pricing.status === "loading";
+  const shownPrice = payg && chosen ? chosen.priceLabel : priceLabel;
+  const viewedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!open || !payg || viewedRef.current) return;
+    viewedRef.current = true;
+    for (const t of buyable) {
+      void emitClientEvent("payg_tier_viewed", { tier: t.tier, sku: t.sku, surface: "analyze_guest", amount_cents: t.amountCents });
+    }
+  }, [open, payg, buyable]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -144,16 +183,27 @@ export function GuestPaidCheckout({
       setErrorMsg("Please confirm you agree to receive your report by email.");
       return;
     }
+    if (priceLoading) return;
     setErrorMsg(null);
     setSubmitting(true);
+    if (payg && chosen) {
+      void emitClientEvent("payg_checkout_started", {
+        tier: chosen.tier,
+        sku: chosen.sku,
+        surface: "analyze_guest",
+        amount_cents: chosen.amountCents,
+        is_upgrade: false,
+      });
+    }
     try {
       const checkoutUrl = await startGuestCheckout({
         email,
         inputType,
         file,
         url,
+        ...(payg && chosen ? { tier: chosen.tier as GuestPaygTier } : {}),
       });
-      window.location.href = checkoutUrl;
+      window.location.assign(checkoutUrl);
     } catch (err) {
       setErrorMsg(
         err instanceof Error ? err.message : "Something went wrong. Try again.",
@@ -188,12 +238,62 @@ export function GuestPaidCheckout({
           id="guest-paid-checkout-title"
           className="text-lg font-semibold text-primary"
         >
-          Get your full report — {priceLabel}
+          {payg ? "Choose your report" : `Get your full report — ${priceLabel}`}
         </h2>
         <p className="mt-1 text-xs text-muted">
           One-off payment, inc. GST. No account needed. We email the PDF a
           couple of minutes after payment clears.
         </p>
+
+        {payg ? (
+          <fieldset className="mt-4 flex flex-col gap-2" data-testid="guest-payg-tiers">
+            <legend className="sr-only">Report tier</legend>
+            {buyable.map((t) => (
+              <label
+                key={t.tier}
+                htmlFor={`guest-tier-${t.tier}`}
+                className={`flex cursor-pointer flex-col gap-1.5 rounded-xl border px-3 py-2.5 text-sm ${chosen?.tier === t.tier ? "border-action bg-surface-sunken" : "border-line-subtle bg-surface"}`}
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2">
+                    <input
+                      id={`guest-tier-${t.tier}`}
+                      type="radio"
+                      name="guest-tier"
+                      checked={chosen?.tier === t.tier}
+                      onChange={() => setTier(t.tier as GuestPaygTier)}
+                      disabled={submitting}
+                      className="h-4 w-4"
+                    />
+                    <span className="font-semibold text-primary">{t.name} report</span>
+                  </span>
+                  <span className="text-right">
+                    <span className="font-mono font-semibold tabular-nums text-primary">{t.priceLabel}</span>
+                    <span className="block text-[11px] text-muted">{payg.billingNote}</span>
+                  </span>
+                </span>
+                <span className="text-xs text-secondary">Delivery: {t.delivery}</span>
+                <ul className="grid gap-0.5 text-xs text-secondary">
+                  {t.included.map((line) => (
+                    <li key={line} className="flex items-start gap-1.5">
+                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-action" aria-hidden />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </label>
+            ))}
+            {verified ? (
+              <p className="rounded-xl border border-dashed border-line-subtle px-3 py-2 text-xs text-secondary" data-testid="guest-payg-verified">
+                <strong className="text-primary">Verified report — {verified.priceLabel}</strong> ({verified.delivery.toLowerCase()}) needs a BlockID
+                account.{" "}
+                <a href="/auth/login?next=/analyze" className="font-semibold text-action underline">
+                  Sign in to choose Verified
+                </a>
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
 
         <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
           <div className="flex flex-col gap-2">
@@ -230,7 +330,7 @@ export function GuestPaidCheckout({
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || priceLoading}
             data-testid="guest-paid-submit"
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:opacity-60"
           >
@@ -241,7 +341,7 @@ export function GuestPaidCheckout({
               </>
             ) : (
               <>
-                Pay {priceLabel} &amp; get my report
+                Pay {shownPrice} &amp; get my {payg && chosen ? `${chosen.name} ` : ""}report
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </>
             )}

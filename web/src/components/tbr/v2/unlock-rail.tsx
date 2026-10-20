@@ -17,13 +17,43 @@
 //              it in place and no rail is shown at all.
 //
 // G19-S45: every label comes from lib/i18n/tbr-strings.ts (§v2.rail).
+//
+// G35 Pricing v5 (P3): with `payg` set (payg_enabled), buy mode reads
+// "Get the report — Snapshot, Full or Verified, from A$19 (one-off)" and the
+// CTA opens the tier picker; the owner of a Snapshot sees "Move up to Full —
+// A$30" plus a link to the Snapshot they own. Without `payg` → unchanged.
 
 import { Lock, Check, ArrowRight, Loader2 } from "lucide-react";
 import { legacyReportOrderPath, reportOrderPath } from "@/lib/paywall/report-delivery";
+import type { PaygOffer } from "@/lib/pricing/payg-offer";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { v2Strings, type TbrUiLocale } from "./shared";
 
 export type TbrUnlockMode = "buy" | "included" | "purchased";
+
+/** G35: what the rail needs from the Pricing v5 offer. */
+export interface TbrUnlockPayg {
+  /** Cheapest tier on sale ("A$19"). */
+  fromPriceLabel: string;
+  /** D28 upgrade the owner can buy (Snapshot → Full), if any. */
+  upgrade: { fromName: string; toName: string; priceLabel: string } | null;
+  /** The Snapshot order the founder owns (served on its own order page). */
+  snapshotOrderId: string | null;
+}
+
+/** Pure: rail info from the access route's offer (null when PAYG is off or nothing is on sale). */
+export function tbrUnlockPaygFromOffer(offer: PaygOffer | null | undefined, snapshotOrderId: string | null = null): TbrUnlockPayg | null {
+  if (!offer || !offer.enabled) return null;
+  const available = offer.tiers.filter((t) => t.available);
+  if (available.length === 0 && offer.upgrades.length === 0) return null;
+  const cheapest = [...available].sort((a, b) => a.amountCents - b.amountCents)[0];
+  const up = offer.upgrades.find((u) => u.available && u.from === "snapshot") ?? null;
+  return {
+    fromPriceLabel: cheapest?.priceLabel ?? "",
+    upgrade: up ? { fromName: "Snapshot", toName: "Full", priceLabel: up.priceLabel } : null,
+    snapshotOrderId,
+  };
+}
 export type TbrUnlockOrderStatus = "pending" | "ready" | "legacy";
 
 export interface TbrUnlockRailProps {
@@ -39,15 +69,19 @@ export interface TbrUnlockRailProps {
   /** included: where the plan-included report is generated (defaults to the deck analyser). */
   generateHref?: string;
   locale?: TbrUiLocale;
+  /** G35 Pricing v5 rail (payg_enabled). */
+  payg?: TbrUnlockPayg | null;
 }
 
 export const TBR_UNLOCK_RAIL_TESTID = "tbr-unlock-rail";
 
-export function tbrUnlockHeadline(mode: TbrUnlockMode, locale: TbrUiLocale = "en", orderStatus: TbrUnlockOrderStatus = "ready"): string {
+export function tbrUnlockHeadline(mode: TbrUnlockMode, locale: TbrUiLocale = "en", orderStatus: TbrUnlockOrderStatus = "ready", payg: TbrUnlockPayg | null = null): string {
   const t = v2Strings(locale).rail;
   const price = trustReportPriceLabel();
   if (mode === "included") return t.headlineIncluded;
   if (mode === "purchased") return orderStatus === "pending" ? t.headlinePending : t.headlinePurchased;
+  if (payg?.upgrade) return t.headlineMoveUp(payg.upgrade.fromName, payg.upgrade.toName);
+  if (payg) return t.headlineBuyPayg(payg.fromPriceLabel);
   return t.headlineBuy(price);
 }
 
@@ -57,7 +91,7 @@ export function tbrUnlockOrderHref(orderId: string | null | undefined, orderStat
   return orderStatus === "legacy" ? legacyReportOrderPath(orderId) : reportOrderPath(orderId);
 }
 
-export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStatus = "ready", generateHref = "/workspace/raise/deck", locale = "en" }: TbrUnlockRailProps) {
+export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStatus = "ready", generateHref = "/workspace/raise/deck", locale = "en", payg = null }: TbrUnlockRailProps) {
   const t = v2Strings(locale).rail;
   const price = trustReportPriceLabel();
   const perks = t.perks(chapterCount);
@@ -66,6 +100,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
       data-testid={TBR_UNLOCK_RAIL_TESTID}
       data-tbr-unlock={mode}
       data-tbr-order-status={mode === "purchased" ? orderStatus : undefined}
+      data-tbr-payg={payg ? "on" : undefined}
       aria-label={t.ariaLabel}
       className="sticky top-16 z-10 rounded-2xl border border-brand-300 dark:border-brand-800 bg-surface-sunken p-5 shadow-lg backdrop-blur print:hidden"
     >
@@ -77,7 +112,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
             ) : (
               <Lock className="h-4 w-4 shrink-0 text-action" strokeWidth={2} aria-hidden="true" />
             )}
-            {tbrUnlockHeadline(mode, locale, orderStatus)}
+            {tbrUnlockHeadline(mode, locale, orderStatus, payg)}
           </p>
           <ul className="grid gap-1 text-xs text-secondary sm:grid-cols-2">
             {perks.map((p) => (
@@ -97,10 +132,19 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
                 data-testid="tbr-unlock-cta"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
               >
-                {t.unlockFor(price)}
+                {payg?.upgrade ? t.moveUpFor(payg.upgrade.toName, payg.upgrade.priceLabel) : payg ? t.chooseReport : t.unlockFor(price)}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </button>
-              <p className="text-center text-xs text-secondary">{t.confirmNote}</p>
+              <p className="text-center text-xs text-secondary">{payg ? t.paygNote : t.confirmNote}</p>
+              {payg?.snapshotOrderId ? (
+                <a
+                  href={reportOrderPath(payg.snapshotOrderId)}
+                  data-testid="tbr-open-snapshot"
+                  className="text-center text-xs font-semibold text-action underline underline-offset-2"
+                >
+                  {t.openSnapshot}
+                </a>
+              ) : null}
             </>
           ) : mode === "included" ? (
             <>

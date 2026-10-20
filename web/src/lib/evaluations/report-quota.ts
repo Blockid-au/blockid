@@ -47,6 +47,24 @@ export const REPORT_KIND_FEATURE: Record<EvaluationReportKind, "trust_report" | 
 };
 
 /** Included full reports for the whole card-required trial (not per month). */
+/**
+ * G35 Pricing v5 (payg_enabled, D27): beyond the plan quota a full report is
+ * the PAYG Full report — `report_full` (49 credits) instead of the A$3-era
+ * `trust_report` (3 credits). Re-scores are unchanged. Using the plan quota
+ * never charges anything, flag on or off; an included report IS a Full one.
+ */
+export function reportKindFeature(kind: EvaluationReportKind, payg: boolean): "trust_report" | "trust_report_rescore" | "report_full" {
+  return payg && kind === "full" ? "report_full" : REPORT_KIND_FEATURE[kind];
+}
+
+/** Credit list prices per kind (defaults = today's A$3-era costs; v5 Full = 49). */
+export function reportCreditCosts(payg: boolean): { full: number; rescore: number } {
+  return {
+    full: payg ? FEATURE_COSTS.report_full : FEATURE_COSTS.trust_report,
+    rescore: FEATURE_COSTS.trust_report_rescore,
+  };
+}
+
 export const TRIAL_REPORT_ALLOWANCE = 1;
 /** Card-required evaluator trial length (plan §3b); used only to infer a missing trial_start. */
 export const TRIAL_LENGTH_DAYS = 7;
@@ -427,6 +445,7 @@ export async function getReportQuota(
 export async function previewReportCharge(
   user: { id: string; plan?: string | null },
   kind: EvaluationReportKind,
+  opts: { payg?: boolean } = {},
 ): Promise<ReportCharge> {
   const [quota, balance, pending] = await Promise.all([
     getReportQuota(user),
@@ -434,7 +453,7 @@ export async function previewReportCharge(
     countPendingBatchItems(user.id).catch(() => 0),
   ]);
   const reserved = quota.unlimited ? quota : buildQuota(quota.limit, quota.used + pending, quota.configured, quota.trial);
-  return resolveReportCharge(kind, reserved, balance);
+  return resolveReportCharge(kind, reserved, balance, reportCreditCosts(opts.payg === true));
 }
 
 /**

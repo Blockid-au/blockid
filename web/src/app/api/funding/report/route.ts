@@ -38,10 +38,13 @@ import { parseFundingIntake, intakeToProjectGrantProfile } from "@/lib/funding/i
 import { buildReportFromIntake, countPaidFundingReports, newAccessToken, reportColumns } from "@/lib/funding/reports";
 import { apiRoute } from "@/lib/audit/api-route";
 import { emitEventSafe } from "@/lib/analytics/server";
+import { isPaygEnabled } from "@/lib/pricing/payg-flag";
 
 export const dynamic = "force-dynamic";
 
 const FEATURE_KEY = "grant_match";
+/** G35 D25: with payg_enabled the credits rail charges the Money Finder SKU's 19 credits. */
+const PAYG_FEATURE_KEY = "report_funding";
 const RATE_LIMIT_PER_HOUR = 10;
 const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 
@@ -105,15 +108,16 @@ async function POST_handler(request: Request) {
 
   // 5. Entitlement → credit pre-flight
   const included = await can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "grant_finder");
+  const featureKey = (await isPaygEnabled()) ? PAYG_FEATURE_KEY : FEATURE_KEY;
   let cost = 0;
   if (!included) {
-    const afford = await canAfford(user.id, FEATURE_KEY);
+    const afford = await canAfford(user.id, featureKey);
     if (!afford.allowed) {
       return NextResponse.json(
         {
           ok: false,
           error: "insufficient_credits",
-          creditsRequired: FEATURE_COSTS[FEATURE_KEY] ?? afford.cost,
+          creditsRequired: FEATURE_COSTS[featureKey] ?? afford.cost,
           balance: afford.balance,
           reason: afford.reason ?? "insufficient_credits",
           creditNote,
@@ -172,10 +176,10 @@ async function POST_handler(request: Request) {
   // 9. Spend credits (atomic RPC, credits.ts) BEFORE the row is readable.
   let creditsCharged = 0;
   if (!included) {
-    const spend = await spendCredits(user.id, FEATURE_KEY, { funding_report_id: reportId, project_id: projectId });
+    const spend = await spendCredits(user.id, featureKey, { funding_report_id: reportId, project_id: projectId });
     if (!spend.ok) {
       await supabase.from("funding_reports").update({ status: "spend_failed" }).eq("id", reportId);
-      const creditsNeeded = FEATURE_COSTS[FEATURE_KEY] ?? cost;
+      const creditsNeeded = FEATURE_COSTS[featureKey] ?? cost;
       return NextResponse.json(
         {
           ok: false,

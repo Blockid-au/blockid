@@ -23,6 +23,16 @@
  *   400 { error }        invalid payload
  *   429 { error }        rate limit
  *   500/502/503 { error } upstream failure
+ *
+ * G35 D26 (Pricing v5, behind platform_config.payg_enabled):
+ *   flag OFF → exactly the A$3 One-Click SKU above; a body naming `tier` → 403.
+ *   flag ON  → `tier: "snapshot" | "full"` is REQUIRED (e-mail still
+ *              required; the guest claims the report into an account later).
+ *              Verified needs an account → 400 `sign_in_required`. Price =
+ *              the v5 Stripe Price (`priceIdForSku`), metadata.sku = the v5
+ *              SKU (webhook books its revenue kind), ATO tax invoice as today.
+ *              The chosen tier is stamped on `report_data.payg` (no new
+ *              column) so the runner renders the matching cut.
  */
 
 import { NextResponse } from "next/server";
@@ -32,6 +42,9 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { apiRoute } from "@/lib/audit/api-route";
+import { readPaygConfig } from "@/lib/pricing/payg-flag";
+import { PAYG_PRICING_VERSION, PAYG_SKUS, priceIdForSku, reportSkuForTier, type PaygTier } from "@/lib/pricing/v5-payg";
+import { oneOffInvoiceCreation } from "@/lib/stripe/one-off-invoice";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +85,8 @@ interface CreateOrderBody {
   inputType?: unknown;
   inputValue?: unknown;
   inputFilename?: unknown;
+  /** G35 D26 (payg_enabled only): snapshot | full. Verified requires sign-in. */
+  tier?: unknown;
 }
 
 function siteOrigin(request: Request): string {
@@ -179,7 +194,33 @@ async function POST_handler(request: Request) {
     }
   }
 
-  const priceId = STRIPE_PRICE_MAP.one_click_report?.trim();
+  // ── G35 D26: Pricing v5 tier (fails closed: unreadable config = off) ──
+  const payg = (await readPaygConfig()).payg_enabled;
+  if (body.tier !== undefined && !payg) {
+    return NextResponse.json({ error: "Snapshot and Full reports are not on sale yet.", code: "payg_disabled" }, { status: 403 });
+  }
+  let paygTier: Extract<PaygTier, "snapshot" | "full"> | null = null;
+  if (payg) {
+    if (body.tier === "verified") {
+      return NextResponse.json(
+        { error: "Verified reports need a BlockID account — sign in to choose Verified.", code: "sign_in_required" },
+        { status: 400 },
+      );
+    }
+    if (body.tier !== "snapshot" && body.tier !== "full") {
+      return NextResponse.json({ error: "Choose Snapshot or Full — reload the page to see the options.", code: "tier_required" }, { status: 400 });
+    }
+    paygTier = body.tier;
+  }
+  const v5Sku = paygTier ? PAYG_SKUS[reportSkuForTier(paygTier)] : null;
+
+  const priceId = v5Sku ? priceIdForSku(v5Sku.id) : STRIPE_PRICE_MAP.one_click_report?.trim();
+  if (v5Sku && !priceId) {
+    return NextResponse.json(
+      { error: `${v5Sku.label} price not provisioned. Run scripts/stripe/mint-payg-v5.mjs and set ${v5Sku.envVar}.` },
+      { status: 503 },
+    );
+  }
   if (!priceId || priceId.length === 0) {
     return NextResponse.json(
       {
@@ -210,7 +251,9 @@ async function POST_handler(request: Request) {
       input_value: inputValue,
       input_filename: inputFilename,
       status: "pending",
-      amount_paid_aud_cents: ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents,
+      amount_paid_aud_cents: v5Sku ? v5Sku.amountCents : ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents,
+      // G35 D26: the tier rides on report_data until the runner writes the report.
+      ...(v5Sku && paygTier ? { report_data: { payg: { tier: paygTier, sku: v5Sku.id, pricing_version: PAYG_PRICING_VERSION } } } : {}),
     })
     .select("id")
     .single();
@@ -252,21 +295,24 @@ async function POST_handler(request: Request) {
       // and the Product's tax_behavior: inclusive.
       automatic_tax: { enabled: true },
       // ATO tax invoice — same shape as /api/stripe/checkout one-off branch.
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          description: `BlockID.au — ${ONE_CLICK_REPORT_3AUD.name}`,
-          custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
-          footer: `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · GST-registered`,
-        },
-      },
+      invoice_creation: v5Sku
+        ? oneOffInvoiceCreation(v5Sku.productName)
+        : {
+            enabled: true,
+            invoice_data: {
+              description: `BlockID.au — ${ONE_CLICK_REPORT_3AUD.name}`,
+              custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
+              footer: `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · GST-registered`,
+            },
+          },
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
         scope: "guest_analysis",
         guest_analysis_id: guestAnalysisId,
-        sku: ONE_CLICK_REPORT_3AUD.id,
+        sku: v5Sku ? v5Sku.id : ONE_CLICK_REPORT_3AUD.id,
         email,
+        ...(v5Sku && paygTier ? { bid_tier: paygTier, pricing_version: PAYG_PRICING_VERSION } : {}),
       },
     });
   } catch (err) {
@@ -307,6 +353,7 @@ async function POST_handler(request: Request) {
   return NextResponse.json({
     checkoutUrl: session.url,
     guestAnalysisId,
+    ...(v5Sku && paygTier ? { tier: paygTier, sku: v5Sku.id, amountCents: v5Sku.amountCents } : {}),
   });
 }
 

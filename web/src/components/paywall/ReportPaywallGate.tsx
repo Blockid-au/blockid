@@ -23,6 +23,13 @@
  *     A$ price / credit count so a screen-reader user hears what they
  *     will be charged before pressing.
  *   - `prefers-reduced-motion: reduce` suppresses the reveal animation.
+ *
+ * G35 Pricing v5 (P3): when the access route returns `payg.enabled`, the
+ * dialog renders <PaygTierPicker> instead — Snapshot / Full / Verified (and
+ * the D28 upgrade for an owner of a lower tier), each with what is included,
+ * the price "one-off, GST incl." and the delivery time, then an explicit
+ * "Confirm & Pay". Flag off (`payg` absent / disabled) → the A$3 body below,
+ * unchanged.
  */
 
 "use client";
@@ -31,6 +38,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
+import type { PaygOffer } from "@/lib/pricing/payg-offer";
+import { PaygTierPicker } from "./payg-tier-picker";
 
 export interface ReportPaywallQuote {
   credits: number;
@@ -59,6 +68,8 @@ export interface ReportPaywallGateProps {
    * credit path always ends somewhere the report is actually delivered.
    */
   onRedeemed?(orderId: string): void;
+  /** G35 Pricing v5 offer from GET /api/reports/access. Absent / disabled → the A$3 dialog. */
+  payg?: PaygOffer | null;
 }
 
 // Trusted Business Report re-priced A$5.50 → A$3 in place on 2026-09-10 (founder
@@ -81,6 +92,7 @@ export function ReportPaywallGate({
   open,
   onClose,
   onRedeemed,
+  payg,
 }: ReportPaywallGateProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [pending, setPending] = useState<"checkout" | "redeem" | null>(null);
@@ -184,6 +196,45 @@ export function ReportPaywallGate({
     quote.model,
     quote.sections,
   ]);
+
+  if (payg?.enabled) {
+    return (
+      <dialog
+        ref={dialogRef}
+        aria-labelledby="paywall-heading"
+        className="report-paywall-gate w-[calc(100%-2rem)] max-w-2xl rounded-2xl border border-line-subtle bg-surface p-0 text-primary shadow-2xl backdrop:bg-black/50"
+        data-testid="report-paywall-gate"
+        data-payg="on"
+      >
+        <div className="flex max-h-[85vh] flex-col gap-4 overflow-y-auto px-6 py-6">
+          <h2 id="paywall-heading" className="font-display text-xl font-semibold tracking-tight">
+            Choose your report
+          </h2>
+          <p className="text-sm leading-relaxed text-secondary">
+            Every tier reviews the business across eight assessment areas. Pick one, check what is included and the
+            price, then confirm — nothing is charged until you press Pay.
+          </p>
+          {open ? (
+            <PaygTierPicker
+              offer={payg}
+              businessId={businessId}
+              surface="report_paywall_gate"
+              creditBalance={creditBalance}
+              firstTouch={firstTouch}
+              onRedeemed={onRedeemed}
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 rounded-lg text-sm font-medium text-secondary hover:bg-surface-sunken hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+          >
+            Cancel and return to report
+          </button>
+        </div>
+      </dialog>
+    );
+  }
 
   return (
     <dialog

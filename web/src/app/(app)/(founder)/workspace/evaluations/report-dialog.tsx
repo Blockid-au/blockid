@@ -23,6 +23,8 @@ import { ExternalLink, FileDown, Loader2, X } from "lucide-react";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { TRUST_REPORT_PRICE_AUD, trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { emitClientEvent } from "@/lib/analytics/client-emit";
+import { PAYG_SKUS } from "@/lib/pricing/v5-payg";
 
 export type ReportKind = "full" | "rescore";
 
@@ -43,6 +45,22 @@ export interface ReportCostPreview {
   quota: { limit: number; used: number; remaining: number; unlimited: boolean };
   /** Absent on older servers → treated as not trialing. */
   trial?: ReportTrialPreview | null;
+  /** G35 Pricing v5 (payg_enabled): beyond the quota a full report is the PAYG Full report. */
+  payg?: { enabled: boolean; full_price_label: string; full_credits: number | null } | null;
+}
+
+/**
+ * G35 Pricing v5: once the plan quota is used, a full report is offered as
+ * the pay-as-you-go Full report (credits) or a plan with more included
+ * reports. Using the quota never charges. Null when PAYG is off / not relevant.
+ */
+export function paygQuotaExhaustedOffer(kind: ReportKind, cost: ReportCostPreview | null): { title: string; body: string } | null {
+  if (!cost?.payg?.enabled || kind !== "full" || cost.via === "quota") return null;
+  const credits = cost.payg.full_credits ?? cost.list_credits;
+  return {
+    title: "Your included reports are used",
+    body: `Run this as a pay-as-you-go Full report — ${credits} credits (the Full report is ${cost.payg.full_price_label} one-off, GST incl.) — or move to a plan with more included reports. Reports included in your plan are always Full and never charged.`,
+  };
 }
 
 export interface ReportRunResult {
@@ -202,9 +220,12 @@ export function describeCost(kind: ReportKind, cost: ReportCostPreview): string 
             ? "Your included reports for this month are used up, so this run is charged to credits: "
             : "Charged to credits: "
         : "Re-scores are always pay-as-you-go: ";
-    return `${why}${cost.list_credits} ${unit} (A$${cost.list_credits.toFixed(2)}). Balance ${cost.balance.toFixed(2)} → ${(cost.balance - cost.list_credits).toFixed(2)} after.`;
+    // G35 D27: with PAYG on, credits are never converted to A$.
+    const aud = cost.payg?.enabled ? "" : ` (A$${cost.list_credits.toFixed(2)})`;
+    return `${why}${cost.list_credits} ${unit}${aud}. Balance ${cost.balance.toFixed(2)} → ${(cost.balance - cost.list_credits).toFixed(2)} after.`;
   }
-  return `This needs ${cost.list_credits} ${unit} (A$${cost.list_credits.toFixed(2)}); your balance is ${cost.balance.toFixed(2)} and ${trial ? "your trial's included report is used" : "your plan has no included reports left this month"}.`;
+  const audNone = cost.payg?.enabled ? "" : ` (A$${cost.list_credits.toFixed(2)})`;
+  return `This needs ${cost.list_credits} ${unit}${audNone}; your balance is ${cost.balance.toFixed(2)} and ${trial ? "your trial's included report is used" : "your plan has no included reports left this month"}.`;
 }
 
 /** Line under "Done — SVI n." after a run — exported so the test can pin it. */
@@ -259,6 +280,19 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
       cancelled = true;
     };
   }, [evaluationId, kind]);
+
+  // G35: payg_tier_viewed once when the quota-exhausted PAYG Full offer shows.
+  const paygViewed = React.useRef(false);
+  React.useEffect(() => {
+    if (paygViewed.current || !paygQuotaExhaustedOffer(kind, preview)) return;
+    paygViewed.current = true;
+    void emitClientEvent("payg_tier_viewed", {
+      tier: "full",
+      sku: "report_full",
+      surface: "evaluator_dealflow",
+      amount_cents: PAYG_SKUS.report_full.amountCents,
+    });
+  }, [kind, preview]);
 
   async function handleRun() {
     if (!preview || preview.via === "none") return;
@@ -330,6 +364,20 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
               </Link>
             )}
           </div>
+
+          {(() => {
+            const offer = paygQuotaExhaustedOffer(kind, preview);
+            if (!offer || result) return null;
+            return (
+              <div data-testid="report-payg-offer" className="rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3">
+                <p className="font-semibold text-ink-900">{offer.title}</p>
+                <p className="mt-1 text-ink-700">{offer.body}</p>
+                <Link href="/workspace/billing" className="mt-2 inline-block font-semibold text-action underline">
+                  Compare plans
+                </Link>
+              </div>
+            );
+          })()}
 
           {result ? (
             <div role="status" data-testid="report-result" className="rounded-xl border border-line-subtle border-l-4 border-l-bull bg-surface-sunken px-4 py-3 text-emerald-900 space-y-2">

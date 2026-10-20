@@ -445,6 +445,13 @@ export interface TbrV2Strings {
     pendingNote: string;
     /** Locked-chapter preview footer. */
     lockedNote: string;
+    /** G35 Pricing v5 (payg_enabled): the three-tier rail. */
+    headlineBuyPayg: (fromPrice: string) => string;
+    chooseReport: string;
+    paygNote: string;
+    moveUpFor: (tierName: string, price: string) => string;
+    headlineMoveUp: (fromTier: string, toTier: string) => string;
+    openSnapshot: string;
   };
   order: {
     downloadDocx: string;
@@ -690,6 +697,12 @@ const v2En: TbrV2Strings = {
     openLegacy: "Open the text version",
     pendingNote: "Usually about four minutes. This page updates itself — you can also leave and come back; the report is saved to your account.",
     lockedNote: "Full analysis, evidence table and criterion cards are in the full Trusted Business Report.",
+    headlineBuyPayg: (from) => `Get the report — Snapshot, Full or Verified, from ${from} (one-off)`,
+    chooseReport: "Choose a report",
+    paygNote: "One-off, GST incl. You review the tier, what is included and the price before you pay.",
+    moveUpFor: (tier, price) => `Move up to ${tier} — ${price}`,
+    headlineMoveUp: (from, to) => `You own the ${from} report — open every section with ${to}`,
+    openSnapshot: "Open your Snapshot",
   },
   order: {
     downloadDocx: "Download DOCX",
@@ -936,6 +949,12 @@ const v2Vi: TbrV2Strings = {
     openLegacy: "Mở bản văn bản",
     pendingNote: "Thường mất khoảng bốn phút. Trang này tự cập nhật — bạn có thể rời đi và quay lại; báo cáo được lưu vào tài khoản.",
     lockedNote: "Phân tích đầy đủ, bảng bằng chứng và thẻ tiêu chí nằm trong Báo cáo Kinh doanh Tin cậy đầy đủ.",
+    headlineBuyPayg: (from) => `Nhận báo cáo — Snapshot, Full hoặc Verified, từ ${from} (một lần)`,
+    chooseReport: "Chọn báo cáo",
+    paygNote: "Thanh toán một lần, đã gồm GST. Bạn xem lại gói, nội dung và giá trước khi thanh toán.",
+    moveUpFor: (tier, price) => `Nâng lên ${tier} — ${price}`,
+    headlineMoveUp: (from, to) => `Bạn đã có báo cáo ${from} — mở mọi phần với ${to}`,
+    openSnapshot: "Mở báo cáo Snapshot",
   },
   order: {
     downloadDocx: "Tải DOCX",
