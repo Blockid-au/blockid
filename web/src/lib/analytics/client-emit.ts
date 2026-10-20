@@ -11,7 +11,24 @@
 // here on purpose: `paywall_view` / `checkout` are defined in
 // `lib/analytics/events.ts` by lane A; the merge reconciles the union.
 
-export type FunnelClientEventName = "paywall_view" | "checkout" | "checkout_review_viewed" | "checkout_started";
+export type FunnelClientEventName =
+  | "paywall_view"
+  | "checkout"
+  | "checkout_review_viewed"
+  | "checkout_started"
+  // G35 Pricing v5 — the PAYG review step (tier shown / explicit Pay pressed).
+  | "payg_tier_viewed"
+  | "payg_checkout_started";
+
+/** G35: a PAYG tier card on the review step (`payg_tier_viewed`) or its Pay click (`payg_checkout_started`). */
+export interface PaygClientParams {
+  tier: string;
+  sku: string;
+  surface: string;
+  amount_cents: number;
+  is_upgrade?: boolean;
+  project_id?: string | null;
+}
 
 export interface PaywallViewParams {
   surface: string;
@@ -84,7 +101,7 @@ function compact(params: Record<string, unknown>): Record<string, string | numbe
  */
 export function emitClientEvent(
   name: FunnelClientEventName,
-  params: PaywallViewParams | CheckoutClientParams | CheckoutReviewParams,
+  params: PaywallViewParams | CheckoutClientParams | CheckoutReviewParams | PaygClientParams,
   deps: { fetch?: FetchLike; dataLayer?: unknown[] | null; sessionId?: string | null } = {},
 ): Promise<void> {
   const body = JSON.stringify({

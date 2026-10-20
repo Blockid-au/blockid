@@ -24,7 +24,8 @@
  * G35 D25 (Pricing v5): when `payg_enabled` is on (GET /api/pricing/payg) the
  * card shows the `report_funding` price (A$19, "one-off, GST incl.") and its
  * 19 credits — the same SKU the checkout / credits routes charge. While the
- * price loads the pay buttons stay disabled; flag off → the A$3 copy below.
+ * price loads the pay buttons stay disabled (the A$3 copy shows until the
+ * answer lands); flag off → the A$3 copy below, unchanged.
  */
 
 import * as React from "react";
@@ -310,8 +311,8 @@ function GuestRail({
   return (
     <form onSubmit={onSubmit} className="space-y-3" data-rail-form="guest">
       <p className="text-3xl font-semibold text-primary">
-        {price.loading ? "…" : price.label}
-        <span className="ml-1 text-sm font-normal text-secondary">{price.loading ? "" : price.note}</span>
+        {price.label}
+        <span className="ml-1 text-sm font-normal text-secondary">{price.note}</span>
       </p>
       <p className="text-xs text-secondary">
         Your report link is emailed to you and opens straight after payment. No account needed.
@@ -341,7 +342,7 @@ function GuestRail({
         aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? "Opening checkout…" : price.loading ? "Loading price…" : `Pay ${price.label} & unlock`}
+        {busy ? "Opening checkout…" : `Pay ${price.label} & unlock`}
       </button>
       <p className="text-xs text-tertiary">
         Have an account?{" "}
@@ -358,8 +359,8 @@ function CreditsRail({ busy, balance, onStart, price = LEGACY_FUNDING_PRICE }: {
   return (
     <div className="space-y-3" data-rail-form="credits">
       <p className="text-3xl font-semibold text-primary">
-        {price.loading ? "…" : `${price.credits} credits`}
-        {price.v5 || price.loading ? null : <span className="ml-1 text-sm font-normal text-secondary">≈ {price.label}</span>}
+        {price.credits} credits
+        {price.v5 ? null : <span className="ml-1 text-sm font-normal text-secondary">≈ {price.label}</span>}
       </p>
       <p className="text-xs text-secondary">
         <Coins className="mr-1 inline h-3.5 w-3.5" aria-hidden />

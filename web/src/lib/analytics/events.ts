@@ -257,6 +257,9 @@ export const CLIENT_EMITTABLE_EVENTS = Object.freeze([
   "report_view",
   "dashboard_view",
   "share_link_open",
+  // G35 Pricing v5 — the PAYG review step (the server emits payg_paid / payg_upgrade).
+  "payg_tier_viewed",
+  "payg_checkout_started",
 ] as const satisfies readonly AnalyticsEventName[]);
 
 export type ClientEmittableEvent = (typeof CLIENT_EMITTABLE_EVENTS)[number];
@@ -266,7 +269,7 @@ export function isClientEmittableEvent(name: string): name is ClientEmittableEve
 }
 
 /** Events an anonymous browser (no session cookie) may still send — the public /tbr/* paywall. */
-export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open", "checkout_review_viewed"]);
+export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open", "checkout_review_viewed", "payg_tier_viewed", "payg_checkout_started"]);
 
 // ── PII guard ──────────────────────────────────────────────────────────
 //
