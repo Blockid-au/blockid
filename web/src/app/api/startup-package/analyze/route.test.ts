@@ -427,7 +427,7 @@ describe("POST /api/startup-package/analyze", () => {
       reason: "insufficient_credits",
       credits_needed: 1,
       credits_balance: 0,
-      url: "/credits",
+      url: "/workspace/billing#credits",
     });
     expect(callAIMock).not.toHaveBeenCalled();
     expect(spendCreditsMock).not.toHaveBeenCalled();

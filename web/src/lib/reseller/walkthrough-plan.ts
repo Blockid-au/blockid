@@ -203,7 +203,7 @@ export const WALKTHROUGH_STEPS: readonly WalkthroughStep[] = [
     role: "admin",
     track: "A",
     phase: "P12",
-    path: "/admin/affiliate/INFOVISION",
+    path: "/admin/affiliate", // W1 links: no /admin/affiliate/[code] route — the drawer opens from the list
     action: "Switch to the Impersonation tab on the affiliate drawer.",
     assert: "Six admin.* audit actions render per attributed user; each row links to /admin/users/[id].",
   },

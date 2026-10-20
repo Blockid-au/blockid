@@ -687,7 +687,7 @@ const TOURS: FeatureTour[] = [
           vi: "Thêm 3 chủ đề chiến lược. Dùng để rút gọn danh sách phù hợp và gán nhãn mọi thứ.",
         },
         anchor: "[data-tour=\"innovator-thesis\"]",
-        cta: { label: { en: "Open theses", vi: "Mở thesis" }, href: "/innovator/theses" },
+        cta: { label: { en: "Open theses", vi: "Mở thesis" }, href: "/innovator" },
       },
       {
         id: "industry-map",
@@ -717,7 +717,7 @@ const TOURS: FeatureTour[] = [
           vi: "Đưa mục watchlist vào bảng pipeline. Lanes: Discovered → Screening → POC Scoped → POC Live → Contract.",
         },
         anchor: "[data-tour=\"innovator-pipeline\"]",
-        cta: { label: { en: "Open pipeline", vi: "Mở pipeline" }, href: "/innovator/pipeline" },
+        cta: { label: { en: "Open pipeline", vi: "Mở pipeline" }, href: "/innovator/deal-pipeline" },
       },
       {
         id: "reports",
@@ -727,7 +727,7 @@ const TOURS: FeatureTour[] = [
           vi: "Tạo PDF Ventures Quarterly từ pipeline + watchlist trực tiếp, gắn logo của bạn.",
         },
         anchor: "[data-tour=\"innovator-reports\"]",
-        cta: { label: { en: "Open reports", vi: "Mở báo cáo" }, href: "/innovator/reports" },
+        cta: { label: { en: "Open reports", vi: "Mở báo cáo" }, href: "/innovator" },
       },
     ],
   },

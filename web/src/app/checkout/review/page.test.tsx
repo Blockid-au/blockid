@@ -31,6 +31,7 @@ import { TRIAL_WARNING_HOURS_BEFORE } from "@/lib/plans/trial-copy";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import EnPage from "./page";
+import { checkoutReviewMetadata } from "./checkout-review-page";
 import ViPage from "../../vi/checkout/review/page";
 
 type SP = Record<string, string | string[] | undefined>;
@@ -192,5 +193,15 @@ describe("/vi/checkout/review — the mirror", () => {
     const html = await vi_({ pack: "5", entry: "gate" });
     const href = hrefOf(html, "checkout-review-continue");
     expect(href).toBe(`/auth/login?next=${encodeURIComponent("/vi/checkout/review?pack=5&entry=gate")}`);
+  });
+});
+
+describe("/checkout/review metadata — no links to the bare 404 URL (W1)", () => {
+  it.each(["en", "vi"] as const)("%s: noindex, no canonical / hreflang / og:url", async (locale) => {
+    const meta = await checkoutReviewMetadata(locale);
+    expect(meta.robots).toEqual({ index: false, follow: false });
+    expect(meta.alternates).toBeUndefined();
+    expect((meta.openGraph as Record<string, unknown> | undefined)?.url).toBeUndefined();
+    expect(meta.title).toBeTruthy();
   });
 });

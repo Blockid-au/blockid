@@ -142,7 +142,8 @@ const DIM_ACTIONS: Record<string, { headline: string; reason: string; href: stri
   lco: {
     headline: "Close your legal & compliance gaps",
     reason: "IP assignments, ESIC, and R&D tax status all live here. Upload the docs you already have — automation does the rest.",
-    href: "/workspace/legal",
+    // W1 links: /workspace/legal never existed (404 in the weekly e-mail).
+    href: "/workspace/documents/compliance",
   },
   svm: {
     headline: "Articulate your strategic vision & moat",
