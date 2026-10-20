@@ -54,6 +54,11 @@ slot_report() {
   psql_pg -c "select slot_name || ' active=' || active || ' retained_mb=' || (pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) / 1048576)::bigint || ' safe_wal_mb=' || coalesce((safe_wal_size / 1048576)::bigint::text, 'n/a') || ' wal_status=' || coalesce(wal_status, '?') from pg_replication_slots where slot_name like 'cainophile%'"
 }
 
+HIGH_MARK="${HIGH_MARK:-/tmp/blockid-analytics-slot-high}"
+heartbeat_once() {
+  psql_sb -c "update _analytics.plans set updated_at = updated_at where id = (select min(id) from _analytics.plans)" >/dev/null
+}
+
 slot_max_mb() {
   psql_pg -c "select coalesce(max((pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) / 1048576)::bigint), 0) from pg_replication_slots where slot_name like 'cainophile%'"
 }
@@ -69,18 +74,26 @@ case "$MODE" in
     # One-row no-op UPDATE in logflare's own config table → a decoded commit
     # the slot consumer acknowledges. Harmless to logflare (it re-reads the plan).
     if [ "$DRY" = 1 ]; then echo "[$(ts)] heartbeat (dry-run)"; slot_report; exit 0; fi
-    psql_sb -c "update _analytics.plans set updated_at = updated_at where id = (select min(id) from _analytics.plans)" >/dev/null
+    heartbeat_once
+    # Decoding a large WAL backlog (e.g. right after the retention DELETE)
+    # takes a while: give the consumer up to ~60 s, then re-confirm.
     mb="$(slot_max_mb || echo 0)"
+    for _ in 1 2 3 4; do
+      [ "${mb:-0}" -le "$SLOT_ALERT_MB" ] 2>/dev/null && break
+      sleep 15; heartbeat_once; mb="$(slot_max_mb || echo 0)"
+    done
     if [ "${mb:-0}" -gt "$SLOT_ALERT_MB" ] 2>/dev/null; then
-      # Two heartbeats 15 min apart should have released it — something is wrong.
-      if [ -f "$REPO_ROOT/scripts/lib/ops-alert.sh" ]; then
+      # Alert only when the previous run was high too (≥ 15 min of no progress).
+      if [ -f "$HIGH_MARK" ] && [ -f "$REPO_ROOT/scripts/lib/ops-alert.sh" ]; then
         # shellcheck source=/dev/null
         source "$REPO_ROOT/scripts/lib/ops-alert.sh"
         ops_alert "[P1] Logflare replication slot retains ${mb} MB WAL" "$(slot_report)
 Runbook: scripts/db/analytics-log-hygiene.sh header; restart supabase-analytics if the slot is inactive." || true
       fi
+      touch "$HIGH_MARK" 2>/dev/null || true
       echo "[$(ts)] heartbeat: WARN cainophile slot retains ${mb} MB (> ${SLOT_ALERT_MB})"
     else
+      rm -f "$HIGH_MARK" 2>/dev/null || true
       echo "[$(ts)] heartbeat ok (cainophile retained ${mb} MB)"
     fi
     ;;
@@ -109,6 +122,8 @@ Runbook: scripts/db/analytics-log-hygiene.sh header; restart supabase-analytics 
       fi
       total=$((total + deleted))
     done
+    # The DELETE writes WAL (full-page images); let the slot confirm past it.
+    [ "$DRY" = 1 ] || { heartbeat_once; sleep 20; heartbeat_once; }
     after="$(psql_pg -c "select pg_size_pretty(pg_database_size('_supabase'))")"
     label=""; [ "$DRY" = 1 ] && label=" (dry-run)"
     echo "[$(ts)] retention${label}: ${total} rows older than ${RETAIN_DAYS} d across ${#TABLES[@]} log_events tables; _supabase ${before} → ${after} (space is reused; VACUUM FULL is a one-off manual step)"
