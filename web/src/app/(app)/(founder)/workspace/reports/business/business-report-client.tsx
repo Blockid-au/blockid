@@ -615,10 +615,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   }, [access]);
   const closeGate = useCallback(() => setGateOpen(false), []);
   // G35 Pricing v5 (D28): Full → Verified offer for the owner of a delivered Full report.
-  const verifiedUpgrade = useMemo(
-    () => (access?.payg?.enabled ? access.payg.upgrades.find((u) => u.from === "full" && u.available) ?? null : null),
-    [access],
-  );
+  const verifiedUpgrade = access?.payg?.enabled ? (access.payg.upgrades.find((u) => u.from === "full" && u.available) ?? null) : null;
 
   const unlock = useMemo<TbrUnlockProps | null>(() => {
     if (!unlockMode) return null;

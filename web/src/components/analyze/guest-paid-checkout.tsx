@@ -203,7 +203,7 @@ export function GuestPaidCheckout({
         url,
         ...(payg && chosen ? { tier: chosen.tier as GuestPaygTier } : {}),
       });
-      window.location.href = checkoutUrl;
+      window.location.assign(checkoutUrl);
     } catch (err) {
       setErrorMsg(
         err instanceof Error ? err.message : "Something went wrong. Try again.",
