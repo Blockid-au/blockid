@@ -1,7 +1,7 @@
 // Guest-side memory of paid Money Finder reports (T0247).
 //
-// A guest has no account row to count from, so the A$3 → Founder Radar
-// upsell after the third purchase ("You've spent A$9 on 3 reports…") counts
+// A guest has no account row to count from, so the report → Founder Radar
+// upsell after the third purchase ("You've spent … on 3 reports…") counts
 // the report ids this browser has landed on straight from Stripe Checkout.
 // `FundingReportTracker` records them; `FundingPaywall` reads the count.
 // Signed-in users are counted from `funding_reports` instead (GET
@@ -43,5 +43,5 @@ export function rememberGuestPaidReport(reportId: string): number {
   return new Set(trimmed).size;
 }
 
-/** Purchases before the Radar card appears (3 × A$3 = A$9). */
+/** Purchases before the Radar card appears (third one-off; price from the payg_enabled view). */
 export const RADAR_UPSELL_AFTER_REPORTS = 3;

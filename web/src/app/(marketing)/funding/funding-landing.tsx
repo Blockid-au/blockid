@@ -30,6 +30,8 @@ import { fundingCopy, type FundingCopyGroup } from "@/lib/funding/copy";
 import { CAPITALS } from "@/lib/funding/seed-map";
 import { FUNDING_CRUMBS } from "@/lib/funding/seo";
 import { getArticleBySlug } from "@/lib/insights";
+import { PAYG_OFF_VIEW, reportFromLabel, type PaygView } from "@/lib/pricing/payg-copy";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 // G11 §1b / T0249 — the funding insight articles that carry the "See which of
 // these you qualify for → /funding" callout; this strip is the return link.
@@ -49,6 +51,12 @@ export const FUNDING_READ_MORE_SLUGS = [
 export interface FundingLandingProps {
   /** `getMessages("vi")` on the Vietnamese page; omit for English. */
   messages?: Readonly<Record<string, string>> | null;
+  /**
+   * G35 P5: the payg_enabled view (`getPaygView()`), read once by the page.
+   * Omitted → read here. Flag OFF renders today's prices; ON renders D25
+   * (Money Finder) and "from" the Snapshot price for the TBR mentions.
+   */
+  view?: PaygView;
 }
 
 /** "A$3.2M" / "A$850,000" — the live hero figure. */
@@ -60,9 +68,16 @@ export function heroSum(openMaxAud: number): string {
   return formatAudCompact(openMaxAud);
 }
 
-export async function FundingLanding({ messages = null }: FundingLandingProps) {
+export async function FundingLanding({ messages = null, view: viewProp }: FundingLandingProps) {
+  const view = viewProp ?? (await getPaygView().catch(() => PAYG_OFF_VIEW));
   const c = (group: FundingCopyGroup, key: string, tokens: Record<string, string | number> = {}) =>
-    fundingCopy(group, key, tokens, messages);
+    fundingCopy(group, key, tokens, messages, view);
+  // TBR (not Money Finder) price mentions: legacy single price when OFF,
+  // "from <Snapshot>" when ON.
+  const tbrClause = view.enabled
+    ? `the free score, then a Trusted Business Report ${reportFromLabel(view)}.`
+    : `the free score, then the full Trusted Business Report for ${view.reportEntry}.`;
+  const evaluatorPrice = view.enabled ? reportFromLabel(view) : `for ${view.reportEntry}`;
 
   const [grants, programs] = await Promise.all([
     listGrants({ excludeNonMatching: true }).catch(() => []),
@@ -96,7 +111,7 @@ export async function FundingLanding({ messages = null }: FundingLandingProps) {
         align="start"
       />
 
-      <FundingIntake openGrantCount={stats.open} openProgramCount={openPrograms} />
+      <FundingIntake openGrantCount={stats.open} openProgramCount={openPrograms} view={view} />
 
       <Section id="paths" title="Three ways to get money moving" tone="sunken">
         <FeatureGrid
@@ -122,7 +137,7 @@ export async function FundingLanding({ messages = null }: FundingLandingProps) {
             {
               icon: Gauge,
               title: "Investors: get investor-ready first",
-              body: "Your Startup Value Index across 8 dimensions, an AUD valuation range and the next three moves — the free score, then the full Trusted Business Report for A$3.",
+              body: `Your Startup Value Index across 8 dimensions, an AUD valuation range and the next three moves — ${tbrClause}`,
               href: "/analyze",
               cta: "Get my score — free",
               ctaId: "funding_path_score",
@@ -180,7 +195,7 @@ export async function FundingLanding({ messages = null }: FundingLandingProps) {
             For investors, accelerators and advisers
           </p>
           <p className="mt-2 text-secondary">
-            Evaluate any Australian startup for A$3, or track a portfolio from A$79 a month —
+            Evaluate any Australian startup {evaluatorPrice}, or track a portfolio from A$79 a month —
             one rubric across 8 SVI dimensions, backed by the startup&apos;s own
             evidence. The Grant &amp; Program Finder is included in every evaluator plan.
           </p>

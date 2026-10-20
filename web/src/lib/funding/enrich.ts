@@ -17,7 +17,7 @@
 //
 // Pure — no I/O, no `server-only`. "Related" reuses the grant-advisor
 // scorer (`matchGrants` / `matchPrograms`) with a neutral profile built from
-// the row itself, so the detail pages and the A$3 report rank the same way.
+// the row itself, so the detail pages and the paid report rank the same way.
 // Colocated tests: enrich.test.ts (runs every builder over the real seeds).
 
 import type { AuGrantRow, AuProgramRow, AuState, Capital, FundingStatus } from "./seed-map";

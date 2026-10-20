@@ -22,16 +22,20 @@ import {
   PROGRAMS_TITLE,
   PROGRAM_GUIDES,
   capitalSeo,
+  demoDescriptionText,
+  demoTitleCore,
   grantDescription,
   grantTitle,
   grantsStateSeo,
   guidesForGrant,
+  landingDescription,
   programDescription,
   programTitle,
   satelliteList,
   stateForCapital,
 } from "./seo";
 import { BRAND_SUFFIX, DESCRIPTION_MAX, DESCRIPTION_MIN, TITLE_MAX } from "@/lib/seo/page-meta";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import { AU_STATES } from "./seed-map";
 
 const grants = mapGrantSeeds((grantsSeed as { grants: unknown[] }).grants).filter((g) => !g.exclude_from_matching);
@@ -118,6 +122,44 @@ describe("program detail titles + descriptions", () => {
     const covered = new Set(Object.values(CAPITAL_SATELLITES).flat().map((c) => c.toLowerCase()));
     for (const c of nonCapitalCities) {
       expect(covered.has(c.toLowerCase()) || c.toLowerCase() === "regional qld", c).toBe(true);
+    }
+  });
+});
+
+describe("priced descriptions follow payg_enabled (G35 P5, D25)", () => {
+  it("flag OFF (default) quotes the legacy price — today's strings", () => {
+    // The landing + demo price fragments do not fit the 160 window, so
+    // fitDescription drops them in both states — the builders still take the view.
+    expect(LANDING_DESCRIPTION).toBe(landingDescription(PAYG_OFF_VIEW));
+    expect(LANDING_DESCRIPTION).not.toMatch(/A\$\d/);
+    expect(DEMO_DESCRIPTION_TEXT).toBe(demoDescriptionText(PAYG_OFF_VIEW));
+    expect(DEMO_TITLE_CORE).toBe("Sample startup funding report — what A$3 buys");
+    for (const st of AU_STATES) expect(grantsStateSeo(st).description, st).toBe(grantsStateSeo(st, PAYG_OFF_VIEW).description);
+  });
+
+  it("state descriptions differ between the two states only by the price", () => {
+    for (const st of AU_STATES) {
+      const off = grantsStateSeo(st).description;
+      const on = grantsStateSeo(st, PAYG_ON_VIEW).description;
+      expect(on, st).toBe(off.replace(/is A\$3\.$/, "is A$19."));
+    }
+  });
+
+  it("flag ON quotes the D25 catalogue price and stays inside the title / description windows", () => {
+    const land = landingDescription(PAYG_ON_VIEW);
+    expect(PAYG_ON_VIEW.funding).toBe("A$19");
+    expect(land).not.toMatch(/A\$3(?![\d,])/);
+    expect(inWindow(land), `${land.length} "${land}"`).toBe(true);
+    const title = demoTitleCore(PAYG_ON_VIEW);
+    expect(title).toBe("Sample startup funding report — what A$19 buys");
+    expect(`${title}${BRAND_SUFFIX}`.length).toBeLessThanOrEqual(TITLE_MAX);
+    const demo = demoDescriptionText(PAYG_ON_VIEW);
+    expect(demo).not.toMatch(/A\$3(?![\d,])/);
+    expect(inWindow(demo), `${demo.length} "${demo}"`).toBe(true);
+    for (const st of AU_STATES) {
+      const d = grantsStateSeo(st, PAYG_ON_VIEW).description;
+      expect(inWindow(d), `${st}: ${d.length} "${d}"`).toBe(true);
+      expect(d, st).not.toMatch(/A\$3(?![\d,])/);
     }
   });
 });

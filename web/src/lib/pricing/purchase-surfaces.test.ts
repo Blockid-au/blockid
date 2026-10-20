@@ -283,9 +283,12 @@ describe("6. Money Finder report — /funding paywall + workspace hint read FUND
   it("the paywall posts to /api/funding/checkout and the workspace hint reads the constants", () => {
     const paywall = src("src/components/funding/funding-paywall.tsx");
     expect(paywall).toContain('await fetch("/api/funding/checkout", {');
-    expect(paywall).toContain("FUNDING_REPORT_AUD");
+    // G35 P5 (D25): the price comes from the payg_enabled view (legacy
+    // FUNDING_REPORT_AUD when OFF, PAYG_SKUS.report_funding when ON).
+    expect(paywall).toContain("fundingReportAud(view)");
+    expect(paywall).not.toMatch(/A\$(3|19)\b/);
     const page = src("src/app/(app)/(founder)/workspace/funding/page.tsx");
-    expect(page).toContain("formatAud(FUNDING_REPORT_AUD)");
+    expect(page).toContain("formatAud(fundingReportAud(view))");
     expect(page).toContain("formatAud(FOUNDER_RADAR_MONTHLY_AUD)");
     expect(page).not.toMatch(/A\$(3|29)\b/);
   });

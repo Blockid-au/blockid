@@ -19,6 +19,13 @@ vi.mock("@/lib/funding/data", () => ({
   listPrograms: vi.fn(async () => [{ id: "p1", name: "Plus Eight", status: "open", last_verified_at: "2026-09-10" }]),
 }));
 
+// G35 P5 (D25): payg_enabled view, both states (null → flag OFF, today's site).
+const payg = vi.hoisted(() => ({ view: null as import("@/lib/pricing/payg-copy").PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
+
 async function html(): Promise<string> {
   const { default: Page } = await import("./page");
   const el = await Page();
@@ -50,5 +57,24 @@ describe("/vi/funding (T0248)", () => {
     expect((meta.openGraph as { locale?: string; images?: unknown[] }).locale).toBe("vi_VN");
     expect((meta.openGraph as { images?: unknown[] }).images).toHaveLength(1);
     expect(meta.alternates?.languages).toMatchObject({ en: "https://blockid.au/funding", vi: "https://blockid.au/vi/funding" });
+    expect(String(meta.description)).toContain("Báo cáo xếp hạng A$3.");
+    expect(String(meta.description)).not.toContain("{fundingPrice}");
   });
+
+  it("payg_enabled ON (G35 P5, D25): VI sub-line, price ladder and description quote the v5 price", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    payg.view = PAYG_ON_VIEW;
+    try {
+      const out = await html();
+      expect(out).toContain("Danh sách miễn phí. Kiểm tra điều kiện, xếp hạng và kế hoạch 12 tháng giá A$19.");
+      expect(out).toContain("A$19 · hoặc 19 credit");
+      expect(out).not.toContain("{fundingPrice}");
+      const { generateMetadata } = await import("./page");
+      const meta = await generateMetadata();
+      expect(String(meta.description)).toContain("Báo cáo xếp hạng A$19.");
+      expect(String(meta.description).length).toBeLessThanOrEqual(160);
+    } finally {
+      payg.view = null;
+    }
+  }, 30_000);
 });

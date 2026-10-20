@@ -68,7 +68,7 @@ export default async function FundingReportPage({
           report.is_owner && ready ? <ReportOwnerActions reportId={report.id} projectId={report.project_id} className="mt-5" /> : null
         }
         afterBody={
-          /* T0247 — A$3 → Founder Radar upsell. Hidden when the plan already paid
+          /* T0247 — report → Founder Radar upsell. Hidden when the plan already paid
              for the report (the reader is a Radar subscriber). */
           report.paid_via !== "plan" ? (
             <RadarUpsellCard

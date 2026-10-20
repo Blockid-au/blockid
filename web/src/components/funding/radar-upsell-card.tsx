@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * RadarUpsellCard — the A$3 report → Founder Radar (Starter A$29) upsell
+ * RadarUpsellCard — the Money Finder report → Founder Radar (Starter A$29) upsell
  * (G11 §4h / §4i D-3, T0247). Approved copy:
  *
  *   "This report is a snapshot. **{next_program}** closes in {d} days and
@@ -15,8 +15,9 @@
  * a blank or an invented deadline.
  *
  * Mounted on /funding/report/[id] (replacing the T0242 plain card) and, after
- * the third A$3 purchase, under the /funding paywall with a `lead` line
- * ("You've spent A$9 on 3 reports."). Evaluators get a secondary Scout CTA.
+ * the third paid report, under the /funding paywall with a `lead` line
+ * (FundingPaywall builds it from the payg_enabled view). Evaluators get a
+ * secondary Scout CTA.
  * Fires GA4 `radar_upsell_view` once and `radar_upsell_click` per CTA.
  */
 
@@ -44,7 +45,7 @@ export interface RadarUpsellCardProps {
   /** From `computeRadarUpsellFacts`; omit / null → generic copy. */
   facts?: RadarUpsellFacts | null;
   reportId?: string;
-  /** Optional opening line, e.g. "You've spent A$9 on 3 reports." */
+  /** Optional opening line, e.g. "You've bought 3 Money Finder reports — …". */
   lead?: string;
   /** Sent with `radar_upsell_view` on the paywall surface. */
   paidReports?: number;

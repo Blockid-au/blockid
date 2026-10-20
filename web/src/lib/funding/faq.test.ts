@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import vi from "@/lib/i18n/messages/vi.json";
 import { validateJsonLd } from "@/lib/seo/structured-data";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import { FUNDING_COPY } from "./copy";
 import { DIRECTORY_FAQ_KEYS, directoryFaq, faqPageJsonLd, satelliteCoverage } from "./faq";
 import { CAPITAL_SATELLITES } from "./seed-map";
@@ -38,6 +39,14 @@ describe("directoryFaq", () => {
     expect(cut.question).toBe("Do you take a cut of grants?");
     expect(cut.answer).toMatch(/^No\./);
     expect(updated.answer).toContain("Sunday");
+    // G35 P5 (D25): payg_enabled ON prices both report answers (EN + VI) from the v5 catalogue.
+    const on = directoryFaq("grants", null, PAYG_ON_VIEW);
+    expect(on[0].answer).toContain("A$19 buys the eligibility analysis");
+    expect(on[1].answer.startsWith("For A$19:")).toBe(true);
+    expect(on.map((i) => i.answer).join(" ")).not.toMatch(/A\$3\b/);
+    const onVi = directoryFaq("grants", VI, PAYG_ON_VIEW);
+    expect(onVi[0].answer).toContain("A$19");
+    expect(onVi.map((i) => i.answer).join(" ")).not.toMatch(/\{fundingPrice\}|A\$3\b/);
     expect(updated.answer).toContain("review queue");
   });
 

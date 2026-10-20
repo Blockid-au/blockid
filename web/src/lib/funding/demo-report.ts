@@ -1,5 +1,5 @@
 // Public sample Money Finder report — the data behind /funding/report/demo
-// (S7-B). Visitors could not see what the A$3 report looks like and the
+// (S7-B). Visitors could not see what the paid report looks like and the
 // ProductHunt kit had nothing to screenshot, so this builds ONE fixed report
 // from the seed catalogue with the real matcher and the template narrative
 // (no AI call, no DB, no Stripe) — the output is a pure function of the two
@@ -26,7 +26,8 @@ import { templateNarrative } from "@/lib/agents/grant-advisor-narrative";
 import { catalogueForIntake } from "./preview";
 import { intakeToGrantProfile, type FundingIntake } from "./intake";
 import { mapGrantSeeds, mapProgramSeeds, type AuGrantRow, type AuProgramRow } from "./seed-map";
-import { DEMO_DESCRIPTION_TEXT, DEMO_TITLE_CORE } from "./seo";
+import { DEMO_DESCRIPTION_TEXT, DEMO_TITLE_CORE, demoDescriptionText, demoTitleCore } from "./seo";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import type { FundingReportMeta, PublicFundingReport } from "./reports";
 
 /** The three answers the sample was built from — shown verbatim in the header. */
@@ -44,7 +45,12 @@ export const DEMO_REPORT_ID = "demo";
 export const DEMO_REPORT_PATH = "/funding/report/demo";
 /** Where the sample's CTA sends the founder. */
 export const DEMO_CTA_HREF = "/funding?intent=money";
-export const DEMO_CTA_LABEL = "Build mine for A$3";
+/** CTA label for a payg_enabled view (G35 P5, D25) — the Money Finder price, never typed. */
+export function demoCtaLabel(view: Pick<PaygView, "funding"> = PAYG_OFF_VIEW): string {
+  return `Build mine for ${view.funding}`;
+}
+/** Flag-OFF CTA label (today's site). */
+export const DEMO_CTA_LABEL = demoCtaLabel();
 export const DEMO_BANNER = "Sample report — a real one is built from your answers";
 
 const SITE_URL = "https://blockid.au";
@@ -54,12 +60,12 @@ export const DEMO_TITLE = DEMO_TITLE_CORE;
 export const DEMO_DESCRIPTION = DEMO_DESCRIPTION_TEXT;
 
 /** Minimal schema.org Article for the sample (pure — the page wraps it in FundingJsonLd with the CSP nonce). */
-export function demoReportJsonLd(): Record<string, unknown> {
+export function demoReportJsonLd(view: Pick<PaygView, "funding"> = PAYG_OFF_VIEW): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: DEMO_TITLE,
-    description: DEMO_DESCRIPTION,
+    headline: demoTitleCore(view),
+    description: demoDescriptionText(view),
     url: DEMO_CANONICAL,
     datePublished: DEMO_GENERATED_AT,
     dateModified: DEMO_GENERATED_AT,

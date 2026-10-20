@@ -5,8 +5,9 @@
  * plan §4a / §4g / §5a, transparent-pricing rule).
  *
  * Three rails, decided by the caller from auth + entitlement state:
- *   guest    — email + Stripe Checkout, A$3.00 inc. GST (POST /api/funding/checkout)
- *   credits  — signed in, 3 credits; CreditConfirm shows cost + balance BEFORE
+ *   guest    — email + Stripe Checkout, the Money Finder price inc. GST
+ *              (POST /api/funding/checkout)
+ *   credits  — signed in, N credits; CreditConfirm shows cost + balance BEFORE
  *              the call (POST /api/funding/report); 402 opens CreditGate
  *   plan     — `grant_finder` entitlement: included, one click
  *   anonymous— still resolving who is signed in; renders the guest copy
@@ -16,7 +17,12 @@
  * government — we sell the analysis") and the §5f disclaimer lives in the
  * page-level FundingDisclaimer right below.
  *
- * T0247: after the third paid report (A$9 spent) the Founder Radar card
+ * G35 P5 (D25): price + credits come from the payg_enabled `view` prop
+ * (server-read `getPaygView()`, threaded through FundingIntake). Flag OFF =
+ * the legacy price / credits (today's card, byte for byte); flag ON = the
+ * v5 `report_funding` SKU, credits shown without an A$ conversion (D27).
+ *
+ * T0247: after the third paid report the Founder Radar card
  * (`RadarUpsellCard`) renders under the rails — counted from
  * `funding_reports` (GET /api/funding/report) when signed in, from
  * localStorage (`guest-paid-reports.ts`) for guests. Plan rail never sees it.
@@ -32,19 +38,24 @@ import { CreditGate } from "@/components/ui/credit-gate";
 import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { guestPaidReportCount, RADAR_UPSELL_AFTER_REPORTS } from "@/lib/funding/guest-paid-reports";
-import { FUNDING_REPORT_AUD, radarViewerKind } from "@/lib/funding/radar-upsell";
-import { FUNDING_COPY } from "@/lib/funding/copy";
+import { fundingReportAud, radarViewerKind } from "@/lib/funding/radar-upsell";
+import { fundingCopyFor } from "@/lib/funding/copy";
+import { LEGACY_FUNDING_CREDITS, PAYG_OFF_VIEW, creditsLabel, type PaygView } from "@/lib/pricing/payg-copy";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 
 export type PaywallRail = "anonymous" | "guest" | "credits" | "plan";
 
-export const GRANT_MATCH_CREDITS = 3;
-export const FUNDING_REPORT_PRICE_LABEL = "A$3";
+/** Flag-OFF (legacy) credit cost — derived from the v3 SKU; the view carries the live one. */
+export const GRANT_MATCH_CREDITS = LEGACY_FUNDING_CREDITS;
+/** Flag-OFF (legacy) price label — derived; the view carries the live one. */
+export const FUNDING_REPORT_PRICE_LABEL = PAYG_OFF_VIEW.funding;
 
 export interface FundingPaywallProps {
   intake: Record<string, unknown>;
   preview: FundingPreviewPayload;
   rail: PaywallRail;
+  /** G35 P5: payg_enabled view (server-read). Default = flag OFF. */
+  view?: PaygView;
 }
 
 const UNLOCKS = [
@@ -55,7 +66,9 @@ const UNLOCKS = [
   "Next 3 actions, written for your stage",
 ];
 
-export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
+export function FundingPaywall({ intake, preview, rail, view = PAYG_OFF_VIEW }: FundingPaywallProps) {
+  const copy = fundingCopyFor(view);
+  const credits = view.fundingCredits;
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -175,8 +188,8 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
     <div className="mt-6 rounded-2xl border border-action/40 bg-surface-raised p-6 shadow-sm sm:p-8" data-funding-paywall data-rail={rail}>
       <div className="grid gap-8 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-action">{FUNDING_COPY.paywall.eyebrow}</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{FUNDING_COPY.paywall.card}</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-action">{copy.paywall.eyebrow}</p>
+          <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{copy.paywall.card}</h3>
           <ul className="mt-4 space-y-2 text-sm text-secondary">
             {UNLOCKS.map((u) => (
               <li key={u} className="flex items-start gap-2">
@@ -196,9 +209,9 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
           {rail === "plan" ? (
             <PlanRail busy={busy} onGenerate={generateSignedIn} total={total} />
           ) : rail === "credits" ? (
-            <CreditsRail busy={busy} balance={balance} onStart={() => setConfirmOpen(true)} />
+            <CreditsRail busy={busy} balance={balance} onStart={() => setConfirmOpen(true)} view={view} />
           ) : (
-            <GuestRail busy={busy} email={email} onEmail={setEmail} onSubmit={startGuestCheckout} disabled={rail === "anonymous"} errorId={error ? "fp-error" : undefined} />
+            <GuestRail busy={busy} email={email} onEmail={setEmail} onSubmit={startGuestCheckout} disabled={rail === "anonymous"} errorId={error ? "fp-error" : undefined} view={view} />
           )}
           {/* Busy state announced for screen readers (the button label alone is not re-read). */}
           <p className="sr-only" role="status" aria-live="polite" data-paywall-status>
@@ -223,7 +236,12 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
         <RadarUpsellCard
           surface="funding_paywall"
           viewer={rail === "guest" ? "guest" : radarViewerKind(entUser)}
-          lead={`You've spent A$${paidCount * FUNDING_REPORT_AUD} on ${paidCount} reports — Founder Radar is A$29/mo and includes this report every month.`}
+          lead={
+            view.enabled
+              ? // Earlier purchases may have been at the legacy price — count, never sum.
+                `You've bought ${paidCount} Money Finder reports — Founder Radar is A$29/mo and includes this report every month.`
+              : `You've spent A$${paidCount * fundingReportAud(view)} on ${paidCount} reports — Founder Radar is A$29/mo and includes this report every month.`
+          }
           paidReports={paidCount}
           className="mt-6"
         />
@@ -232,7 +250,7 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
       <CreditConfirm
         isOpen={confirmOpen}
         action="Grant & Program match report (≈1,200 words, 12-month timeline)"
-        cost={GRANT_MATCH_CREDITS}
+        cost={credits}
         balance={balance ?? 0}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
@@ -240,7 +258,7 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
           void generateSignedIn();
         }}
       />
-      <CreditGate isOpen={gateOpen} onClose={() => setGateOpen(false)} feature="grant_match" cost={GRANT_MATCH_CREDITS} balance={balance ?? 0} />
+      <CreditGate isOpen={gateOpen} onClose={() => setGateOpen(false)} feature="grant_match" cost={credits} balance={balance ?? 0} />
     </div>
   );
 }
@@ -252,6 +270,7 @@ function GuestRail({
   onSubmit,
   disabled,
   errorId,
+  view,
 }: {
   busy: boolean;
   email: string;
@@ -260,12 +279,13 @@ function GuestRail({
   disabled: boolean;
   /** id of the visible error line, wired to the input via aria-describedby. */
   errorId?: string;
+  view: PaygView;
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-3" data-rail-form="guest">
       <p className="text-3xl font-semibold text-primary">
-        {FUNDING_REPORT_PRICE_LABEL}
-        <span className="ml-1 text-sm font-normal text-secondary">.00 inc. GST · one-off</span>
+        {view.funding}
+        <span className="ml-1 text-sm font-normal text-secondary">{view.enabled ? "inc. GST · one-off" : ".00 inc. GST · one-off"}</span>
       </p>
       <p className="text-xs text-secondary">
         Your report link is emailed to you and opens straight after payment. No account needed.
@@ -295,25 +315,26 @@ function GuestRail({
         aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? "Opening checkout…" : `Pay ${FUNDING_REPORT_PRICE_LABEL} & unlock`}
+        {busy ? "Opening checkout…" : `Pay ${view.funding} & unlock`}
       </button>
       <p className="text-xs text-tertiary">
         Have an account?{" "}
         <Link href="/auth/login?next=/funding" className="font-semibold text-action underline-offset-2 hover:underline">
           Sign in
         </Link>{" "}
-        to pay with {GRANT_MATCH_CREDITS} credits or use your plan.
+        to pay with {creditsLabel(view.fundingCredits)} or use your plan.
       </p>
     </form>
   );
 }
 
-function CreditsRail({ busy, balance, onStart }: { busy: boolean; balance: number | null; onStart: () => void }) {
+function CreditsRail({ busy, balance, onStart, view }: { busy: boolean; balance: number | null; onStart: () => void; view: PaygView }) {
   return (
     <div className="space-y-3" data-rail-form="credits">
       <p className="text-3xl font-semibold text-primary">
-        {GRANT_MATCH_CREDITS} credits
-        <span className="ml-1 text-sm font-normal text-secondary">≈ {FUNDING_REPORT_PRICE_LABEL}</span>
+        {creditsLabel(view.fundingCredits)}
+        {/* D27: no credit → A$ conversion once payg_enabled is on. */}
+        {view.enabled ? null : <span className="ml-1 text-sm font-normal text-secondary">≈ {view.funding}</span>}
       </p>
       <p className="text-xs text-secondary">
         <Coins className="mr-1 inline h-3.5 w-3.5" aria-hidden />
@@ -327,7 +348,7 @@ function CreditsRail({ busy, balance, onStart }: { busy: boolean; balance: numbe
         aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? "Generating…" : `Generate for ${GRANT_MATCH_CREDITS} credits`}
+        {busy ? "Generating…" : `Generate for ${creditsLabel(view.fundingCredits)}`}
       </button>
     </div>
   );

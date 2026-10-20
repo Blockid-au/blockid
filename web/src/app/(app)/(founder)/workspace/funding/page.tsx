@@ -5,7 +5,7 @@
  * Soft feature gate on `grant_finder`:
  *   • free founders — the 3-question intake (prefilled from `projects`,
  *     `project_grant_profiles`, latest SVI snapshot) with the free preview
- *     and the A$3 (3 credits) / Starter paywall (`FundingIntake` →
+ *     and the one-off (card / credits) / Starter paywall (`FundingIntake` →
  *     `FundingPaywall` credits rail);
  *   • paid founders — tabs Grants · Programs · Events · Timeline · Capital
  *     map · Alerts fed by the latest `funding_reports` row for the active
@@ -51,7 +51,8 @@ import {
 import { getGrant, getProgram } from "@/lib/funding/data";
 import { FEATURE_COSTS } from "@/lib/credits";
 import { formatAud } from "@/lib/plans-v2";
-import { FOUNDER_RADAR_MONTHLY_AUD, FUNDING_REPORT_AUD } from "@/lib/funding/radar-upsell";
+import { FOUNDER_RADAR_MONTHLY_AUD, fundingReportAud } from "@/lib/funding/radar-upsell";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { isGenericPromptSet, programIntakeLabel, promptsForGrant, promptsForProgram } from "@/lib/funding/application-prompts";
 import { latestDraftFor } from "@/lib/funding/application-drafts";
@@ -101,10 +102,12 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
   // not `projects.stage` — same number every other founder page gets.
   const { navPhase } = await getFounderNavContext(user, { project });
 
-  const [prefill, grants, programs] = await Promise.all([
+  const [prefill, grants, programs, view] = await Promise.all([
     intakePrefillFor(user, project),
     listGrants({ status: "open" }),
     listPrograms({ status: "open" }),
+    // G35 P5 (D25): Money Finder price + credits for the payg_enabled state.
+    getPaygView(),
   ]);
   const openGrantCount = grants.length;
   const openProgramCount = programs.length;
@@ -117,7 +120,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
     // report + catalogue are already in hand; a failed read just hides it.
     const radarOn = await can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "money_radar").catch(() => false);
     const data = await getMoneyRadarTileData(user, project, { hasMoneyRadar: radarOn, report: row, grants, programs }).catch(() => null);
-    tile = data ? <MoneyRadarTile data={data} compact className="mb-6" /> : null;
+    tile = data ? <MoneyRadarTile data={data} compact className="mb-6" view={view} /> : null;
     // Location derivation shared with the /workspace/investors Matches tab.
     const { state, capital } = fundingLocationFor(row, prefill.state ?? null);
     const [events, capitalRows] = await Promise.all([listEventPrograms(capital), listCapitalMapRows()]);
@@ -233,6 +236,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
         projectId={project?.id ?? null}
         variant="workspace"
         autoFocus={fromRadarSetup}
+        view={view}
       />
     </section>
   );
@@ -251,7 +255,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
           {!included ? (
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line-subtle bg-surface-raised px-4 py-3 text-sm" data-paywall-hint>
               <span className="inline-flex items-center gap-2 text-primary">
-                <Coins className="h-4 w-4 text-action" aria-hidden /> Full report: <strong>{formatAud(FUNDING_REPORT_AUD)}</strong> ({FEATURE_COSTS.grant_match} credits) per run
+                <Coins className="h-4 w-4 text-action" aria-hidden /> Full report: <strong>{formatAud(fundingReportAud(view))}</strong> ({view.fundingCredits} credits) per run
               </span>
               <span className="text-tertiary">or</span>
               <span className="inline-flex items-center gap-2 text-primary">
