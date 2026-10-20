@@ -54,9 +54,11 @@ import {
 import { runRescoreForProject, runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { apiRoute } from "@/lib/audit/api-route";
-import { isPaygEnabled } from "@/lib/pricing/payg-flag";
+import { isPaygEnabled, readPaygConfig } from "@/lib/pricing/payg-flag";
 import { PAYG_SKUS, displayPriceCents } from "@/lib/pricing/v5-payg";
-import { priceLabelCents } from "@/lib/pricing/payg-offer";
+import { buildPaygOffer, priceLabelCents, type PaygOfferEnabled } from "@/lib/pricing/payg-offer";
+import { countOpenVerifiedOrders, listBuyerOrders } from "@/lib/pricing/payg-orders";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { enqueueWebhook } from "@/lib/webhooks/registry";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +97,26 @@ function reusedPayload(row: EvaluationReportRow, base: string, extra: { balance:
     report_id: row.id,
     created_at: row.createdAt,
   };
+}
+
+/**
+ * G35 Pricing v5: the card offer for an evaluator — the same `buildPaygOffer`
+ * the founder paywall uses, over the EVALUATOR's own report_orders for this
+ * project (so a delivered Snapshot / Full they bought shows its upgrade).
+ * Null (no card offer) when the orders cannot be read — never a guess.
+ */
+async function evaluatorCardOffer(userId: string, projectId: string): Promise<{ business_id: string; offer: PaygOfferEnabled } | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const [config, orders, openVerified] = await Promise.all([
+    readPaygConfig(),
+    listBuyerOrders(supabase, userId, projectId),
+    countOpenVerifiedOrders(supabase),
+  ]);
+  if (!orders) return null;
+  // An unreadable Verified count hides Verified (fails closed, like the checkout).
+  const offer = buildPaygOffer({ config, orders, openVerifiedCount: openVerified ?? Number.POSITIVE_INFINITY });
+  return offer.enabled ? { business_id: projectId, offer } : null;
 }
 
 function parseKind(raw: unknown): EvaluationReportKind | null {
@@ -183,7 +205,12 @@ async function POST_handler(request: Request, { params }: Ctx) {
       : {}),
   };
   if (!confirmed) {
-    return NextResponse.json({ ok: true, preview: true, kind, cost: costPayload });
+    // G35 Pricing v5 (flag ON only): the evaluator may also buy a PAYG report
+    // for this startup by card — the review-before-pay offer (tiers, what is
+    // included, price inc. GST, delivery, D28 upgrades) the dialog renders.
+    // Flag OFF → the key is absent and the preview is byte-for-byte today's.
+    const card = payg && kind === "full" ? await evaluatorCardOffer(user.id, evaluation.projectId) : null;
+    return NextResponse.json({ ok: true, preview: true, kind, cost: card ? { ...costPayload, payg: { ...costPayload.payg, card } } : costPayload });
   }
 
   // Idempotency (review #9): a row for this key, or one created in the last

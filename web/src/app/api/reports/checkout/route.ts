@@ -38,6 +38,16 @@
  *               Verified cap (409), upgrade ownership (403 / 409), Stripe
  *               customer reuse, order row inserted BEFORE Stripe so
  *               `metadata.order_id` is set, never a discount (founder rule).
+ *
+ *   evaluator deal flow (flag ON only; `evaluationId` with the flag OFF → 403)
+ *             → `{ businessId, evaluationId, tier | upgradeFrom }`: the buyer is
+ *               authorised by their `evaluations` row instead of project
+ *               scope (lib/evaluations/payg-buyer.ts), the order is theirs
+ *               (`user_id`, so every owner-scoped report read grants it) and
+ *               carries `buyer_role: "evaluator"` + `evaluation_id` (order and
+ *               session metadata) so the generator reads the founder's data.
+ *               A card Snapshot / Full while the plan still includes a Full
+ *               report → 409 `quota_available` (included is never charged).
  */
 
 import { NextResponse } from "next/server";
@@ -69,6 +79,12 @@ import { VERIFIED_FULL_MESSAGE, paygTierLabel, resolveUpgradeSource, verifiedCap
 import { countOpenVerifiedOrders, inFlightOrderFor, listBuyerOrders } from "@/lib/pricing/payg-orders";
 import { assertProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
+import {
+  EVALUATOR_BUYER_ROLE,
+  QUOTA_AVAILABLE_MESSAGE,
+  authoriseEvaluatorBuyer,
+  evaluatorQuotaCoversFull,
+} from "@/lib/evaluations/payg-buyer";
 
 interface CheckoutBody {
   businessId?: unknown;
@@ -81,6 +97,10 @@ interface CheckoutBody {
   // delivered lower tier (D28). Exactly one of the two.
   tier?: unknown;
   upgradeFrom?: unknown;
+  // G35 Pricing v5 (payg_enabled only): an EVALUATOR buying for a startup in
+  // their deal flow — the `evaluations` row authorises the buyer instead of
+  // project scope (lib/evaluations/payg-buyer.ts). Flag off → 403.
+  evaluationId?: unknown;
 }
 
 const ORIGIN_FALLBACK = "https://blockid.au";
@@ -140,7 +160,7 @@ async function POST_handler(request: Request) {
 
   // ── G35 Pricing v5 switch ─────────────────────────────────────────
   // Fails closed: an unreadable platform_config means PAYG is off.
-  const wantsPayg = body.tier !== undefined || body.upgradeFrom !== undefined;
+  const wantsPayg = body.tier !== undefined || body.upgradeFrom !== undefined || body.evaluationId !== undefined;
   const payg = await readPaygConfig();
   if (wantsPayg && !payg.payg_enabled) {
     return NextResponse.json(
@@ -526,13 +546,22 @@ async function paygCheckout(
   const supabase = getSupabaseAdmin();
   if (!supabase) return paygError(503, "db_unavailable", "Database not configured");
 
-  // The buyer must be able to see the business they are buying a report on.
-  try {
-    await assertProjectScope({ id: user.id, email: user.email ?? "" }, businessId, "viewer");
-  } catch (err) {
-    const denied = projectAccessResponse(err);
-    if (denied) return denied;
-    throw err;
+  // The buyer must be able to see the business they are buying a report on:
+  // an evaluator through their `evaluations` row (deal flow), anyone else
+  // through project scope (owner / member).
+  let evaluatorEvaluationId: string | null = null;
+  if (body.evaluationId !== undefined && body.evaluationId !== null) {
+    const buyer = await authoriseEvaluatorBuyer(user.id, body.evaluationId, businessId);
+    if (!buyer.ok) return paygError(buyer.status, buyer.code, buyer.reason);
+    evaluatorEvaluationId = buyer.evaluationId;
+  } else {
+    try {
+      await assertProjectScope({ id: user.id, email: user.email ?? "" }, businessId, "viewer");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
   }
 
   const orders = await listBuyerOrders(supabase, user.id, businessId);
@@ -549,6 +578,15 @@ async function paygCheckout(
   } else {
     const tier = body.tier as PaygTier;
     target = { sku: reportSkuForTier(tier), tier, upgradeOfOrderId: null };
+  }
+
+  // An included report never costs money (plan §6.4.6): while the evaluator's
+  // plan / trial still includes a Full report, a card Snapshot / Full is
+  // refused. Verified (human review, never included) and upgrades are not.
+  if (evaluatorEvaluationId && !target.upgradeOfOrderId && target.tier !== "verified") {
+    if (await evaluatorQuotaCoversFull(user)) {
+      return paygError(409, "quota_available", QUOTA_AVAILABLE_MESSAGE);
+    }
   }
 
   // ── 2. Verified capacity (D29) — fails closed on an unreadable count ──
@@ -634,6 +672,9 @@ async function paygCheckout(
         pricing_version: PAYG_PRICING_VERSION,
         payment_path: "card",
         ...(firstTouch ? { first_touch: firstTouch } : {}),
+        // Evaluator deal-flow purchase: the generator keys the data on the
+        // project owner, never the buyer (report-generator.ts).
+        ...(evaluatorEvaluationId ? { buyer_role: EVALUATOR_BUYER_ROLE, evaluation_id: evaluatorEvaluationId } : {}),
       },
     })
     .select("id")
@@ -661,8 +702,14 @@ async function paygCheckout(
       : { customer_email: user.email ?? undefined, customer_creation: "always" as const }),
     automatic_tax: { enabled: true },
     invoice_creation: oneOffInvoiceCreation(sku.productName),
-    success_url: `${origin}/workspace/reports/order?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/workspace/reports/business?pid=${encodeURIComponent(businessId)}&report_order=cancel`,
+    // An evaluator lands on the order-scoped view (the founder ReportV2 page
+    // is scoped to the buyer's own project) and cancels back to deal flow.
+    success_url: evaluatorEvaluationId
+      ? `${origin}/workspace/reports/order?session_id={CHECKOUT_SESSION_ID}&view=legacy`
+      : `${origin}/workspace/reports/order?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: evaluatorEvaluationId
+      ? `${origin}/workspace/evaluations?report_order=cancel`
+      : `${origin}/workspace/reports/business?pid=${encodeURIComponent(businessId)}&report_order=cancel`,
     metadata: {
       bid_scope: "report_order",
       bid_sku: target.sku,
@@ -673,6 +720,7 @@ async function paygCheckout(
       pricing_version: PAYG_PRICING_VERSION,
       bid_first_touch: firstTouch,
       ...(target.upgradeOfOrderId ? { bid_upgrade_of_order_id: target.upgradeOfOrderId } : {}),
+      ...(evaluatorEvaluationId ? { bid_buyer_role: EVALUATOR_BUYER_ROLE, bid_evaluation_id: evaluatorEvaluationId } : {}),
       ...(isQaEmail(user.email) ? { bid_qa: "1" } : {}),
       ...(promo
         ? {

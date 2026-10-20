@@ -121,6 +121,33 @@ export interface GeneratorDeps {
   newReportId?: () => string;
   /** G34 F02/S3: the immutable-revision commit (best-effort — never fails a stored order). */
   commitRevision?: typeof commitFinalReport;
+  /**
+   * G35 Pricing v5 — evaluator card orders (`metadata.buyer_role =
+   * "evaluator"`): the buyer is not the project owner, so the data key is the
+   * owner's e-mail. Default: `prepareProjectReportBaseline()` (owner account +
+   * a synthesised baseline analysis for a never-analysed startup, exactly as
+   * the evaluator credits run does). Throws on failure.
+   */
+  evaluatorBaseline?: (projectId: string) => Promise<{ ownerEmail: string }>;
+  /** Evaluator card orders: does the buyer still evaluate this project? Default: `canAccessProjectAsEvaluator` (via evaluator). */
+  evaluatorAccess?: (userId: string, projectId: string) => Promise<boolean>;
+}
+
+/** G35: the order was bought by an evaluator for a startup in their deal flow (set server-side at checkout). */
+export function isEvaluatorOrderMetadata(metadata: unknown): boolean {
+  return Boolean(metadata) && typeof metadata === "object" && (metadata as Row).buyer_role === "evaluator";
+}
+
+async function defaultEvaluatorBaseline(projectId: string): Promise<{ ownerEmail: string }> {
+  const { prepareProjectReportBaseline } = await import("@/lib/report-pipeline/run-for-project");
+  const { ownerEmail } = await prepareProjectReportBaseline(projectId);
+  return { ownerEmail };
+}
+
+async function defaultEvaluatorAccess(userId: string, projectId: string): Promise<boolean> {
+  const { canAccessProjectAsEvaluator } = await import("@/lib/evaluations");
+  const access = await canAccessProjectAsEvaluator(userId, projectId);
+  return access.allowed && access.via === "evaluator";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -309,25 +336,47 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
     .eq("id", userId)
     .maybeSingle();
 
-  const email = typeof userRow?.email === "string" ? userRow.email : "";
-  if (!email) return fail(false, "order_user_not_found");
+  const buyerEmail = typeof userRow?.email === "string" ? userRow.email : "";
+  if (!buyerEmail) return fail(false, "order_user_not_found");
 
   // ── 2. SVI account + latest analysis for this business ───────────────
   // business_id FKs projects(id) today, so it is the project scope key.
   const projectId = input.businessId;
 
-  const account = await findAccount(
-    email,
-    projectId,
-    "id, email, startup_name, current_svi, current_stage",
-  );
+  // G35 Pricing v5 — an evaluator's card order: the data belongs to the
+  // project's owner, not the buyer. Re-check the buyer still evaluates the
+  // startup (revoked → permanent → refund), then key every lookup on the
+  // owner's e-mail with the buyer as caller (no owner pre-project fallback,
+  // P2-1). Founder / legacy orders are unchanged: the buyer's own e-mail.
+  let email = buyerEmail;
+  let keyOpts: { callerEmail: string } | undefined;
+  if (isEvaluatorOrderMetadata(order.metadata)) {
+    let allowed = false;
+    try {
+      allowed = await (deps.evaluatorAccess ?? defaultEvaluatorAccess)(userId, projectId);
+    } catch (err) {
+      return fail(true, `evaluator_access_check_failed: ${errMessage(err)}`);
+    }
+    if (!allowed) return fail(false, "evaluator_access_revoked");
+    try {
+      email = (await (deps.evaluatorBaseline ?? defaultEvaluatorBaseline)(projectId)).ownerEmail;
+    } catch (err) {
+      const reason = errMessage(err);
+      // Data-shaped (no project / owner) → permanent; anything else may recover.
+      const permanent = /project_not_found|owner_not_found/.test(reason);
+      return fail(!permanent, `evaluator_baseline_failed: ${reason}`);
+    }
+    keyOpts = { callerEmail: buyerEmail };
+  }
+
+  const account = keyOpts
+    ? await findAccount(email, projectId, "id, email, startup_name, current_svi, current_stage", keyOpts)
+    : await findAccount(email, projectId, "id, email, startup_name, current_svi, current_stage");
   if (!account) return fail(false, "no_svi_account_for_business");
 
-  const latestAnalysis = await findAnalysis(
-    email,
-    projectId,
-    "id, raw_input, total_svi, analysis_json",
-  );
+  const latestAnalysis = keyOpts
+    ? await findAnalysis(email, projectId, "id, raw_input, total_svi, analysis_json", keyOpts)
+    : await findAnalysis(email, projectId, "id, raw_input, total_svi, analysis_json");
   if (!latestAnalysis) return fail(false, "no_svi_analysis_for_business");
 
   // AI outage / key rotation is transient — three drain ticks apart gives

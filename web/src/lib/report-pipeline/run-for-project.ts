@@ -898,24 +898,22 @@ async function loadEvaluationIntake(projectId: string): Promise<{ website: strin
 }
 
 /**
- * Full Trusted Business Report for `projectId`, run by `requestedByUserId` (the
- * evaluator). Throws on any failure — the caller charges only on return.
+ * The data owner's account + a baseline analysis for `projectId` — the first
+ * half of `runTrustReportForProject`, shared with the paid-order generator
+ * for an evaluator's card order (G35 Pricing v5), whose buyer is NOT the
+ * project owner. Resolves the owner e-mail from `projects.user_id`, makes
+ * sure the svi_accounts row exists and synthesises an svi_analyses row from
+ * the evaluation intake when the startup was never analysed. Throws on any
+ * failure (project_not_found / owner_not_found / account_unavailable /
+ * analysis_insert_failed / the loader's error).
  */
-export async function runTrustReportForProject(args: {
-  projectId: string;
-  requestedByUserId: string;
-  tier?: ReportTier;
-  locale?: "en" | "vi";
-  /** Written to assembled_reports.credits_cost. */
-  creditsCost?: number;
-  /** G19-S46: test seam for the tbr-quality.jsonl writer. */
-  qualityWriter?: TbrQualityWriter;
-  /** G19-S46: pipeline events (the self-report script logs phases + timings). */
-  onEvent?: PipelineEventHandler;
-}): Promise<TrustReportRunResult> {
-  const tier: ReportTier = args.tier ?? "standard";
-  const locale = args.locale ?? "en";
-  const project = await getProjectById(args.projectId);
+export async function prepareProjectReportBaseline(projectId: string): Promise<{
+  project: NonNullable<Awaited<ReturnType<typeof getProjectById>>>;
+  ownerEmail: string;
+  ctx: Extract<Awaited<ReturnType<typeof loadProjectReportContext>>, { ok: true }>["ctx"];
+  synthesisedAnalysis: boolean;
+}> {
+  const project = await getProjectById(projectId);
   if (!project) throw new Error("project_not_found");
   const ownerEmail = await resolveOwnerEmail(project.userId);
   if (!ownerEmail) throw new Error("owner_not_found");
@@ -953,6 +951,28 @@ export async function runTrustReportForProject(args: {
   }
   if (!loaded.ok) throw new Error(loaded.error);
   const ctx = loaded.ctx;
+  return { project, ownerEmail, ctx, synthesisedAnalysis };
+}
+
+/**
+ * Full Trusted Business Report for `projectId`, run by `requestedByUserId` (the
+ * evaluator). Throws on any failure — the caller charges only on return.
+ */
+export async function runTrustReportForProject(args: {
+  projectId: string;
+  requestedByUserId: string;
+  tier?: ReportTier;
+  locale?: "en" | "vi";
+  /** Written to assembled_reports.credits_cost. */
+  creditsCost?: number;
+  /** G19-S46: test seam for the tbr-quality.jsonl writer. */
+  qualityWriter?: TbrQualityWriter;
+  /** G19-S46: pipeline events (the self-report script logs phases + timings). */
+  onEvent?: PipelineEventHandler;
+}): Promise<TrustReportRunResult> {
+  const tier: ReportTier = args.tier ?? "standard";
+  const locale = args.locale ?? "en";
+  const { project, ctx, synthesisedAnalysis } = await prepareProjectReportBaseline(args.projectId);
 
   let finalEvent: PipelineEvent | null = null;
   const report = await generateAndPersistReport({

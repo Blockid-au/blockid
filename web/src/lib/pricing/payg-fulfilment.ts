@@ -206,7 +206,18 @@ export async function fulfilPaygReportCheckout(
         status: "PAID",
         paid_at: nowIso,
         expires_at: null,
-        metadata: { sku, pricing_version: PAYG_PRICING_VERSION, reconciled_from_webhook: true, stripe_event_id: event.id, payment_path: "card" },
+        metadata: {
+          sku,
+          pricing_version: PAYG_PRICING_VERSION,
+          reconciled_from_webhook: true,
+          stripe_event_id: event.id,
+          payment_path: "card",
+          // G35 evaluator deal flow: keep the buyer role so the generator
+          // reads the startup owner's data (server-authored session metadata).
+          ...(meta.bid_buyer_role === "evaluator" && str(meta.bid_evaluation_id)
+            ? { buyer_role: "evaluator", evaluation_id: str(meta.bid_evaluation_id) }
+            : {}),
+        },
       })
       .select(ORDER_COLS)
       .single();

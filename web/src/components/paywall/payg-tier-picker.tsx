@@ -40,6 +40,13 @@ export interface PaygTierPickerProps {
   firstTouch?: string;
   /** Called after a credits redeem; default navigates to the order. */
   onRedeemed?(orderId: string): void;
+  /**
+   * G35 evaluator deal flow: the `evaluations` row the evaluator buys through
+   * — sent with the checkout so the server authorises the buyer by it.
+   */
+  evaluationId?: string;
+  /** False hides "Use N credits" (the evaluator's credits run from its own dialog). Default true. */
+  allowCredits?: boolean;
 }
 
 /** Pure: the choices in display order — upgrades first (cheapest way up), then the available tiers. */
@@ -61,9 +68,10 @@ export function defaultChoiceIndex(choices: readonly PaygChoice[]): number {
 }
 
 /** Pure: the checkout request body for a choice (server re-validates everything). */
-export function checkoutBodyFor(choice: PaygChoice, businessId: string, firstTouch?: string): Record<string, string> {
+export function checkoutBodyFor(choice: PaygChoice, businessId: string, firstTouch?: string, evaluationId?: string): Record<string, string> {
   const base: Record<string, string> = { businessId };
   if (firstTouch) base.firstTouch = firstTouch;
+  if (evaluationId) base.evaluationId = evaluationId;
   return choice.kind === "upgrade" ? { ...base, upgradeFrom: choice.offer.from } : { ...base, tier: choice.offer.tier };
 }
 
@@ -75,7 +83,7 @@ function choiceTitle(c: PaygChoice): string {
   return c.kind === "upgrade" ? `Move up: ${c.offer.name}` : `${c.offer.name} report`;
 }
 
-export function PaygTierPicker({ offer, businessId, surface, creditBalance = 0, onlyTiers, firstTouch, onRedeemed }: PaygTierPickerProps) {
+export function PaygTierPicker({ offer, businessId, surface, creditBalance = 0, onlyTiers, firstTouch, onRedeemed, evaluationId, allowCredits = true }: PaygTierPickerProps) {
   const choices = useMemo(() => paygChoices(offer, onlyTiers), [offer, onlyTiers]);
   const [selected, setSelected] = useState(() => defaultChoiceIndex(choices));
   const [pending, setPending] = useState<"checkout" | "redeem" | null>(null);
@@ -99,7 +107,7 @@ export function PaygTierPicker({ offer, businessId, surface, creditBalance = 0, 
   }, [choices, surface, businessId]);
 
   const choice = choices[selected] ?? null;
-  const creditCost = choice?.kind === "tier" ? choice.offer.creditCost : null;
+  const creditCost = allowCredits && choice?.kind === "tier" ? choice.offer.creditCost : null;
   const canUseCredits = creditCost !== null && creditBalance >= creditCost;
 
   const pay = useCallback(async () => {
@@ -118,7 +126,7 @@ export function PaygTierPicker({ offer, businessId, surface, creditBalance = 0, 
       const res = await fetch("/api/reports/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(checkoutBodyFor(choice, businessId, firstTouch)),
+        body: JSON.stringify(checkoutBodyFor(choice, businessId, firstTouch, evaluationId)),
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; reason?: string };
       if (!res.ok || !data.ok || !data.url) {
@@ -131,7 +139,7 @@ export function PaygTierPicker({ offer, businessId, surface, creditBalance = 0, 
       setError(userErrorMessage(err, "Checkout could not start. Please try again."));
       setPending(null);
     }
-  }, [choice, businessId, firstTouch, surface]);
+  }, [choice, businessId, firstTouch, surface, evaluationId]);
 
   const redeem = useCallback(async () => {
     if (!choice || choice.kind !== "tier" || creditCost === null) return;
