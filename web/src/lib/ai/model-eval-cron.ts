@@ -157,7 +157,10 @@ export async function runModelEvalCron(params: CronParams, overrides: CronOverri
   const tick = await runEvalTick(params.mode, deps, { restart: params.restart, dryRun: params.dryRun });
   let coordinated = false;
   let decisions = 0;
-  if (tick.finalized && tick.state) {
+  // A finished run whose coordination never landed (the process died between the
+  // last tick and the write) is coordinated by the next tick of its period.
+  const uncoordinated = tick.status === "noop" && tick.state !== null && !tick.state.coordinated_at && tick.state.results.length > 0;
+  if ((tick.finalized || uncoordinated) && tick.state) {
     const freeLadders: Record<string, readonly string[]> = { ...deps.freeLists() };
     for (const p of EVAL_FREE_PROVIDERS) if (!freeLadders[p]?.length) freeLadders[p] = ai.ladderFor(p as Parameters<typeof ai.ladderFor>[0]);
     const defaults = overrides.defaultPaidLadders ?? {

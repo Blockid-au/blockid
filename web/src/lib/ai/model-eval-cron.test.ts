@@ -80,4 +80,17 @@ describe("runModelEvalCron", () => {
     expect(r.coordinated).toBe(false);
     expect(call.mock.calls.length).toBe(n);
   });
+
+  it("a finished run whose coordination was lost is coordinated by the next tick (no new model calls)", async () => {
+    const { runModelEvalCron } = await import("./model-eval-cron");
+    const stateFile = reports("model-eval-state-smoke.json");
+    const state = JSON.parse(readFileSync(stateFile, "utf-8"));
+    writeFileSync(stateFile, JSON.stringify({ ...state, coordinated_at: null }));
+    rmSync(reports("ai-model-scorecard.json"));
+    const n = call.mock.calls.length;
+    const r = await runModelEvalCron({ mode: "smoke" }, overrides());
+    expect(r).toMatchObject({ status: "noop", coordinated: true });
+    expect(call.mock.calls.length).toBe(n);
+    expect(existsSync(reports("ai-model-scorecard.json"))).toBe(true);
+  });
 });
