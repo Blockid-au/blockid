@@ -84,6 +84,8 @@ export interface EvalRunState {
   calls: number;
   judge_calls: number;
   judge_spent_usd: number;
+  /** Calls made per provider in this run (writer + judge). */
+  provider_calls?: Record<string, number>;
   candidates: Partial<Record<EvalTaskId, EvalCandidate[]>>;
   pending: EvalWorkItem[];
   results: EvalResultRow[];
@@ -136,7 +138,25 @@ export interface EvalDeps {
   runCapUsd?: number;
   monthlyBudgetUsd?: number;
   wallBudgetMs?: number;
+  /** Minimum ms between two calls to one provider (free-tier RPM limits). */
+  paceMs?: (provider: string) => number;
+  sleep?: (ms: number) => Promise<void>;
+  /** Max calls per provider per run — protects the production free-tier daily quota. */
+  providerCallCaps?: Partial<Record<string, number>>;
 }
+
+/** Free-tier pacing (requests/minute limits of the free plans). */
+export const DEFAULT_PACE_MS: Readonly<Record<string, number>> = Object.freeze({ groq: 2_100, cerebras: 2_100, sambanova: 3_000, openrouter: 3_100 });
+
+/**
+ * Per-run call caps for the free tiers: the eval must never burn the daily
+ * free quota production falls back on (OpenRouter `:free` is ~50 requests /
+ * day on an account under US$10 of credit).
+ */
+export const DEFAULT_PROVIDER_CALL_CAPS: Readonly<Record<EvalMode, Readonly<Record<string, number>>>> = Object.freeze({
+  smoke: Object.freeze({ openrouter: 9, groq: 60, cerebras: 60, sambanova: 30 }),
+  full: Object.freeze({ openrouter: 40, groq: 400, cerebras: 300, sambanova: 150 }),
+});
 
 export interface TickOptions {
   restart?: boolean;
@@ -389,11 +409,39 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
   };
   const timeLeft = () => startedAt + wall - deps.now();
 
+  const caps = deps.providerCallCaps ?? DEFAULT_PROVIDER_CALL_CAPS[mode];
+  const providerCalls = (run.provider_calls ??= {});
+  const capped = new Set<string>();
+  const lastCallAt = new Map<string, number>();
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const pace = async (provider: string) => {
+    const gap = deps.paceMs ? deps.paceMs(provider) : 0;
+    const last = lastCallAt.get(provider);
+    if (gap > 0 && last !== undefined) {
+      const wait = last + gap - deps.now();
+      if (wait > 0) await sleep(Math.min(wait, gap));
+    }
+    lastCallAt.set(provider, deps.now());
+  };
+  /** False (and records it once) when the provider's per-run call cap is spent. */
+  const underCap = (provider: string): boolean => {
+    const cap = caps[provider];
+    if (cap === undefined || (providerCalls[provider] ?? 0) < cap) return true;
+    if (!capped.has(provider)) {
+      capped.add(provider);
+      run.skipped.push({ provider, reason: `per-run call cap ${cap} reached (protects the production free quota)` });
+    }
+    return false;
+  };
+
   const callOnce = async (req: ModelCallRequest, worst: number): Promise<{ res: ModelCallResponse; cost: number } | null> => {
     if (!isEvalCallable(req.provider, req.model)) {
       return { res: { ok: false, text: "", latencyMs: 0, error: `refused: ${req.provider} is not an eval-callable provider` }, cost: 0 };
     }
+    if (!underCap(req.provider)) return null;
     if (!reserve(worst)) return null;
+    await pace(req.provider);
+    providerCalls[req.provider] = (providerCalls[req.provider] ?? 0) + 1;
     let res: ModelCallResponse;
     try {
       res = await deps.call({ ...req, timeoutMs: Math.max(1_000, Math.min(req.timeoutMs, timeLeft() - WALL_MARGIN_MS)) });
@@ -401,7 +449,9 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
       res = { ok: false, text: "", latencyMs: 0, error: err instanceof Error ? err.message : String(err) };
     }
     reserved -= worst;
-    const cost = res.ok || res.inputTokens !== undefined ? actualCallUsd(req.provider, req.model, req, res) : 0;
+    // A failed call that reached the provider may still have been billed: charge its
+    // worst case (zero on the free tiers) so the cap stays conservative.
+    const cost = res.ok || res.inputTokens !== undefined ? actualCallUsd(req.provider, req.model, req, res) : res.latencyMs > 0 ? worst : 0;
     run.spent_usd = Math.round((run.spent_usd + cost) * 1e8) / 1e8;
     budget.spent_usd = Math.round((budget.spent_usd + cost) * 1e8) / 1e8;
     return { res, cost };
@@ -426,6 +476,10 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
       // A paid model without a price row is never dialled (its spend could not be capped).
       run.skipped.push({ task: item.task, provider: item.provider, model: item.model, reason: "unpriced paid model" });
       done.add(item);
+      return true;
+    }
+    if (!underCap(item.provider)) {
+      done.add(item); // capped provider: the item is dropped from this run, not retried
       return true;
     }
     const r = await callOnce(req, worst);

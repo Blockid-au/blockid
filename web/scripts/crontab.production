@@ -144,6 +144,24 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # :23 — odd minute, off every */2 /5 /10 /15 /20 /30 tick and the :07/:17/:37 jobs.
 23 * * * * bash $RUN ai-balance --timeout 60
 
+# G35 A2 (pricing v5 §7.4) — model eval loop + coordinator (/api/cron/model-eval).
+# Task profiles × golden set (test-fixtures/model-eval) × eval candidates;
+# DeepInfra is the only paid provider it can reach, free tiers are paced and
+# capped per run so production's free quota is untouched. Hard cap US$1 per
+# run + own monthly budget (MODEL_EVAL_MONTHLY_BUDGET_USD, default US$5).
+# A run is resumable (≤ 240 s per tick, checkpointed); ticks after it finishes
+# are no-ops. A finished run writes content/reports/ai-model-scorecard.json(l)
+# + ai-routing-policy.json: free ladders auto promote/demote, the paid report
+# ladder only gets a PROPOSAL (admin Approve / Rollback on /admin/ai-health).
+#   Nightly smoke (3 dev prompts / task): 18:53 UTC (04:53 AEST, quiet hours)
+#   + continuation ticks 19:13 / 19:33 — odd minutes, off every */2 /5 /10 /15
+#   /20 /30 tick and the :07/:17/:23/:37 jobs.
+#   Weekly full (held-out + judge sample): Sun 05:00 UTC, continuation every
+#   10 min until 07:50 (a full run is ~1,000 calls; one HTTP tick cannot hold it).
+53 18 * * * bash $RUN model-eval --timeout 290
+13,33 19 * * * bash $RUN model-eval --timeout 290
+0,10,20,30,40,50 5-7 * * 0 bash $RUN 'model-eval?mode=full' --timeout 290
+
 # Weekly Sunday 04:00 UTC: crawl OpenRouter/Groq/SambaNova/Cerebras catalogues,
 # rank by (context length, known-good family, prior-check latency), write top-10
 # candidates to content/ai-model-candidates.json, auto-inject top-3 into the

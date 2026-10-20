@@ -383,7 +383,7 @@ export function familyOf(provider: string, model: string): string {
 }
 
 /** Max free-pool (uncatalogued) models added per task — keeps a run inside its wall clock. */
-export const MAX_FREE_POOL_CANDIDATES = 6;
+export const MAX_FREE_POOL_CANDIDATES = 4;
 
 /**
  * Who is evaluated for a task: the catalogue rows for its role (callable

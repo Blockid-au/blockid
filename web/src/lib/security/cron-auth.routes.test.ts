@@ -105,6 +105,7 @@ const POSITIVE_SKIP: Record<string, string> = {
   "cron-health": "own test: cron-health/route.test.ts (positive path writes an alert-state file)",
   "discover-models": "own test: discover-models/route.test.ts",
   "milestone-report": "own test: milestone-report/route.test.ts",
+  "model-eval": "live model calls + runtime file writes (own test: model-eval/route.test.ts)",
   "nightly-clevel-review": "spawns scripts/nightly-clevel-review.mjs (static guard only)",
   "publish-insight": "writes content/insights + manifest (static guard only)",
   "refresh-models": "own test: refresh-models/route.test.ts",
