@@ -78,6 +78,7 @@ import {
 } from "@/lib/ai/anthropic-tier";
 import { AICapacityError } from "@/lib/ai/capacity";
 import { PROVIDER_BUDGET_RETRY_AFTER_SEC, balanceRoutedProviders, readBalanceFlags } from "@/lib/ai/balance-flags";
+import { freeLadderWithPolicy, paidLadderWithPolicy } from "@/lib/ai/routing-policy";
 import { type RunStrikeSink, RunStruckError, classifyRunStrike } from "@/lib/ai/run-strikes";
 import { isDailyCapReached, notifyCapReached, recordPaidSpend } from "@/lib/ai/spend-guard";
 import { cachedProviderStatus, probeProviders, readProviderStatusFile, PROBE_TTL_MS, type ProbeProvider } from "@/lib/ai/provider-status";
@@ -286,12 +287,14 @@ function getDynamicModels(provider: string, fallback: string[]): string[] {
     if (Array.isArray(list) && list.length > 0) {
       // Use ONLY the top picks (keeps the chain short → far fewer 429 retries).
       // The curated `fallback` is the safety net when no config file exists.
-      return list;
+      return freeLadderWithPolicy(provider, list);
     }
   } catch {
     /* no config yet → curated defaults */
   }
-  return fallback;
+  // A2 (G35 §7.4): the coordinator's free routing policy reorders / skips
+  // rungs of this ladder only — no file ⇒ the ladder unchanged.
+  return freeLadderWithPolicy(provider, fallback);
 }
 
 // ── Per-model failure cooldown ────────────────────────────────────────
@@ -1583,7 +1586,9 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report", l
 
   let lastErr: Error | null = null;
   const scoped = scopedReportPolicy(opts);
-  const models = opts.visionImages?.length ? ["Qwen/Qwen3-VL-235B-A22B-Instruct"] : requiresDeepInfra(opts) ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
+  // A2 (G35 §7.4): an admin-approved paid ladder may reorder these rungs (never add
+  // one — the scoped list stays inside REPORT_ADMITTED_MODELS); no approval ⇒ unchanged.
+  const models = opts.visionImages?.length ? ["Qwen/Qwen3-VL-235B-A22B-Instruct"] : requiresDeepInfra(opts) ? paidLadderWithPolicy(cls, REPORT_POLICY_MODELS[cls]) : paidLadderWithPolicy(cls, DEEPINFRA_MODELS_BY_CLASS[cls]);
   const readyRungs = readyPaidModels("deepinfra", models);
   if (readyRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
   // G33-T05: text calls stream, and a model expected to miss the remaining
