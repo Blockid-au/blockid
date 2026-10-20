@@ -130,6 +130,27 @@ export interface ReportV2JobDeps {
   recordStageTimings?: (row: StageTimingsRow) => Promise<void>;
   /** G34 F02/S3 — immutable revision of the finished document (revision.ts). Optional, best-effort. */
   commitRevision?: (row: FullReportRow, envelope: FullReportV2Envelope, sviVersion: string) => Promise<unknown>;
+  /**
+   * G35 P2-3 — settle a paid guest Full order handed to this analysis
+   * (`guest_analyses.report_data.fullReport.analysisId`, full-settle.ts):
+   * `done` → delivered; terminal `failed` (attempts exhausted) → failed +
+   * "refund needed" ops alert. Called only for rows with a delivery address
+   * (every guest Full row has one); a row no order points at matches
+   * nothing. Optional, never fails the run.
+   */
+  settleGuestOrder?: (analysisId: string, outcome: { status: "done" } | { status: "failed"; error: string }) => Promise<unknown>;
+}
+
+/** G35 P2-3 — best-effort guest-order settlement (see ReportV2JobDeps.settleGuestOrder). */
+async function settleLinkedGuestOrder(
+  deps: ReportV2JobDeps,
+  row: Pick<FullReportRow, "id" | "full_report_email">,
+  outcome: { status: "done" } | { status: "failed"; error: string },
+): Promise<void> {
+  if (!deps.settleGuestOrder || !row.full_report_email) return;
+  await Promise.resolve()
+    .then(() => deps.settleGuestOrder!(row.id, outcome))
+    .catch((err: unknown) => console.error("[report-v2-job] guest order settle failed —", err instanceof Error ? err.message : String(err), { analysisId: row.id }));
 }
 
 /**
@@ -401,6 +422,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
   const existing = isReportV2Envelope(row.full_report_json) ? row.full_report_json : null;
   if (existing?.report) {
     await deps.finish(id, { status: "done", report: existing, error: null });
+    await settleLinkedGuestOrder(deps, row, { status: "done" });
     const fresh = (await deps.load(id)) ?? row;
     const emailed = await deps.deliver({ ...fresh, full_report_status: "done", full_report_json: existing }, existing);
     return { outcome: "already_done", emailed };
@@ -409,6 +431,10 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
   const intake = intakeFromRow(row);
   if (!intake) {
     await deps.finish(id, { status: "failed", report: null, error: "analysis has no signals to score" });
+    // The cron re-claims it while attempts remain; the last one is terminal.
+    if ((row.full_report_attempts ?? 0) >= FULL_REPORT_MAX_ATTEMPTS) {
+      await settleLinkedGuestOrder(deps, row, { status: "failed", error: "analysis has no signals to score" });
+    }
     return { outcome: "no_signals" };
   }
 
@@ -567,6 +593,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       if (released) console.warn("[report-v2-job] free grant released after terminal failure", { analysisId: id, released });
       const refunded = await (deps.refundCredits?.(id) ?? Promise.resolve(0)).catch(() => 0);
       if (refunded) console.warn("[report-v2-job] credits refunded after terminal failure", { analysisId: id, refunded });
+      await settleLinkedGuestOrder(deps, row, { status: "failed", error: message });
     }
     return { outcome: "failed", error: message, retryable };
   } finally {
@@ -587,6 +614,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     if (!retryable) {
       await deps.releaseGrant(id).catch(() => 0);
       await (deps.refundCredits?.(id) ?? Promise.resolve(0)).catch(() => 0);
+      await settleLinkedGuestOrder(deps, row, { status: "failed", error });
     }
     return { outcome: "failed", error, retryable };
   }
@@ -641,6 +669,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
   }
 
   await deps.finish(id, { status: "done", report: envelope, error: null });
+  await settleLinkedGuestOrder(deps, row, { status: "done" });
   // G34 F02/S3 — immutable revision (history / trend). Best-effort: never fails the run or its delivery.
   await Promise.resolve().then(() => deps.commitRevision?.(row, envelope, built.analysis.version)).catch(() => undefined);
   const fresh = (await deps.load(id)) ?? row;
@@ -779,6 +808,7 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     heartbeatEveryMs: 10_000,
     recordStageTimings,
     commitRevision: (row, envelope, sviVersion) => commitFirstAnalysisRevision(row, envelope, sviVersion),
+    settleGuestOrder: async (analysisId, outcome) => (await import("@/lib/guest-analysis/full-settle")).settleGuestFullOrder(analysisId, outcome),
   };
 }
 

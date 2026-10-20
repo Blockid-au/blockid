@@ -179,7 +179,12 @@ export type ClaimEvaluationResult =
   | { ok: false; error: "not_found" | "email_mismatch" | "service_unavailable" | "claim_failed"; message: string };
 
 export type EvaluatorProjectAccess =
-  | { allowed: false }
+  /**
+   * `error: true` = the check could not run (no database / query error), so
+   * "not allowed" is NOT a verdict. Interactive callers deny either way; the
+   * paid-order generator retries instead of refunding (G35 P2-2).
+   */
+  | { allowed: false; error?: true }
   | { allowed: true; via: "evaluator" | "founder_claimed"; evaluation: Evaluation };
 
 // ---------------------------------------------------------------------------
@@ -567,14 +572,15 @@ export async function canAccessProjectAsEvaluator(
   projectId: string,
 ): Promise<EvaluatorProjectAccess> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { allowed: false };
+  if (!supabase) return { allowed: false, error: true };
   const { data, error } = await supabase
     .from("evaluations")
     .select(EVALUATION_COLUMNS)
     .eq("project_id", projectId)
     .or(`evaluator_user_id.eq.${userId},founder_user_id.eq.${userId}`)
     .limit(5);
-  if (error || !data) return { allowed: false };
+  if (error) return { allowed: false, error: true };
+  if (!data) return { allowed: false };
   const rows = (data as Row[]).map(mapEvaluationRow);
   const asEvaluator = rows.find((r) => r.evaluatorUserId === userId);
   if (asEvaluator) return { allowed: true, via: "evaluator", evaluation: asEvaluator };

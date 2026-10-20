@@ -56,10 +56,15 @@ export interface RevenueEventArgs {
   detail: Record<string, unknown>;
 }
 
+/**
+ * `evaluator: true` (only ever set for evaluator orders — founder calls carry
+ * no such key) makes the e-mail link the order-scoped view instead of the
+ * founder ReportV2 page, which is scoped to the buyer's own project.
+ */
 export interface PaygEmailSenders {
-  paid?: (args: { to: string; orderId: string; tier: PaygTier; amountCents: number; slaBusinessDays: number; isTierChange?: boolean }) => Promise<unknown>;
-  ready?: (args: { to: string; orderId: string; tier: PaygTier }) => Promise<unknown>;
-  inReview?: (args: { to: string; orderId: string; dueAt: Date; slaBusinessDays: number }) => Promise<unknown>;
+  paid?: (args: { to: string; orderId: string; tier: PaygTier; amountCents: number; slaBusinessDays: number; isTierChange?: boolean; evaluator?: boolean }) => Promise<unknown>;
+  ready?: (args: { to: string; orderId: string; tier: PaygTier; evaluator?: boolean }) => Promise<unknown>;
+  inReview?: (args: { to: string; orderId: string; dueAt: Date; slaBusinessDays: number; evaluator?: boolean }) => Promise<unknown>;
 }
 
 export interface PaygFulfilDeps {
@@ -302,6 +307,9 @@ export async function fulfilPaygReportCheckout(
 
   const slaDays = await (deps.slaBusinessDays ?? defaultSlaDays)().catch(() => 2);
   const to = await buyerEmail(db, session, userId);
+  // Evaluator deal-flow orders link the order-scoped view (server-authored
+  // session metadata, same flag the checkout success_url keys on).
+  const ev = meta.bid_buyer_role === "evaluator" ? { evaluator: true as const } : {};
 
   if (kind === "report") {
     const outcome = await (deps.enqueue ?? defaultEnqueue)(db, { orderId, businessId }).catch((err: unknown) => ({
@@ -309,14 +317,14 @@ export async function fulfilPaygReportCheckout(
       reason: err instanceof Error ? err.message : String(err),
     }));
     if (!outcome.ok) console.warn("[blockid:payg] enqueue failed", { order_id: orderId, reason: outcome.reason });
-    if (to) safe(deps.email?.paid?.({ to, orderId, tier: s.tier, amountCents: gross, slaBusinessDays: slaDays }), "paid e-mail");
+    if (to) safe(deps.email?.paid?.({ to, orderId, tier: s.tier, amountCents: gross, slaBusinessDays: slaDays, ...ev }), "paid e-mail");
     return { ok: true, orderId, sku, kind, status: "PAID", duplicate: false };
   }
 
   const applied = await applyPaygUpgrade(db, { ...order!, upgrade_of_order_id: order!.upgrade_of_order_id ?? upgradeOfMeta }, sku, { userId, businessId, now, slaDays });
   if (!applied.ok) {
     console.error("[blockid:payg] upgrade could not be applied — order left PAID for manual follow-up", { order_id: orderId, reason: applied.reason });
-    if (to) safe(deps.email?.paid?.({ to, orderId, tier: s.tier, amountCents: gross, slaBusinessDays: slaDays, isTierChange: true }), "paid e-mail");
+    if (to) safe(deps.email?.paid?.({ to, orderId, tier: s.tier, amountCents: gross, slaBusinessDays: slaDays, isTierChange: true, ...ev }), "paid e-mail");
     return { ok: true, orderId, sku, kind, status: "PAID", duplicate: false };
   }
 
@@ -339,9 +347,9 @@ export async function fulfilPaygReportCheckout(
   });
 
   if (to) {
-    safe(deps.email?.paid?.({ to, orderId, tier: s.tier, amountCents: gross, slaBusinessDays: slaDays, isTierChange: true }), "paid e-mail");
-    if (applied.status === "READY") safe(deps.email?.ready?.({ to, orderId: applied.baseOrderId, tier: s.tier }), "ready e-mail");
-    else if (applied.slaDueAt) safe(deps.email?.inReview?.({ to, orderId, dueAt: applied.slaDueAt, slaBusinessDays: slaDays }), "in-review e-mail");
+    safe(deps.email?.paid?.({ to, orderId, tier: s.tier, amountCents: gross, slaBusinessDays: slaDays, isTierChange: true, ...ev }), "paid e-mail");
+    if (applied.status === "READY") safe(deps.email?.ready?.({ to, orderId: applied.baseOrderId, tier: s.tier, ...ev }), "ready e-mail");
+    else if (applied.slaDueAt) safe(deps.email?.inReview?.({ to, orderId, dueAt: applied.slaDueAt, slaBusinessDays: slaDays, ...ev }), "in-review e-mail");
   }
   return { ok: true, orderId, sku, kind, status: applied.status, duplicate: false };
 }
@@ -356,23 +364,27 @@ export async function notifyPaygOrderSettled(
   deps: { email: PaygEmailSenders; slaBusinessDays?: () => Promise<number> },
 ): Promise<{ sent: boolean; reason?: string }> {
   let userId: string | null = null;
+  let evaluator = false;
   try {
-    const { data } = await db.from("report_orders").select("user_id").eq("id", settled.orderId).maybeSingle();
+    const { data } = await db.from("report_orders").select("user_id, metadata").eq("id", settled.orderId).maybeSingle();
     userId = str((data as Row | null)?.user_id);
+    const md = (data as Row | null)?.metadata;
+    evaluator = Boolean(md) && typeof md === "object" && (md as Row).buyer_role === "evaluator";
   } catch {
     userId = null;
   }
+  const ev = evaluator ? { evaluator: true as const } : {};
   if (!userId) return { sent: false, reason: "order_not_found" };
   const to = await userEmail(db, userId);
   if (!to) return { sent: false, reason: "no_email" };
   if (settled.status === "IN_REVIEW") {
     if (!settled.slaDueAt || !deps.email.inReview) return { sent: false, reason: "no_sender" };
     const days = await (deps.slaBusinessDays ?? defaultSlaDays)().catch(() => 2);
-    await deps.email.inReview({ to, orderId: settled.orderId, dueAt: settled.slaDueAt, slaBusinessDays: days });
+    await deps.email.inReview({ to, orderId: settled.orderId, dueAt: settled.slaDueAt, slaBusinessDays: days, ...ev });
     return { sent: true };
   }
   if (!deps.email.ready) return { sent: false, reason: "no_sender" };
-  await deps.email.ready({ to, orderId: settled.orderId, tier: settled.paygTier });
+  await deps.email.ready({ to, orderId: settled.orderId, tier: settled.paygTier, ...ev });
   return { sent: true };
 }
 

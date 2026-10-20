@@ -92,7 +92,7 @@ const getProjectByIdMock = vi.fn();
 vi.mock("@/lib/projects", () => ({
   findSVIAccountWithFallback: (e: string, p: string | null, cols: string) => findAccountMock(e, p, cols),
   findLatestAnalysisWithFallback: (e: string, p: string | null, cols: string) => findAnalysisMock(e, p, cols),
-  getProjectById: (id: string) => getProjectByIdMock(id),
+  getProjectById: (id: string, opts?: unknown) => (opts === undefined ? getProjectByIdMock(id) : getProjectByIdMock(id, opts)),
 }));
 
 import {
@@ -100,6 +100,7 @@ import {
   generateAndPersistReport,
   loadHubEvidenceItems,
   loadProjectReportContext,
+  prepareProjectReportBaseline,
   projectReportToSnapshotShapes,
   runRescoreForProject,
   runTrustReportForProject,
@@ -455,6 +456,28 @@ describe("runTrustReportForProject (evaluator)", () => {
     getProjectByIdMock.mockResolvedValue(null);
     await expect(runTrustReportForProject({ projectId: "nope", requestedByUserId: "u-1" })).rejects.toThrow("project_not_found");
     expect(orchestrateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("prepareProjectReportBaseline — strictLookups (G35 P2-2)", () => {
+  it("default (every existing caller): an owner lookup error still reads as owner_not_found; project lookup unchanged", async () => {
+    state.queue.push({ table: "app_users", error: { message: "connection reset" } });
+    await expect(prepareProjectReportBaseline("p-1")).rejects.toThrow("owner_not_found");
+    expect(getProjectByIdMock).toHaveBeenCalledWith("p-1");
+    expect(getProjectByIdMock.mock.calls[0]).toHaveLength(1);
+  });
+
+  it("strict: an owner lookup error throws the retryable owner_lookup_failed", async () => {
+    state.queue.push({ table: "app_users", error: { message: "connection reset" } });
+    await expect(prepareProjectReportBaseline("p-1", { strictLookups: true })).rejects.toThrow(/^owner_lookup_failed: connection reset$/);
+    expect(getProjectByIdMock).toHaveBeenCalledWith("p-1", { throwOnError: true });
+  });
+
+  it("strict: a genuinely missing project / owner stays permanent", async () => {
+    getProjectByIdMock.mockResolvedValueOnce(null);
+    await expect(prepareProjectReportBaseline("nope", { strictLookups: true })).rejects.toThrow("project_not_found");
+    state.queue.push({ table: "app_users", data: null });
+    await expect(prepareProjectReportBaseline("p-1", { strictLookups: true })).rejects.toThrow("owner_not_found");
   });
 });
 

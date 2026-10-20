@@ -22,7 +22,7 @@ import { sendEmail, type SendResult } from "@/lib/email-core";
 import { complianceFooter } from "@/lib/email";
 import { EMAIL_BUTTON_STYLE, EMAIL_CARD_STYLE, EMAIL_THEME } from "./theme";
 import type { PaygTier } from "@/lib/pricing/v5-payg";
-import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { legacyReportOrderPath, reportOrderPath } from "@/lib/paywall/report-delivery";
 import { LEGAL_ENTITY_ABN_LABEL, tradingAsLine } from "@/lib/site/legal-entity";
 
 const TIER_NAME: Record<PaygTier, string> = { snapshot: "Snapshot", full: "Full", verified: "Verified" };
@@ -31,8 +31,16 @@ function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au").replace(/\/$/, "");
 }
 
-function orderUrl(orderId: string): string {
-  return `${siteUrl()}${reportOrderPath(orderId)}`;
+/**
+ * Where an order e-mail sends the buyer. A founder lands on the ReportV2
+ * page; an EVALUATOR (`report_orders.metadata.buyer_role = "evaluator"`)
+ * lands on the order-scoped view — the ReportV2 page resolves access for the
+ * buyer's own default project, so an evaluator who also owns a startup would
+ * see their own report there. Same target as the evaluator checkout
+ * success_url (`&view=legacy`).
+ */
+export function orderUrl(orderId: string, evaluator = false): string {
+  return `${siteUrl()}${evaluator ? legacyReportOrderPath(orderId) : reportOrderPath(orderId)}`;
 }
 
 function esc(s: string): string {
@@ -66,7 +74,7 @@ function card(eyebrow: string, heading: string, bodyHtml: string, cta: { href: s
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:${EMAIL_THEME.navy};font-weight:500;">${esc(eyebrow)}</p>
           <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:600;color:${EMAIL_THEME.ink};">${esc(heading)}</h1>
           ${bodyHtml}
-          ${cta ? `<p style="margin:24px 0;text-align:center;"><a href="${cta.href}" style="${EMAIL_BUTTON_STYLE}">${esc(cta.label)}</a></p>` : ""}
+          ${cta ? `<p style="margin:24px 0;text-align:center;"><a href="${cta.href.replace(/&/g, "&amp;")}" style="${EMAIL_BUTTON_STYLE}">${esc(cta.label)}</a></p>` : ""}
         </td></tr>
       </table>
     </td></tr>
@@ -95,6 +103,8 @@ export async function sendReportOrderPaid(args: {
   slaBusinessDays: number;
   /** true for a D28 tier change on an existing report. */
   isTierChange?: boolean;
+  /** true when the buyer is an evaluator — order-scoped link (see orderUrl). */
+  evaluator?: boolean;
 }): Promise<SendResult> {
   const { unsubscribeUrl, footerHtml } = await complianceFooter(args.to, { theme: "light" });
   const name = `${TIER_NAME[args.tier]} report`;
@@ -103,7 +113,7 @@ export async function sendReportOrderPaid(args: {
     `Thank you — your ${name} is paid`,
     para(`We received ${esc(audCents(args.amountCents))} inc. GST for your ${esc(name)}. Stripe e-mails your tax invoice separately.`) +
       para(esc(nextStepsText(args.tier, args.slaBusinessDays, args.isTierChange === true))),
-    { href: orderUrl(args.orderId), label: "Track your report" },
+    { href: orderUrl(args.orderId, args.evaluator === true), label: "Track your report" },
     footerHtml,
   );
   return sendEmail({
@@ -115,14 +125,14 @@ export async function sendReportOrderPaid(args: {
   });
 }
 
-export async function sendReportOrderReady(args: { to: string; orderId: string; tier: PaygTier }): Promise<SendResult> {
+export async function sendReportOrderReady(args: { to: string; orderId: string; tier: PaygTier; evaluator?: boolean }): Promise<SendResult> {
   const { unsubscribeUrl, footerHtml } = await complianceFooter(args.to, { theme: "light" });
   const name = `${TIER_NAME[args.tier]} report`;
   const html = card(
     "BlockID — Report ready",
     `Your ${name} is ready`,
     para(`Your ${esc(name)} is ready to read online and download as a PDF.`),
-    { href: orderUrl(args.orderId), label: "Open your report" },
+    { href: orderUrl(args.orderId, args.evaluator === true), label: "Open your report" },
     footerHtml,
   );
   return sendEmail({ to: args.to, subject: `Your BlockID ${name} is ready`, html, unsubscribeUrl, template: "report_order_ready" });
@@ -133,6 +143,7 @@ export async function sendReportOrderInReview(args: {
   orderId: string;
   dueAt: Date;
   slaBusinessDays: number;
+  evaluator?: boolean;
 }): Promise<SendResult> {
   const { unsubscribeUrl, footerHtml } = await complianceFooter(args.to, { theme: "light" });
   const days = args.slaBusinessDays;
@@ -141,7 +152,7 @@ export async function sendReportOrderInReview(args: {
     "Your Verified report is with our team",
     para("Your Full report has been written and the BlockID team is now reviewing the evidence behind it.") +
       para(`It will be ready within ${days} business day${days === 1 ? "" : "s"} — by <strong>${esc(sydneyDueLabel(args.dueAt))}</strong>. We will e-mail you as soon as it is delivered.`),
-    { href: orderUrl(args.orderId), label: "Track your report" },
+    { href: orderUrl(args.orderId, args.evaluator === true), label: "Track your report" },
     footerHtml,
   );
   return sendEmail({

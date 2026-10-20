@@ -304,6 +304,73 @@ describe("runReportV2Job", () => {
     expect(h.deps.refundCredits).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID);
   });
 
+  describe("G35 P2-3 — settles a linked guest Full order", () => {
+    function withSettle(h: Harness) {
+      const settle = vi.fn(async () => "delivered");
+      h.deps.settleGuestOrder = settle;
+      return settle;
+    }
+
+    it("done → settle done (after the row is finished)", async () => {
+      const h = harness(row());
+      const settle = withSettle(h);
+      expect((await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps)).outcome).toBe("done");
+      expect(settle).toHaveBeenCalledTimes(1);
+      expect(settle).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, { status: "done" });
+    });
+
+    it("a re-delivered (already done) envelope also settles done", async () => {
+      const existing = { ...newEnvelope(SAMPLE_ANALYSIS_ID, "Acme", NOW), report: demoReportV2(), reportId: "rpt-old", completedAt: NOW.toISOString() };
+      const h = harness(row({ full_report_status: "failed", full_report_json: existing }));
+      const settle = withSettle(h);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+      expect(settle).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, { status: "done" });
+    });
+
+    it("a retryable failure never settles; the terminal one settles failed with the error", async () => {
+      const retry = harness(row({ full_report_attempts: 1 }), vi.fn().mockRejectedValue(new Error("engine_overloaded")));
+      const retrySettle = withSettle(retry);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, retry.deps);
+      expect(retrySettle).not.toHaveBeenCalled();
+
+      const last = harness(row({ full_report_attempts: 3 }), vi.fn().mockRejectedValue(new Error("engine_overloaded")));
+      const lastSettle = withSettle(last);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, last.deps);
+      expect(lastSettle).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, { status: "failed", error: "engine_overloaded" });
+
+      const noDoc = harness(row({ full_report_attempts: 3 }), vi.fn().mockResolvedValue(assembled({ reportV2: undefined })));
+      const noDocSettle = withSettle(noDoc);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, noDoc.deps);
+      expect(noDocSettle).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, { status: "failed", error: "pipeline returned no ReportV2 document" });
+    });
+
+    it("no signals: settles failed only on the last attempt", async () => {
+      const early = harness(row({ intake: {}, full_report_attempts: 1 }));
+      const earlySettle = withSettle(early);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, early.deps);
+      expect(earlySettle).not.toHaveBeenCalled();
+      const last = harness(row({ intake: {}, full_report_attempts: 3 }));
+      const lastSettle = withSettle(last);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, last.deps);
+      expect(lastSettle).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, { status: "failed", error: "analysis has no signals to score" });
+    });
+
+    it("a row without a delivery address (an account run) is never looked up; a throwing settle never fails the run", async () => {
+      const owner = harness(row({ user_id: "u-1", full_report_email: null }));
+      const ownerSettle = withSettle(owner);
+      await runReportV2Job(SAMPLE_ANALYSIS_ID, owner.deps);
+      expect(ownerSettle).not.toHaveBeenCalled();
+
+      const h = harness(row());
+      h.deps.settleGuestOrder = vi.fn(async () => {
+        throw new Error("db down");
+      });
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      expect((await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps)).outcome).toBe("done");
+      expect(h.deliver).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("a usable run with no ReportV2 projection is a failure, not a silent S32 fallback", async () => {
     const h = harness(row(), vi.fn().mockResolvedValue(assembled({ reportV2: undefined })));
     const out = await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);

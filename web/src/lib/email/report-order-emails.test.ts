@@ -51,6 +51,19 @@ describe("report order e-mails", () => {
     expect(sydneyDueLabel(due)).toMatch(/Thursday,? 22 October 2026.*\(Sydney time\)/);
   });
 
+  it("P2-1: evaluator orders link the order-scoped view (never the founder ReportV2 page); founders unchanged", async () => {
+    await sendReportOrderPaid({ to: "e@x.au", orderId: "o6", tier: "full", amountCents: 4900, slaBusinessDays: 2, evaluator: true });
+    await sendReportOrderReady({ to: "e@x.au", orderId: "o6", tier: "full", evaluator: true });
+    await sendReportOrderInReview({ to: "e@x.au", orderId: "o6", dueAt: new Date(), slaBusinessDays: 2, evaluator: true });
+    for (const [a] of sendEmailMock.mock.calls) {
+      expect(a.html).toContain('href="https://blockid.au/workspace/reports/order?order=o6&amp;view=legacy"');
+      expect(a.html).not.toContain("/workspace/reports/business?order=");
+    }
+    sendEmailMock.mockClear();
+    await sendReportOrderReady({ to: "f@x.au", orderId: "o7", tier: "full" });
+    expect(sendEmailMock.mock.calls[0][0].html).toContain('href="https://blockid.au/workspace/reports/business?order=o7"');
+  });
+
   it("none of them says upgrade / buy (EM08)", async () => {
     await sendReportOrderPaid({ to: "f@x.au", orderId: "o5", tier: "full", amountCents: 3000, slaBusinessDays: 2, isTierChange: true });
     await sendReportOrderReady({ to: "f@x.au", orderId: "o5", tier: "full" });
