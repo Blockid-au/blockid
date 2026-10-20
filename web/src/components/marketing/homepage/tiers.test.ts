@@ -11,8 +11,10 @@ import {
   HOMEPAGE_TIERS,
   audLabel,
   heroTierChips,
+  homepageTiers,
   requireCents,
 } from "./tiers";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 // The homepage's provenance gate, extended to prices. A price shown to a
 // visitor that differs from what Stripe charges is a compliance problem, so
@@ -184,6 +186,42 @@ describe("heroTierChips", () => {
   it("carries a gist for each so the strip says what you get, not just a price", () => {
     for (const chip of heroTierChips()) {
       expect(chip.gist.trim().length).toBeGreaterThan(10);
+    }
+  });
+});
+
+// Pricing v5 P5 — the report rung follows platform_config.payg_enabled.
+describe("homepageTiers(view) — Pricing v5 P5", () => {
+  it("flag OFF is today's ladder, object for object", () => {
+    expect(homepageTiers(PAYG_OFF_VIEW)).toBe(HOMEPAGE_TIERS);
+    expect(homepageTiers()).toBe(HOMEPAGE_TIERS);
+    const report = HOMEPAGE_TIERS.find((t) => t.id === "report")!;
+    expect(report.ask).toBe("A$3, once. No account, no subscription");
+    expect(heroTierChips(PAYG_OFF_VIEW).map((c) => c.label)).toEqual(["Free", "A$3", "A$29/mo"]);
+  });
+
+  it("flag ON: the report rung is the Snapshot entry 'from A$19', one-off inc. GST, pointing at the PAYG block", () => {
+    const tiers = homepageTiers(PAYG_ON_VIEW);
+    expect(tiers.map((t) => t.id)).toEqual(["free", "report", "workspace"]);
+    const report = tiers.find((t) => t.id === "report")!;
+    expect(report.price).toBe("from A$19");
+    expect(report.priceSuffix).toBe("one-off, inc. GST");
+    expect(report.cta.href).toBe("/pricing#pay-as-you-go");
+    const text = JSON.stringify(report);
+    for (const price of ["A$19", "A$49", "A$149"]) expect(text).toContain(price);
+    expect(text).not.toMatch(/A\$3(?![\d,.])/);
+    // Free + workspace rungs are untouched.
+    expect(tiers[0]).toBe(HOMEPAGE_TIERS[0]);
+    expect(tiers[2]).toBe(HOMEPAGE_TIERS[2]);
+    expect(heroTierChips(PAYG_ON_VIEW).map((c) => c.label)).toEqual(["Free", "from A$19", "A$29/mo"]);
+  });
+
+  it("flag ON: still exactly one emphasised rung and no scarcity language", () => {
+    const tiers = homepageTiers(PAYG_ON_VIEW);
+    expect(tiers.filter((t) => t.emphasis).map((t) => t.id)).toEqual(["report"]);
+    const text = JSON.stringify(tiers).toLowerCase();
+    for (const banned of ["most popular", "limited", "hurry", "% off", "discount", "expires", "act now"]) {
+      expect(text).not.toContain(banned);
     }
   });
 });
