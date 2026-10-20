@@ -40,6 +40,7 @@ import { generateTrustReportForOrder } from "@/lib/paywall/report-generator";
 import { refundFailedOrder } from "@/lib/paywall/report-refund";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import type { SettledOrder } from "@/lib/paywall/report-order-worker";
+import { readBalanceFlags } from "@/lib/ai/balance-flags";
 
 /** G35 Pricing v5 (D29): Verified SLA days from platform_config (default 2). */
 async function verifiedSlaBusinessDays(): Promise<number> {
@@ -64,7 +65,6 @@ async function onSettled(order: SettledOrder): Promise<void> {
     slaBusinessDays: verifiedSlaBusinessDays,
   });
 }
-import { readBalanceFlags } from "@/lib/ai/balance-flags";
 
 export const dynamic = "force-dynamic";
 // Background generation may take up to REPORT_ORDER_DEADLINE_MS (7 min) + grace.
