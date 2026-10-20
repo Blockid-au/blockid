@@ -73,7 +73,7 @@ Order on any page that lists audiences: **Investors → Accelerators → Advisor
 |---|---|---|
 | **Startup Value Index (SVI)** · "SVI score" · "your score" | the 0–100 composite score | "startup index" (lower-case, as a product), "Business ID score", "readiness score" as a product name |
 | **8 SVI dimensions** (UI labels) · **eight dimensions** (prose) | the public rubric | "13 criteria" anywhere except `/methodology` (rubric depth) and inside the product/report |
-| **Trusted Business Report (TBR)** | the A$3 full report, for founders and for evaluators; also what a guest buys on `/one-click-report` | "Trust BizReport", "One-Click Report" as a product name (say "the A$3 Trusted Business Report"), "Business Report" alone |
+| **Trusted Business Report (TBR)** | the full report, for founders and for evaluators. Pricing v5 (effective when `payg_enabled=true`, § 4c): sold one-off as **Snapshot / Full / Verified** — what a guest buys on `/one-click-report` and `/analyze`; flag OFF: the legacy one-off report | "Trust BizReport", "One-Click Report" as a product name (say "the Trusted Business Report", or the tier: "a Full report"), "Business Report" alone |
 | **Investor Dossier** (capitalised) | the evaluator-side report | "investor dossier", "Investor dossier" |
 | **Money Finder** | eligibility match for grants/investors | "Do you need money?" as a nav/footer CTA (it stays as the `/funding` page question only) |
 | **Founder Radar** | deadline-watch e-mails (Starter bundle) | "Money Radar" in public copy (the workspace tile keeps its name) |
@@ -85,7 +85,7 @@ Order on any page that lists audiences: **Investors → Accelerators → Advisor
 | Credentials | Founder Institute · Spacecubed AI Fellowship · NVIDIA Inception | anything else |
 | Method | "grounded in the founder's doctoral research on multi-model startup valuation" | "PhD" |
 
-Prices (every A$ figure) are lane A's; this map never states one. When a sentence needs the price it reads it from the SKU/plan constant.
+Prices (every A$ figure) are lane A's; this map never states one except the Pricing v5 lines in § 4c, quoted verbatim from `payg-copy.ts`. When a sentence needs the price it reads it from the SKU/plan constant or the `PaygView`.
 
 ## 4b. G21 positioning lines (evidence-backed assessment infrastructure, 2026-09-20)
 
@@ -111,9 +111,24 @@ Adopted from the advisor feedback (`docs/plans/g21-fi-upgrade-2026-09-20.md` § 
 | **BlockID Cohort** | the program workflow (intake → assessment → selection → program → demo day → sponsor reporting) |
 | **BlockID Workspace** | the founder surface |
 | **BlockID Verified** | the verification state (L2+ business verification, reviewer-approved evidence) |
-| **Trusted Business Report** | unchanged — the A$3 legacy pay-as-you-go SKU, never a value anchor |
+| **Trusted Business Report** | unchanged name — the report itself; sold pay-as-you-go as Snapshot / Full / Verified when `payg_enabled=true` (§ 4c); never a value anchor |
 
 Buyer order on any page: **Programs (accelerators, incubators, universities, innovation programs, venture studios) → Investors → Founders**; founders own their data and remain the participant and secondary customer.
+
+## 4c. Pricing v5 — pay as you go (G35, effective when `payg_enabled=true`)
+
+One switch (`platform_config.payg_enabled`, read through `web/src/lib/pricing/payg-copy.ts`). OFF = today's legacy copy; ON = the lines below. Amounts are never typed into copy — they come from the `PaygView` (display prices in `platform_config`, catalogue `lib/pricing/v5-payg.ts`).
+
+| Slot | Line (flag ON) |
+|---|---|
+| Tier names | **Snapshot** · **Full** · **Verified** (capitalised, no "Lite", "Basic", "Pro") |
+| Single-report sentence (FAQ + JSON-LD) | `Without a subscription, buy a single report: Snapshot A$19, Full A$49 or Verified A$149 (all AUD, GST-inclusive).` |
+| Subscription anchor | `Scout pays for itself after two Full reports.` |
+| One number for "a report" | `from A$19` |
+| Money Finder (D25) | `Free scan · A$19 full` — "19 credits" when paid in credits |
+| Credits (D27) | always "N credits"; re-score = `1 credit`; never an A$-per-credit figure |
+| Verified | "reviewed by the BlockID team", "within 2 business days", badge "BlockID Reviewed"; sign-in required |
+| Refund (Terms v2.2 clause 3A) | one-off reports non-refundable once delivered except where the ACL requires; a Verified report still in review refunded in full on request; ACL guarantees never excluded |
 
 ## 5. Tone rules
 
@@ -194,6 +209,8 @@ Short form for footers and PDF covers: `Not financial advice.`
 | `AI-Powered Startup Intelligence` `BlockID Startup Intelligence` | retired brand line | — |
 | `\bC-Level agents\b` `\b\d+ AI agents\b` | G21 P0-D: agent counts and "C-Level agents" as a selling point stay inside the product and the docs — public copy says "specialised analysis across eight business dimensions, checked against the underlying evidence" | `src/app/(marketing)/product/` `src/app/docs/` `src/app/(marketing)/docs/` `src/app/startup-package/` `src/app/(app)/` `src/components/workspace/` `src/components/paywall/` `src/app/(marketing)/about/invest/` (G18-C facts page — recommend rewording to "a C-suite of AI agents", owner: about page) |
 | `A\$3, not A\$3,000` | G21: the A$3 price is a legacy SKU, never the value anchor or a comparison hook | — |
+| `A\$3(?!\d\|,\d\|\.\d\|\s?(?:[MBKmbk]\b\|million\|billion\|bn\b)\|\s?[–-]\s?\d)` | G35 Pricing v5 (D25/D26, effective when `payg_enabled=true`): the A$3 one-off report / Money Finder price is retired — say the tier price from the `PaygView` (Snapshot / Full / Verified, Money Finder A$19). Same treatment as the retired A$5.50 row. Ranges and magnitudes (`A$3M`, `A$3–8K`, `A$3,500`) are not prices and do not match | `src/app/version/` `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` `@legacy-price-allowlist` (flag-OFF branches that read the switch, listed with a reason in `src/lib/pricing/legacy-price-allowlist.ts`; empty after the cut-over) |
+| `A\$1(?!\d\|,\d\|\.\d\|\s?(?:[MBKmbk]\b\|million\|billion\|bn\b)\|\s?[–-]\s?\d\|\s(?:of\|in)\b\|\+)` | G35 D27 (effective when `payg_enabled=true`): no A$1 report / credit price — credits render as "N credits", the re-score as "1 credit". `A$1M`, `A$1–5M`, "A$1 of revenue" are not prices and do not match | `src/app/version/` `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` `@legacy-price-allowlist` |
 | `\bAI decides\b` `\bthe AI decides\b` | G21: BlockID structures the evidence and standardises the first pass; humans make the decision | — |
 | `\bpredicts\b` `prediction accuracy` | G21: no forecasting claims — calibration is published with n and confidence intervals, never "predicts" | — |
 | `Australian average` | G21: no benchmark without its n — say "stage median (n = N)" or "the cohort at the same stage (n = N)" per docs/product/score-governance.md § 7 | `src/components/marketing/homepage/` (P0-B owns the homepage sample cards — replace with the stage median + n) |
