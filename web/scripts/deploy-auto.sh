@@ -13,17 +13,22 @@
 #      retained set (g30-resource-admission.json, owner-only 0600);
 #   4. run scripts/deploy-live.sh --quick (DEPLOY_ALLOW_DIRTY passes through);
 #   5. after the 60 s operational soak, mark-good --review-deferred;
-#   6. OPTIONAL (RELEASE_PRUNE_AFTER_DEPLOY=1, default off): after a successful
-#      mark-good, run g30-release-retention.py --apply under the deploy lock —
-#      drops dead retained origins from serving state and deletes releases
-#      outside the keep set (active, previous, live, LKG, newest
-#      RELEASES_KEEP verified-good). Failure never fails the deploy.
+#   6. release retention (RELEASE_PRUNE_AFTER_DEPLOY, DEFAULT ON since
+#      2026-10-20 — 60 releases / 156.7 GB removed safely on 20/10; opt out
+#      with RELEASE_PRUNE_AFTER_DEPLOY=0): after a successful mark-good, run
+#      g30-release-retention.py --apply under the deploy lock — drops dead
+#      retained origins from serving state and deletes releases outside the
+#      keep set (active, previous, live, LKG, newest RELEASES_KEEP
+#      verified-good). Skipped when mark-good did not succeed. Failure never
+#      fails the deploy.
+# A crontab drift report (scripts/crontab-drift.py, L1-7) is printed as a
+# WARNING before deploying; it never blocks.
 # Nothing here bypasses a gate: deploy-live.sh still runs every check and
 # refuses on its own. Exit code = deploy-live.sh's (or 2 for preflight).
 #
 #   bash scripts/deploy-auto.sh            # deploy HEAD
 #   DEPLOY_NO_RETIRE=1 bash scripts/deploy-auto.sh   # never retire; fail if at cap
-#   RELEASE_PRUNE_AFTER_DEPLOY=1 bash scripts/deploy-auto.sh   # + prune releases after mark-good
+#   RELEASE_PRUNE_AFTER_DEPLOY=0 bash scripts/deploy-auto.sh   # skip release pruning after mark-good
 set -uo pipefail
 WEB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$WEB_DIR"
@@ -48,6 +53,13 @@ until awk -v m="$max_load" '{exit !($2 < m)}' /proc/loadavg; do
   sleep 20; waited=$((waited + 20))
 done
 say "load ok ($(cut -d' ' -f1-3 /proc/loadavg))"
+
+# L1-7 — the installed crontab must equal scripts/crontab.production. A warning,
+# never a gate: install the reviewed file by hand (crontab -n, then crontab).
+if ! DRIFT=$(python3 scripts/crontab-drift.py 2>&1); then
+  say "WARNING (not blocking): $(printf '%s' "$DRIFT" | head -1)"
+  printf '%s\n' "$DRIFT" | sed -n '2,13p'
+fi
 
 # 2 + 3 — capacity and permit, under the deployment lock
 PREP=$( ( exec 200>"$LOCK"; flock -x -w 120 200 || { echo '{"error":"lock"}'; exit 1; }
@@ -127,9 +139,10 @@ for _ in $(seq 1 20); do
 done
 rm -rf scripts/__pycache__
 
-# 6 — optional release retention (L1-1). Only after a successful mark-good, so
-# the new release is LKG + active and the old active is previous.
-if [ "${RELEASE_PRUNE_AFTER_DEPLOY:-0}" = "1" ] && [ "$MARKED_GOOD" = "1" ]; then
+# 6 — release retention (L1-1), default on (opt out: RELEASE_PRUNE_AFTER_DEPLOY=0).
+# Only after a successful mark-good, so the new release is LKG + active and the
+# old active is previous.
+if [ "${RELEASE_PRUNE_AFTER_DEPLOY:-1}" = "1" ] && [ "$MARKED_GOOD" = "1" ]; then
   PRUNE_LOG="/tmp/blockid-release-retention-$(date -u +%Y%m%dT%H%M%S).log"
   ( exec 200>"$LOCK"; flock -x -w 120 200 || exit 75
     python3 "$WEB_DIR/../scripts/cron/g30-release-retention.py" --web "$WEB_DIR" \

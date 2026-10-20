@@ -104,3 +104,17 @@ quarantined entry whose Linux PID directory is absent does not consume a live
 process slot. Its state, port reservation and release pin remain intact.
 Unreadable procfs and reused PIDs remain counted. This is not job retirement;
 live process drain and full O08 completion remain open.
+
+## Boot rebind (L1-4, 20 October 2026)
+
+`--rebind --listen-port N --pid P --lock-fd 200` re-attaches a cold-started
+process to the retained entry already recorded at port N. Only `pid` and
+`startTicks` change; port, release path, SHA and schema digest stay exactly as
+recorded, and `active`/`previous` references to that port are updated in place.
+It is refused unless the recorded process provably no longer exists (procfs
+directory absent, or the PID now belongs to a thread/process with different
+start ticks — the post-reboot case), unless the new PID is unused by any other
+retained entry, and unless the new process passes the full `verify_entry`
+identity check (cwd, listener ownership, `/api/status` SHA + `schema_migrations`).
+The last rebind per port is recorded under `rebinds` for diagnostics. The only
+caller is the boot path, [`g30-boot-serve.py`](g30-boot-serve.md).
