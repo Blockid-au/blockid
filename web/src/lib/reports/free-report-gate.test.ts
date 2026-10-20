@@ -20,6 +20,7 @@ vi.mock("@/lib/reports/free-grants", () => ({
   recordSubmission: vi.fn(),
 }));
 
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import { runFreeReportGate, freeReportPayQuote, FREE_REPORT_PAY_HREF, type FreeReportGateDeps } from "./free-report-gate";
 import type { FreeReportGrantRow, RecordSubmissionOutcome } from "./free-grants";
 
@@ -223,6 +224,9 @@ describe("fail open — a database wobble never walls a founder", () => {
 describe("the quote", () => {
   it("is the A$3 Trusted Business Report SKU from lane A's constant, and the workspace pay href", () => {
     expect(freeReportPayQuote()).toEqual({ sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3 inc. GST" });
+    // G35 P5: flag ON quotes the Full PAYG tier from the view.
+    expect(freeReportPayQuote(PAYG_ON_VIEW)).toEqual({ sku: "report_full", amount_cents: 4900, label: "Full A$49 inc. GST" });
+    expect(freeReportPayQuote(PAYG_OFF_VIEW)).toEqual(freeReportPayQuote());
     expect(FREE_REPORT_PAY_HREF).toBe("/workspace/reports/business");
   });
 });
