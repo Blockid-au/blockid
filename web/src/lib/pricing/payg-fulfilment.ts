@@ -404,7 +404,7 @@ export async function applyPaygUpgrade(
   const target = nextState("PAID", toVerified ? "upgrade_review_queued" : "upgrade_applied");
   if (!target) return { ok: false, reason: "illegal_transition" };
   const slaDueAt = toVerified ? verifiedSlaDueAt(ctx.now, ctx.slaDays) : null;
-  const { error: ordErr } = await db
+  const { data: moved, error: ordErr } = await db
     .from("report_orders")
     .update({
       status: target,
@@ -413,8 +413,11 @@ export async function applyPaygUpgrade(
       ...(toVerified ? { sla_due_at: slaDueAt!.toISOString() } : { delivered_at: ctx.now.toISOString() }),
     })
     .eq("id", String(order.id))
-    .eq("status", "PAID");
+    .eq("status", "PAID")
+    .select("id");
   if (ordErr) return { ok: false, reason: `order_update_failed: ${ordErr.message ?? ordErr.code ?? "error"}` };
+  // The report tier is lifted first (idempotent); the order only moves from PAID.
+  if (!Array.isArray(moved) || moved.length === 0) return { ok: false, reason: "upgrade_order_not_paid" };
   return { ok: true, status: target as "READY" | "IN_REVIEW", baseOrderId: baseId, reportId, slaDueAt };
 }
 

@@ -24,37 +24,41 @@ vi.mock("@/lib/entitlements", () => ({ getEntitlements: (p: string, u: string) =
 const getBalanceMock = vi.fn<(userId: string) => Promise<number>>();
 vi.mock("@/lib/credits", () => ({ getBalance: (u: string) => getBalanceMock(u) }));
 
-import { GET, PAID_ORDER_STATUSES } from "./route";
+vi.mock("server-only", () => ({}));
+const paygConfig = { current: { payg_enabled: false } as Record<string, unknown> };
+vi.mock("@/lib/pricing/payg-flag", async () => {
+  const { PAYG_CONFIG_DEFAULTS } = await import("@/lib/pricing/v5-payg");
+  return { readPaygConfig: async () => ({ ...PAYG_CONFIG_DEFAULTS, ...paygConfig.current }) };
+});
+
+import { GET, PAID_ORDER_STATUSES, pickFounderOrders } from "./route";
+import { PaygFakeDb } from "@/lib/pricing/payg-fake-db.fixture";
 import { quoteTrustReport } from "@/lib/pricing/report-credit-cost";
 import { TRUST_REPORT_AMOUNT_CENTS, TRUST_REPORT_SKU_ID, trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 
 const P = "11111111-1111-4111-8111-111111111111";
 const USER = { id: "user-1", email: "f@example.com", plan: "free" as string | null };
 
-type OrderRow = { id: string; status: string; business_id: string; user_id: string; created_at: string };
+type OrderRow = { id: string; status: string; business_id: string; user_id: string; created_at: string; product_sku?: string; report_id?: string | null };
 
 function fakeDb(rows: OrderRow[]) {
+  const db = new PaygFakeDb({ report_orders: rows.map((r) => ({ product_sku: "sku_trust_report_5aud", report_id: null, ...r })) });
   const filters: Record<string, unknown> = {};
-  const q = {
-    select: () => q,
-    eq: (k: string, v: unknown) => {
-      filters[k] = v;
-      return q;
-    },
-    in: (k: string, v: unknown[]) => {
-      filters[`in:${k}`] = v;
-      return q;
-    },
-    order: () => q,
-    limit: () => q,
-    maybeSingle: async () => {
-      const hit = rows.find(
-        (r) => r.business_id === filters.business_id && r.user_id === filters.user_id && (filters["in:status"] as string[]).includes(r.status),
-      );
-      return { data: hit ? { id: hit.id, status: hit.status } : null, error: null };
-    },
+  const from = (t: string) => {
+    const q = db.from(t);
+    const select = q.select;
+    q.select = (...a: Parameters<typeof select>) => {
+      const sq = select(...a);
+      const eq = sq.eq.bind(sq);
+      sq.eq = (k: string, v: unknown) => {
+        filters[k] = v;
+        return eq(k, v);
+      };
+      return sq;
+    };
+    return q;
   };
-  return { from: (t: string) => (t === "report_orders" ? q : { select: () => ({ maybeSingle: async () => ({ data: null }) }) }), filters };
+  return { from, filters };
 }
 
 const req = (qs = "") => new Request(`https://blockid.au/api/reports/access${qs}`);
@@ -132,7 +136,60 @@ describe("GET /api/reports/access", () => {
     body = await (await GET(req())).json();
     expect(body.paidOrderId).toBe("o-mine");
     expect(body.paidOrderStatus).toBe("READY");
-    expect(PAID_ORDER_STATUSES).toEqual(["PAID", "GENERATING", "READY"]);
+    expect(body.paidTier).toBe("full");
+    // G35: same rule as tier-access.ts ENTITLING_ORDER_STATUSES.
+    expect(PAID_ORDER_STATUSES).toEqual(["PAID", "GENERATING", "IN_REVIEW", "READY", "SHARED"]);
+  });
+
+  it("G35: a Snapshot order never unlocks the page — it is returned as snapshotOrderId", async () => {
+    getSupabaseAdminMock.mockReturnValue(
+      fakeDb([{ id: "o-snap", status: "READY", business_id: P, user_id: "user-1", created_at: "2026-10-20", product_sku: "report_snapshot", report_id: "rpt" }]),
+    );
+    const body = await (await GET(req())).json();
+    expect(body.paidOrderId).toBeNull();
+    expect(body.snapshotOrderId).toBe("o-snap");
+  });
+
+  it("G35 G5: a refund after delivery keeps the report readable; a refunded failed order does not", async () => {
+    getSupabaseAdminMock.mockReturnValue(
+      fakeDb([
+        { id: "o-failed", status: "REFUNDED", business_id: P, user_id: "user-1", created_at: "2026-10-21", product_sku: "report_full", report_id: null },
+        { id: "o-ref", status: "REFUNDED", business_id: P, user_id: "user-1", created_at: "2026-10-20", product_sku: "report_verified", report_id: "rpt" },
+      ]),
+    );
+    const body = await (await GET(req())).json();
+    expect(body).toMatchObject({ paidOrderId: "o-ref", paidTier: "verified" });
+  });
+
+  it("G35: payg is { enabled: false } while the flag is off (the page keeps the A$3 paywall)", async () => {
+    const body = await (await GET(req())).json();
+    expect(body.payg).toEqual({ enabled: false });
+  });
+
+  it("G35: flag on → three tiers + the Snapshot → Full upgrade for a Snapshot owner", async () => {
+    paygConfig.current = { payg_enabled: true };
+    getSupabaseAdminMock.mockReturnValue(
+      fakeDb([{ id: "o-snap", status: "READY", business_id: P, user_id: "user-1", created_at: "2026-10-20", product_sku: "report_snapshot", report_id: "rpt" }]),
+    );
+    const body = await (await GET(req())).json();
+    paygConfig.current = { payg_enabled: false };
+    expect(body.payg.enabled).toBe(true);
+    expect(body.payg.tiers.map((t: { sku: string; amountCents: number }) => [t.sku, t.amountCents])).toEqual([
+      ["report_snapshot", 1900],
+      ["report_full", 4900],
+      ["report_verified", 14900],
+    ]);
+    expect(body.payg.upgrades).toEqual([expect.objectContaining({ sku: "upgrade_snapshot_full", amountCents: 3000, orderId: "o-snap" })]);
+  });
+
+  it("pickFounderOrders: newest Full / Verified wins; legacy credits SKU counts as Full", () => {
+    expect(
+      pickFounderOrders([
+        { id: "a", status: "IN_REVIEW", product_sku: "report_verified", report_id: "r", created_at: null },
+        { id: "b", status: "READY", product_sku: "sku_trust_report_credits", report_id: "r2", created_at: null },
+      ]),
+    ).toEqual({ paidOrderId: "a", paidOrderStatus: "IN_REVIEW", paidTier: "verified", snapshotOrderId: null });
+    expect(pickFounderOrders([{ id: "c", status: "CHECKOUT_INITIATED", product_sku: "report_full", report_id: null, created_at: null }]).paidOrderId).toBeNull();
   });
 
   it("no resolvable project → projectId null, no order lookup, still a usable quote", async () => {

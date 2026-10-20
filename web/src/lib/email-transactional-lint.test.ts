@@ -65,6 +65,10 @@ const TEMPLATES: Array<{ file: string; fn: string; kind: Kind }> = [
   { file: "lib/email.ts", fn: "sendGuestReport", kind: "receipt" },
   { file: "lib/email.ts", fn: "sendFreeSummary", kind: "report" },
   { file: "lib/email.ts", fn: "sendFirstAnalysisReportEmail", kind: "report" },
+  // G35 Pricing v5 (gap G4) — report_orders lifecycle: paid is a receipt, ready / in review are report delivery.
+  { file: "lib/email/report-order-emails.ts", fn: "sendReportOrderPaid", kind: "receipt" },
+  { file: "lib/email/report-order-emails.ts", fn: "sendReportOrderReady", kind: "report" },
+  { file: "lib/email/report-order-emails.ts", fn: "sendReportOrderInReview", kind: "report" },
   // G34-BT4 EM12 — "score updated" on the drip engine (the only T-class lifecycle flow).
   { file: "lib/lifecycle/templates.ts", fn: "renderScoreUpdated", kind: "report" },
   // receipts

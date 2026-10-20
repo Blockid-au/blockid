@@ -254,9 +254,20 @@ describe("G16-A isQaEmail / qaFlag", () => {
 });
 
 describe("G16-A CLIENT_EMITTABLE_EVENTS", () => {
-  it("is exactly the seven browser-emittable funnel events (G25-D adds the review pair); anon may only send paywall_view / share_link_open / checkout_review_viewed", () => {
-    expect([...CLIENT_EMITTABLE_EVENTS]).toEqual(["paywall_view", "checkout", "checkout_review_viewed", "checkout_started", "report_view", "dashboard_view", "share_link_open"]);
-    expect([...ANON_EMITTABLE_EVENTS]).toEqual(["paywall_view", "share_link_open", "checkout_review_viewed"]);
+  it("is exactly the browser-emittable funnel events (G25-D review pair, G35 PAYG pair); anon may send paywall_view / share_link_open / checkout_review_viewed + the guest PAYG pair", () => {
+    expect([...CLIENT_EMITTABLE_EVENTS]).toEqual([
+      "paywall_view",
+      "checkout",
+      "checkout_review_viewed",
+      "checkout_started",
+      "report_view",
+      "dashboard_view",
+      "share_link_open",
+      "payg_tier_viewed",
+      "payg_checkout_started",
+    ]);
+    // G35 D26: the guest Snapshot / Full panel on /analyze has no session — its Pay click is anonymous.
+    expect([...ANON_EMITTABLE_EVENTS]).toEqual(["paywall_view", "share_link_open", "checkout_review_viewed", "payg_tier_viewed", "payg_checkout_started"]);
     // The Pay click is never anonymous — the checkout routes are auth-gated.
     expect(ANON_EMITTABLE_EVENTS).not.toContain("checkout_started");
     expect(isClientEmittableEvent("paywall_view")).toBe(true);
@@ -265,7 +276,7 @@ describe("G16-A CLIENT_EMITTABLE_EVENTS", () => {
   });
 });
 
-describe("G35 P1 — Pricing v5 PAYG event names are typed (no emitters yet)", () => {
+describe("G35 — Pricing v5 PAYG event names are typed (P1) and emitted (P3)", () => {
   it("declares payg_tier_viewed / payg_checkout_started / payg_paid / payg_upgrade in the server union", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
@@ -282,8 +293,10 @@ describe("G35 P1 — Pricing v5 PAYG event names are typed (no emitters yet)", (
     expect(e.name).toBe("payg_upgrade");
   });
 
-  it("none is browser-emittable until the P5 emitters ship", () => {
-    for (const n of ["payg_tier_viewed", "payg_checkout_started", "payg_paid", "payg_upgrade"]) {
+  it("P3: the review-step pair is browser-emittable; payg_paid / payg_upgrade stay server-only (webhook truth)", () => {
+    expect(isClientEmittableEvent("payg_tier_viewed")).toBe(true);
+    expect(isClientEmittableEvent("payg_checkout_started")).toBe(true);
+    for (const n of ["payg_paid", "payg_upgrade"]) {
       expect(isClientEmittableEvent(n), n).toBe(false);
     }
   });
