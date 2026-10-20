@@ -6,14 +6,19 @@ import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { PLANS_V2, formatAud, EQUITY_ADDON_MONTHLY_AUD } from "@/lib/plans-v2";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { creditPacksForSale } from "@/lib/credit-packs";
+import { PAYG_OFF_VIEW, creditsLabel, type PaygView } from "@/lib/pricing/payg-copy";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { FREE_SIGNUP_CREDITS } from "@/lib/credits-public";
 
 // Pricing context handed to the LLM (G18-A, 2026-09-20). It used to be typed
 // by hand — "Founding 100: AUD $1", "SVI Report: AUD $25", "Founder $99 /
 // Growth $499" — none of which we charge. Built from the ladder constants so
 // the recommendations reason about the prices the checkout actually books.
-function pricingContextLines(): string {
+// G35 P5: with platform_config.payg_enabled ON the context names the v5
+// pay-as-you-go tiers and the packs still on sale (credits never converted to
+// A$, D27); OFF it is exactly the legacy ladder.
+function pricingContextLines(view: PaygView = PAYG_OFF_VIEW): string {
   const rung = (id: string): string => {
     const plan = PLANS_V2.find((p) => p.id === id);
     if (!plan) return `- ${id}: (not in plans-v2)`;
@@ -22,10 +27,12 @@ function pricingContextLines(): string {
     const grant = credits > 0 ? `, ${credits} AI credits/mo` : "";
     return `- ${plan.name} plan: ${formatAud(plan.monthly_aud)}/mo GST-inclusive${trial}${grant}`;
   };
-  const packs = CREDIT_PACKS.map((p) => `${p.credits} for ${formatAud(p.price)}`).join(", ");
+  const packs = creditPacksForSale(view.enabled).map((p) => `${view.enabled ? creditsLabel(p.credits) : p.credits} for ${formatAud(p.price)}`).join(", ");
   return [
     `- Free: SVI analysis + shareable link, ${FREE_SIGNUP_CREDITS} sign-up credits`,
-    `- Trusted Business Report: ${trustReportPriceLabel()} one-off (inc. GST)`,
+    view.enabled
+      ? `- Pay-as-you-go reports (one-off, inc. GST): Snapshot ${view.snapshot}, Full ${view.full}, Verified ${view.verified}`
+      : `- Trusted Business Report: ${trustReportPriceLabel()} one-off (inc. GST)`,
     rung("founder_starter"),
     rung("founder_growth"),
     `- Equity add-on: ${formatAud(EQUITY_ADDON_MONTHLY_AUD)}/mo on a paid founder plan`,
@@ -228,7 +235,7 @@ BlockID.au Growth Metrics (${today}):
 - Biggest funnel drop-off: ${biggestDropOff} (${dropOffRate}%)
 
 Platform context:
-${pricingContextLines()}
+${pricingContextLines(await getPaygView())}
 - Free tools: Idea Valuation, Equity Split, Funding Plan, Dilution Calculator, Cap Table, Term Sheet AI, Data Room Checklist, Co-founder Match
 - Target market: Australian startup founders (pre-seed to Series A)
 `;
@@ -387,9 +394,9 @@ function generateFallbackRecommendations(m: {
   if (m.payingUsers === 0 && m.totalUsers > 0) {
     recs.push({
       priority: "critical",
-      title: "Launch time-limited Founding 100 push",
-      detail: `${m.totalUsers} users but $0 revenue. Send personal email to every SVI user offering Founding 100 ($1) with urgency: "Only X spots left." Include their SVI score in the email.`,
-      impact: "AUD $50-100 from first 50-100 conversions",
+      title: "Launch a first-report push",
+      detail: `${m.totalUsers} users but $0 revenue. Send a personal email to every SVI user with their score and one clear next step: the one-off report or the Starter trial at the live /pricing price. No invented scarcity.`,
+      impact: "First paid conversions from the existing user base",
       action_type: "pricing",
     });
   }
@@ -418,7 +425,7 @@ function generateFallbackRecommendations(m: {
     recs.push({
       priority: "high",
       title: "Email nurture sequence for leads",
-      detail: `${m.leadsWeek} leads captured but no conversions. Set up a 3-email drip: Day 1: SVI score reminder, Day 3: "Top founders do X", Day 7: Founding 100 offer ($1) with deadline.`,
+      detail: `${m.leadsWeek} leads captured but no conversions. Set up a 3-email drip: Day 1: SVI score reminder, Day 3: "Top founders do X", Day 7: the one-off report or Starter trial at the live /pricing price.`,
       impact: "5-10% lead-to-paid conversion",
       action_type: "marketing",
     });

@@ -122,6 +122,17 @@ describe("stripe-map — every sold SKU resolves to a catalogue price at the adv
     expect(ROWS.find((r) => r.plan_id === "accelerator_enterprise")).toBeUndefined();
   });
 
+  it("G35 D27: the legacy one-dollar STRIPE_PRICE_SVI_ANALYSIS row is retired (inactive), kept in the catalogue, sold by nothing", () => {
+    const row = STRIPE_PRICE_CATALOGUE.STRIPE_PRICE_SVI_ANALYSIS!;
+    expect(row).toBeDefined();
+    expect(row.active).toBe(false);
+    expect(row.retired).toBe(true);
+    expect(row.legacy).toBe(true);
+    expect(ROWS.find((r) => r.env_var === "STRIPE_PRICE_SVI_ANALYSIS")).toBeUndefined();
+    const stripeTs = readFileSync(join(__dirname, "..", "stripe.ts"), "utf8");
+    expect(stripeTs).not.toContain("process.env.STRIPE_PRICE_SVI_ANALYSIS");
+  });
+
   it("the retired Pro rung is inactive in Stripe and hidden on the ladder", () => {
     expect(STRIPE_PRICE_CATALOGUE.STRIPE_PRICE_FOUNDER_SCALE!.active).toBe(false);
     expect(PUBLIC_HIDDEN_PLAN_IDS).toContain("founder_scale");
@@ -201,7 +212,9 @@ describe("stripe-map — legacy prices and tax_behavior (founder-only Stripe act
       "STRIPE_PRICE_INVESTOR_VC_SMALL_ANNUAL",
       "STRIPE_PRICE_ONE_CLICK_REPORT",
     ]);
-    expect(nonInclusiveCatalogueEnvVars()).toHaveLength(14 + 9); // + the 9 legacy rows
+    // + the legacy rows still active in Stripe (G35 D27 retired STRIPE_PRICE_SVI_ANALYSIS → 9 - 1).
+    expect(nonInclusiveCatalogueEnvVars()).toHaveLength(14 + 8);
+    expect(nonInclusiveCatalogueEnvVars()).not.toContain("STRIPE_PRICE_SVI_ANALYSIS");
   });
 });
 

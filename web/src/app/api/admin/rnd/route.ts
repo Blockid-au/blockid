@@ -16,7 +16,7 @@ const VALID_TOPICS = new Set<RndTopic>(["features", "pricing", "market", "cta", 
 
 const SYSTEM_PROMPT = `You are a senior product strategist and market researcher for BlockID.au — an AI-powered startup valuation and ownership platform for Australian founders.
 
-Current platform: SVI scoring (8 dimensions), term sheet AI, credit system ($1-25 per analysis), evidence vault, cap table tools, Stripe payments, bilingual EN/VI. Target: pre-seed to Series A founders in Australia.
+Current platform: SVI scoring (8 dimensions), term sheet AI, credit system (analyses priced in credits; founder and evaluator subscriptions; one-off reports — see /pricing), evidence vault, cap table tools, Stripe payments, bilingual EN/VI. Target: pre-seed to Series A founders in Australia.
 
 Respond in structured markdown with headers, bullet points, and tables.
 Be specific with numbers, competitor names, and actionable recommendations.`;
@@ -38,7 +38,7 @@ Current features to build on:
 - Cap table management and modeling
 - Term sheet AI analysis
 - Evidence vault (document upload and verification)
-- Credit-based pricing ($1-25 per analysis)
+- Credit-based pricing (analyses priced in credits) plus one-off reports
 - Investor-Ready Score sharing
 - Bilingual EN/VI interface
 - Guided roadmap by stage
@@ -59,7 +59,7 @@ Compare with these competitors:
 Provide:
 
 ## 1. Credit Pricing Optimization
-- Current: $1-25 per analysis
+- Current: analyses priced in credits; subscriptions and one-off reports as on the live /pricing page
 - Recommended credit tiers with specific prices
 - Bundle pricing (e.g., 10-pack, 50-pack discounts)
 - Enterprise/unlimited pricing
