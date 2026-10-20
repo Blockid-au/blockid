@@ -65,6 +65,7 @@ import { AITransportError, inprocessFetch, inprocessStreamChat, type AITransport
 import { beginModelCall, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "@/lib/ai/model-throughput";
 import { REPORT_ADMITTED_MODELS } from "@/lib/ai/report-admitted-models";
 import { meetsCapabilityFloor } from "@/lib/ai/model-capability";
+import { PAID_PRICING_USD_PER_1M, usageCostUsd } from "@/lib/ai/model-prices";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -661,9 +662,11 @@ const COST_PER_1K: Record<string, number> = {
   "gemini-2.5-flash": 0.0014,        // $0.30 in / $2.50 out per 1M averaged
   "gemini-2.5-flash-lite": 0.00025,  // $0.10 / $0.40
   "gemini-2.5-pro": 0.0056,          // $1.25 / $10
-  "gemini-3-flash-preview": 0.0014,  // preview — billed as 2.5 Flash
-  "gemini-3.1-pro-preview": 0.0056,  // preview — billed as 2.5 Pro
-  "gemini-3.1-flash-lite": 0.00025,  // billed as 2.5 Flash-Lite
+  // W1: the 3.x previews have their own (higher) prices — model-prices.ts.
+  // Estimate only; Gemini calls report usage and are priced exactly.
+  "gemini-3-flash-preview": 0.00175, // $0.50 / $3.00
+  "gemini-3.1-pro-preview": 0.007,   // $2 / $12
+  "gemini-3.1-flash-lite": 0.000875, // $0.25 / $1.50
   // DeepInfra (PAID, quality-cost tier — prices verified on the box 2026-09-15)
   "deepseek-ai/DeepSeek-V4-Flash": 0.000135,           // $0.09 / $0.18, 1M ctx
   "deepseek-ai/DeepSeek-V3.2": 0.00032,                // $0.26 / $0.38, 164k ctx
@@ -762,38 +765,10 @@ const COST_PER_1K: Record<string, number> = {
   "x-ai/grok-imagine-image-quality": 0.05,
 };
 
-/** USD per 1M tokens for the quality-cost providers, keyed `provider:model`
- *  (a model id like `openai/gpt-oss-120b` exists on both Groq (free) and
- *  DeepInfra (paid), so the provider is part of the key). Used to turn the
- *  provider's real `usage` into the exact cost recorded in the daily ledger. */
-export const PAID_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
-  // DeepInfra — verified 2026-09-15
-  "deepinfra:deepseek-ai/DeepSeek-V4-Flash": { in: 0.09, out: 0.18 },
-  "deepinfra:deepseek-ai/DeepSeek-V3.2": { in: 0.26, out: 0.38 },
-  "deepinfra:Qwen/Qwen3-VL-235B-A22B-Instruct": { in: 0.20, out: 0.88 },
-  "deepinfra:Qwen/Qwen3-235B-A22B-Instruct-2507": { in: 0.09, out: 0.55 },
-  "deepinfra:openai/gpt-oss-120b": { in: 0.037, out: 0.17 },
-  "deepinfra:meta-llama/Llama-3.3-70B-Instruct-Turbo": { in: 0.10, out: 0.32 },
-  "deepinfra:moonshotai/Kimi-K2.6": { in: 0.75, out: 3.50 },
-  "deepinfra:deepseek-ai/DeepSeek-V4-Pro": { in: 1.30, out: 2.60 },
-  // Gemini — list prices; previews billed as their GA sibling
-  "gemini:gemini-2.5-flash": { in: 0.30, out: 2.50 },
-  "gemini:gemini-2.5-flash-lite": { in: 0.10, out: 0.40 },
-  "gemini:gemini-2.5-pro": { in: 1.25, out: 10 },
-  "gemini:gemini-3-flash-preview": { in: 0.30, out: 2.50 },
-  "gemini:gemini-3.1-pro-preview": { in: 1.25, out: 10 },
-  "gemini:gemini-3.1-flash-lite": { in: 0.10, out: 0.40 },
-};
-
-/** Exact USD for a call from the provider's reported usage; null when the
- *  model has no price row (the caller then falls back to the COST_PER_1K
- *  estimate). */
-export function usageCostUsd(provider: string, model: string, inputTokens: number, outputTokens: number): number | null {
-  const price = PAID_PRICING_USD_PER_1M[`${provider}:${model}`];
-  if (!price) return null;
-  const usd = (inputTokens / 1_000_000) * price.in + (outputTokens / 1_000_000) * price.out;
-  return Math.round(usd * 1e8) / 1e8;
-}
+/** USD per 1M tokens for the quality-cost providers, keyed `provider:model`,
+ *  and the exact-cost helper — W1: both live in lib/ai/model-prices (the one
+ *  price module every ledger imports); re-exported for existing callers. */
+export { PAID_PRICING_USD_PER_1M, usageCostUsd };
 
 interface BudgetData {
   month: string; // "2026-05"

@@ -245,6 +245,30 @@ export interface ReportContext {
   callsUsed?: number;
   /** G23-A: per-run grounding counters (budget overruns salvaged / repaired, verdicts trimmed, claims auto-cited). */
   qualityCounters?: QualityCounters;
+  /** W1 (pricing v5 §7.2 #5): section id (`executive`, `dim:<key>`, criterion key) → the `provider:model`
+   *  that wrote it (`deterministic` for a degraded card, `cache` for a chapter-cache hit) — so
+   *  tbr-quality.jsonl can attribute groundedShare to a model. */
+  sectionModels?: Record<string, string>;
+}
+
+/** W1: what the transport reports about the call that answered (provider chain → structured ledger). */
+export interface AICallMeta {
+  provider?: string;
+  model?: string;
+  costUsd?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+}
+
+/** W1: optional per-call sink the metered pipeline caller fills with the answering model. */
+export type AICallMetaSink = (meta: AICallMeta) => void;
+
+/** W1: record which model wrote a section (last writer wins; never throws). */
+export function noteSectionModel(context: Pick<ReportContext, "sectionModels">, sectionId: string, served: { provider?: string; model: string } | string | null | undefined): void {
+  const label = typeof served === "string" ? served : served ? (served.provider ? `${served.provider}:${served.model}` : served.model) : null;
+  if (!label) return;
+  context.sectionModels ??= {};
+  context.sectionModels[sectionId] = label;
 }
 
 /** G23-A quality counters — written to the tbr-quality.jsonl row beside groundedShare. */
@@ -321,6 +345,8 @@ export interface PipelineRunStats {
   budgetOverruns?: number;
   verdictTrimmed?: number;
   autoCited?: number;
+  /** W1: section id → `provider:model` that wrote it (tbr-quality per-section attribution). */
+  sectionModels?: Record<string, string>;
 }
 
 export interface ReportSection {

@@ -34,27 +34,32 @@ import "server-only";
 import { z } from "zod";
 
 import { looksTruncated, salvageTruncatedJson } from "@/lib/ai/json-salvage";
+import { costUsdFor } from "@/lib/ai/model-prices";
 import { canonicalizeScore } from "@/lib/proofs/canonical-json";
 import { hashScore } from "@/lib/proofs/hash";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // ── Model pricing ────────────────────────────────────────────────────
 //
-// USD per 1M tokens. Zero for anything not in the table — the ai_runs
-// row still stores tokens_in / tokens_out so a follow-up pricing back-
-// fill remains possible. Anthropic list prices, Sep 2026 (S31-A) — keep in
-// sync with lib/ai/anthropic-tier.ts ANTHROPIC_PRICING_USD_PER_1M.
-const MODEL_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
-  "claude-sonnet-5": { in: 2, out: 10 },
-  "claude-opus-5": { in: 5, out: 25 },
-  "claude-haiku-4-5": { in: 1, out: 5 },
-  "claude-haiku-4-5-20251001": { in: 1, out: 5 },
-};
+// W1 (pricing v5 §7.2 #5): priced from the ONE table in lib/ai/model-prices
+// and from what ACTUALLY answered. Before W1 every injected-transport row
+// stored the nominal label (`claude-opus-5#synthesis`) and its Claude list
+// price although DeepInfra answered. Zero when the answering model is
+// unknown or unpriced — tokens_in / tokens_out stay on the row for a
+// back-fill.
+function usdCost(provider: string | undefined, model: string, tokensIn: number, tokensOut: number): number {
+  return costUsdFor(provider, model, tokensIn, tokensOut) ?? 0;
+}
 
-function usdCost(model: string, tokensIn: number, tokensOut: number): number {
-  const p = MODEL_PRICING_USD_PER_1M[model];
-  if (!p) return 0;
-  return (tokensIn * p.in) / 1_000_000 + (tokensOut * p.out) / 1_000_000;
+/** W1: the provider / model that actually answered a structured call (absent when the transport did not say). */
+export interface StructuredServedBy {
+  provider?: string;
+  model: string;
+}
+
+/** `provider:model` as written to `ai_runs.model` — the truthful label. */
+export function servedByLabel(s: StructuredServedBy): string {
+  return s.provider ? `${s.provider}:${s.model}` : s.model;
 }
 
 // ── Public signature ─────────────────────────────────────────────────
@@ -98,6 +103,30 @@ export interface CallStructuredArgs<TIn, TOut> {
 
 // ── Injectable transport ─────────────────────────────────────────────
 
+/** W1: what a provider-chain transport reports about the call that answered. */
+export interface StructuredCallMeta {
+  provider?: string;
+  model?: string;
+  costUsd?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+}
+
+/** W1: StructuredModelResult fields from a transport meta — real usage when the
+ *  provider reported it, otherwise the ~4 chars/token estimate (free chain). */
+export function structuredMetaFields(meta: StructuredCallMeta | null, promptChars: number, text: string | null | undefined): { tokensIn: number; tokensOut: number; provider?: string; model?: string; costUsd?: number } {
+  const real = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0;
+  return {
+    tokensIn: real(meta?.tokensIn) ? meta!.tokensIn! : Math.ceil(promptChars / 4),
+    tokensOut: real(meta?.tokensOut) ? meta!.tokensOut! : Math.ceil((text ?? "").length / 4),
+    ...(meta?.provider ? { provider: meta.provider } : {}),
+    ...(meta?.model ? { model: meta.model } : {}),
+    ...(typeof meta?.costUsd === "number" && Number.isFinite(meta.costUsd) ? { costUsd: meta.costUsd } : {}),
+  };
+}
+
+
+
 export interface StructuredModelRequest {
   model: string;
   system: string;
@@ -105,7 +134,18 @@ export interface StructuredModelRequest {
 }
 
 export type StructuredModelResult =
-  | { ok: true; text: string; tokensIn?: number; tokensOut?: number }
+  | {
+      ok: true;
+      text: string;
+      tokensIn?: number;
+      tokensOut?: number;
+      /** W1: the dispatcher provider that answered (`deepinfra`, `gemini`, …). */
+      provider?: string;
+      /** W1: the exact model that answered. */
+      model?: string;
+      /** W1: USD the provider chain reported for this call (exact from usage when it had a price row). */
+      costUsd?: number;
+    }
   | {
       ok: false;
       status: "model_error" | "rate_limited" | "rejected";
@@ -117,8 +157,8 @@ export type StructuredModelCaller = (
 ) => Promise<StructuredModelResult>;
 
 export type CallStructuredResult<T> =
-  | { ok: true; data: T; runId: string; overrun?: boolean }
-  | { ok: false; reason: string; runId: string; overrun?: boolean };
+  | { ok: true; data: T; runId: string; overrun?: boolean; servedBy?: StructuredServedBy }
+  | { ok: false; reason: string; runId: string; overrun?: boolean; servedBy?: StructuredServedBy };
 
 // ── Anthropic Messages API response shape (subset we use) ────────────
 
@@ -148,6 +188,20 @@ export async function callStructured<TIn, TOut>(
     fetchImpl = fetch,
     modelCaller,
   } = args;
+
+  // W1: the ai_runs row records what ANSWERED. On the injected path a
+  // transport that does not say which model answered is recorded under the
+  // caller's label at cost 0 (never the label's Claude list price).
+  const rowModel = (r: AnthropicResult | null | undefined): string =>
+    r && r.ok && r.servedBy ? servedByLabel(r.servedBy) : model;
+  const callCost = (r: AnthropicResult | null | undefined): number => {
+    if (!r || !r.ok) return 0;
+    if (typeof r.costUsd === "number") return r.costUsd;
+    if (r.servedBy) return usdCost(r.servedBy.provider, r.servedBy.model, r.tokensIn, r.tokensOut);
+    return modelCaller ? 0 : usdCost(undefined, model, r.tokensIn, r.tokensOut);
+  };
+  const servedOf = (r: AnthropicResult | null | undefined): { servedBy?: StructuredServedBy } =>
+    r && r.ok && r.servedBy ? { servedBy: r.servedBy } : {};
 
   // Transport: injected caller when present, direct Anthropic POST otherwise.
   const invoke = (
@@ -202,18 +256,18 @@ export async function callStructured<TIn, TOut>(
       promptVersionId,
       businessId,
       userId,
-      model,
+      model: rowModel(firstCall),
       inputHash,
       outputHash: hashScore(canonicalizeScore(firstParse.data as unknown as object)),
       tokensIn,
       tokensOut,
-      costUsd: usdCost(model, tokensIn, tokensOut),
+      costUsd: callCost(firstCall),
       latencyMs: Date.now() - started,
       status: "ok",
       evidenceIds,
       purpose,
     });
-    return { ok: true, data: firstParse.data, runId, overrun: firstParse.salvaged };
+    return { ok: true, data: firstParse.data, runId, overrun: firstParse.salvaged, ...servedOf(firstCall) };
   }
 
   // Step 4b — ONE repair pass. Append the parse error and the raw
@@ -234,23 +288,25 @@ export async function callStructured<TIn, TOut>(
   const totalTokensIn = firstCall.tokensIn + (repairCall.ok ? repairCall.tokensIn : 0);
   const totalTokensOut = firstCall.tokensOut + (repairCall.ok ? repairCall.tokensOut : 0);
 
+  const totalCost = callCost(firstCall) + callCost(repairCall);
+
   if (!repairCall.ok) {
     const runId = await insertRun({
       promptVersionId,
       businessId,
       userId,
-      model,
+      model: rowModel(firstCall),
       inputHash,
       outputHash: null,
       tokensIn: totalTokensIn,
       tokensOut: totalTokensOut,
-      costUsd: usdCost(model, totalTokensIn, totalTokensOut),
+      costUsd: totalCost,
       latencyMs: Date.now() - started,
       status: repairCall.status,
       evidenceIds,
       purpose,
     });
-    return { ok: false, reason: repairCall.reason, runId, overrun: firstParse.truncated };
+    return { ok: false, reason: repairCall.reason, runId, overrun: firstParse.truncated, ...servedOf(firstCall) };
   }
 
   const repairParse = tryParse(outputSchema, repairCall.text);
@@ -259,18 +315,18 @@ export async function callStructured<TIn, TOut>(
       promptVersionId,
       businessId,
       userId,
-      model,
+      model: rowModel(repairCall),
       inputHash,
       outputHash: hashScore(canonicalizeScore(repairParse.data as unknown as object)),
       tokensIn: totalTokensIn,
       tokensOut: totalTokensOut,
-      costUsd: usdCost(model, totalTokensIn, totalTokensOut),
+      costUsd: totalCost,
       latencyMs: Date.now() - started,
       status: "ok",
       evidenceIds,
       purpose,
     });
-    return { ok: true, data: repairParse.data, runId, overrun: firstParse.truncated || repairParse.salvaged };
+    return { ok: true, data: repairParse.data, runId, overrun: firstParse.truncated || repairParse.salvaged, ...servedOf(repairCall) };
   }
 
   // Both attempts failed schema — record schema_fail. Callers may
@@ -279,24 +335,24 @@ export async function callStructured<TIn, TOut>(
     promptVersionId,
     businessId,
     userId,
-    model,
+    model: rowModel(repairCall),
     inputHash,
     outputHash: null,
     tokensIn: totalTokensIn,
     tokensOut: totalTokensOut,
-    costUsd: usdCost(model, totalTokensIn, totalTokensOut),
+    costUsd: totalCost,
     latencyMs: Date.now() - started,
     status: "schema_fail",
     evidenceIds,
     purpose,
   });
-  return { ok: false, reason: `schema_fail: ${repairParse.error}`, runId, overrun: firstParse.truncated || repairParse.truncated };
+  return { ok: false, reason: `schema_fail: ${repairParse.error}`, runId, overrun: firstParse.truncated || repairParse.truncated, ...servedOf(repairCall) };
 }
 
 // ── Internal: Anthropic Messages POST ────────────────────────────────
 
 type AnthropicResult =
-  | { ok: true; text: string; tokensIn: number; tokensOut: number }
+  | { ok: true; text: string; tokensIn: number; tokensOut: number; servedBy?: StructuredServedBy; costUsd?: number }
   | {
       ok: false;
       status: "model_error" | "rate_limited" | "rejected";
@@ -332,6 +388,9 @@ async function callInjected(
     text: res.text,
     tokensIn: res.tokensIn ?? 0,
     tokensOut: res.tokensOut ?? 0,
+    // W1: what actually answered — never the nominal label.
+    ...(res.model ? { servedBy: { model: res.model, ...(res.provider ? { provider: res.provider } : {}) } } : {}),
+    ...(typeof res.costUsd === "number" && Number.isFinite(res.costUsd) ? { costUsd: Math.max(0, res.costUsd) } : {}),
   };
 }
 
@@ -406,6 +465,8 @@ async function callAnthropic(opts: {
     text,
     tokensIn: json.usage?.input_tokens ?? 0,
     tokensOut: json.usage?.output_tokens ?? 0,
+    // Direct Anthropic path: the requested model IS what answered (label kept bare; Anthropic list price).
+    servedBy: { model: opts.model },
   };
 }
 

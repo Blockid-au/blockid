@@ -319,7 +319,7 @@ async function defaultCallAI(agentId: string, userId: string): Promise<AICallerI
   const runStrikes = createRunStrikeLedger();
   return async (system, user, maxTokens, taskClass, hint) => {
     const r = await callAI({ policy: "blockid-report-v1", system, user, maxTokens, ...pipelineCallTimeouts(hint), agentId, userId, taskClass, runStrikes });
-    return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model };
+    return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model, tokensIn: r.usage?.input_tokens, tokensOut: r.usage?.output_tokens };
   };
 }
 

@@ -414,6 +414,7 @@ export function qualityRowFor(
     budgetOverruns: report.pipelineStats?.budgetOverruns ?? 0,
     verdictTrimmed: report.pipelineStats?.verdictTrimmed ?? 0,
     autoCited: report.pipelineStats?.autoCited ?? 0,
+    ...(report.pipelineStats?.sectionModels ? { sectionModels: report.pipelineStats.sectionModels } : {}),
   });
   try {
     console.info(formatTbrQualityLine(row));
@@ -525,6 +526,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       budgetOverruns: stats?.budgetOverruns ?? 0,
       verdictTrimmed: stats?.verdictTrimmed ?? 0,
       autoCited: stats?.autoCited ?? 0,
+      ...(stats?.sectionModels ? { sectionModels: stats.sectionModels } : {}),
     };
     // G32 SV2: method metadata rides on the one document the assembled row,
     // the snapshot projection and the immutable revision all store.

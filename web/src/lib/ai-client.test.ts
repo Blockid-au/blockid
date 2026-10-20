@@ -1315,14 +1315,16 @@ describe("S32-C — per-class models on the quality-cost providers + cost table"
     expect(GEMINI_MODELS_BY_CLASS.classify).toEqual(["gemini-2.5-flash-lite"]);
   });
 
-  it("every per-class model has a price row and usageCostUsd computes from real usage (previews billed as GA siblings)", async () => {
+  it("every per-class model has a price row and usageCostUsd computes from real usage (W1: previews carry their own Gemini prices)", async () => {
     const { DEEPINFRA_MODELS_BY_CLASS, GEMINI_MODELS_BY_CLASS, PAID_PRICING_USD_PER_1M, usageCostUsd } = await loadClient();
     for (const m of Object.values(DEEPINFRA_MODELS_BY_CLASS).flat()) expect(PAID_PRICING_USD_PER_1M[`deepinfra:${m}`], m).toBeDefined();
     for (const m of Object.values(GEMINI_MODELS_BY_CLASS).flat()) expect(PAID_PRICING_USD_PER_1M[`gemini:${m}`], m).toBeDefined();
     expect(PAID_PRICING_USD_PER_1M["deepinfra:deepseek-ai/DeepSeek-V4-Flash"]).toEqual({ in: 0.09, out: 0.18 });
     expect(PAID_PRICING_USD_PER_1M["deepinfra:openai/gpt-oss-120b"]).toEqual({ in: 0.037, out: 0.17 });
-    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3-flash-preview"]).toEqual(PAID_PRICING_USD_PER_1M["gemini:gemini-2.5-flash"]);
-    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-pro-preview"]).toEqual(PAID_PRICING_USD_PER_1M["gemini:gemini-2.5-pro"]);
+    // W1: verified on ai.google.dev/gemini-api/docs/pricing 2026-10-20 — not the 2.5 prices.
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3-flash-preview"]).toEqual({ in: 0.5, out: 3 });
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-pro-preview"]).toEqual({ in: 2, out: 12 });
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-flash-lite"]).toEqual({ in: 0.25, out: 1.5 });
     // 1M in + 1M out on V4-Flash = $0.27
     expect(usageCostUsd("deepinfra", "deepseek-ai/DeepSeek-V4-Flash", 1_000_000, 1_000_000)).toBeCloseTo(0.27, 8);
     expect(usageCostUsd("gemini", "gemini-2.5-pro", 100_000, 10_000)).toBeCloseTo(0.225, 8);

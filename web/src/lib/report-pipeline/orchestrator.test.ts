@@ -1398,6 +1398,20 @@ describe("orchestrateReport() — per-report call counter (D7/D8/D9)", () => {
     expect(inner).toHaveBeenCalledTimes(1);
   });
 
+  it("W1: meterCallAI hands the answering provider / model / usage / cost to the per-call onMeta sink", async () => {
+    const b = new ReportCallBudget(2);
+    const inner = vi.fn(async () => ({ text: "ok", provider: "deepinfra", model: "deepseek-ai/DeepSeek-V3.2", costUsd: 0.004, tokensIn: 900, tokensOut: 120 }));
+    const metered = meterCallAI(inner, b);
+    const seen: unknown[] = [];
+    await expect(metered("s", "u", 10, "report", (m) => seen.push(m))).resolves.toBe("ok");
+    expect(seen).toEqual([{ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V3.2", costUsd: 0.004, tokensIn: 900, tokensOut: 120 }]);
+    // a plain-string transport reports nothing (and never throws)
+    const plain = meterCallAI(vi.fn(async () => "x"), new ReportCallBudget(1));
+    const none: unknown[] = [];
+    await plain("s", "u", 10, undefined, (m) => none.push(m));
+    expect(none).toEqual([]);
+  });
+
   it("the CEO summary degrades to the deterministic shell (never a failed report) once the cap is hit", async () => {
     const callAI = vi.fn(async () => "exec ok");
     const report = await orchestrateReport(baseInput({ callAI, maxCalls: 0 }));
