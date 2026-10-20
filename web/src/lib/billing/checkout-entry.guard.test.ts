@@ -41,7 +41,7 @@ export const ALLOW: Readonly<Record<string, string>> = {
   "components/paywall/ReportPaywallGate.tsx":
     "G16 quote-then-pay gate — 'Confirm & Pay A$3' after the quoted number; posts to /api/reports/checkout. (G35: with payg_enabled it renders <PaygTierPicker> instead.)",
   "components/paywall/payg-tier-picker.tsx":
-    "G35 Pricing v5 review step — Snapshot / Full / Verified (+ D28 upgrade) with what is included, price 'inc. GST · one-off' and delivery time; selecting a tier charges nothing, only the explicit 'Confirm & Pay A$X' button posts to /api/reports/checkout.",
+    "G35 Pricing v5 review step — Snapshot / Full / Verified (+ D28 upgrade) with what is included, price 'inc. GST · one-off' and delivery time; selecting a tier charges nothing, only the explicit 'Confirm & Pay A$X' button posts to /api/reports/checkout. Also the evaluator deal-flow card purchase (evaluations/report-dialog.tsx only reveals this picker; the body adds evaluationId).",
   "components/svi/svi-entrance.tsx":
     "Quick Report option — first click opens the review block (price inc. GST, one-off, PDF by e-mail); only its 'Pay A$3 now' button posts to /api/stripe/analysis.",
 };

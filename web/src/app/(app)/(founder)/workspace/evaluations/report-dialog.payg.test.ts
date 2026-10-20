@@ -4,7 +4,9 @@
 // on, credits are never converted to A$ (D27). Flag off → copy unchanged.
 
 import { describe, expect, it } from "vitest";
-import { describeCost, paygQuotaExhaustedOffer, type ReportCostPreview } from "./report-dialog";
+import { describeCost, evaluatorCardPurchase, paygQuotaExhaustedOffer, type ReportCostPreview } from "./report-dialog";
+import { buildPaygOffer } from "@/lib/pricing/payg-offer";
+import { PAYG_CONFIG_DEFAULTS } from "@/lib/pricing/v5-payg";
 import { reportCreditCosts, reportKindFeature } from "@/lib/evaluations/report-quota";
 
 const base: ReportCostPreview = {
@@ -32,6 +34,35 @@ describe("paygQuotaExhaustedOffer", () => {
     expect(paygQuotaExhaustedOffer("rescore", { ...base, payg: PAYG })).toBeNull();
     expect(paygQuotaExhaustedOffer("full", base)).toBeNull();
     expect(paygQuotaExhaustedOffer("full", null)).toBeNull();
+  });
+});
+
+describe("evaluator card purchase (G35 deal flow, flag ON)", () => {
+  const card = () => {
+    const offer = buildPaygOffer({ config: { ...PAYG_CONFIG_DEFAULTS, payg_enabled: true }, orders: [], openVerifiedCount: 0 });
+    if (!offer.enabled) throw new Error("expected enabled");
+    return { business_id: "p-1", offer };
+  };
+
+  it("quota used → all three tiers by card, and the offer copy points at it", () => {
+    const cost = { ...base, payg: { ...PAYG, card: card() } };
+    const purchase = evaluatorCardPurchase("full", cost);
+    expect(purchase).toMatchObject({ businessId: "p-1", onlyTiers: undefined, toggle: "Pay by card instead" });
+    expect(paygQuotaExhaustedOffer("full", cost)?.body).toContain("or pay by card below");
+  });
+
+  it("quota left → Verified only (an included Full is never sold by card)", () => {
+    const purchase = evaluatorCardPurchase("full", { ...base, via: "quota", payg: { ...PAYG, card: card() } });
+    expect(purchase?.onlyTiers).toEqual(["verified"]);
+  });
+
+  it("flag off / no card in the preview / a re-score → no card purchase (credits flow unchanged)", () => {
+    expect(evaluatorCardPurchase("full", base)).toBeNull();
+    expect(evaluatorCardPurchase("full", { ...base, payg: PAYG })).toBeNull();
+    expect(evaluatorCardPurchase("full", { ...base, payg: { ...PAYG, enabled: false, card: card() } })).toBeNull();
+    expect(evaluatorCardPurchase("rescore", { ...base, payg: { ...PAYG, card: card() } })).toBeNull();
+    expect(evaluatorCardPurchase("full", null)).toBeNull();
+    expect(paygQuotaExhaustedOffer("full", { ...base, payg: PAYG })?.body).not.toContain("card");
   });
 });
 

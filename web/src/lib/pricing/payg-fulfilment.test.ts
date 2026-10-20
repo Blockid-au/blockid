@@ -174,6 +174,31 @@ describe("fulfilPaygReportCheckout — report tiers", () => {
     const rows = db.rows("report_orders");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ status: "PAID", product_sku: "report_full", tier: "full", user_id: USER, business_id: BIZ, stripe_session_id: "cs_test_1", expires_at: null });
+    expect(rows[0].metadata).not.toHaveProperty("buyer_role");
+    expect(db.rows("report_generation_queue")).toHaveLength(1);
+  });
+
+  it("G35 evaluator deal flow: a reconciled order keeps the buyer role so the generator reads the owner's data", async () => {
+    db.tables.report_orders = [];
+    const h = harness(db);
+    await fulfilPaygReportCheckout(
+      db as never,
+      session({ metadata: { order_id: "", bid_buyer_role: "evaluator", bid_evaluation_id: "eval-1" } }),
+      { id: "evt_ev" },
+      "report_full",
+      h.deps,
+    );
+    const [row] = db.rows("report_orders");
+    expect(row).toMatchObject({ status: "PAID", user_id: USER });
+    expect(row.metadata).toMatchObject({ buyer_role: "evaluator", evaluation_id: "eval-1", reconciled_from_webhook: true });
+  });
+
+  it("an evaluator's card order flips PAID and enqueues exactly like a founder's (owner = buyer)", async () => {
+    db.row("report_orders", "order-1")!.metadata = { buyer_role: "evaluator", evaluation_id: "eval-1" };
+    const h = harness(db);
+    const out = await fulfilPaygReportCheckout(db as never, session({ metadata: { bid_buyer_role: "evaluator", bid_evaluation_id: "eval-1" } }), { id: "evt_e2" }, "report_full", h.deps);
+    expect(out).toMatchObject({ ok: true, orderId: "order-1", status: "PAID", duplicate: false });
+    expect(db.row("report_orders", "order-1")).toMatchObject({ status: "PAID", user_id: USER });
     expect(db.rows("report_generation_queue")).toHaveLength(1);
   });
 

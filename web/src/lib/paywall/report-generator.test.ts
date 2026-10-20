@@ -23,6 +23,7 @@ vi.mock("@/lib/ai-client", async (importOriginal) => ({
 import { callAI } from "@/lib/ai-client";
 import {
   generateTrustReportForOrder,
+  isEvaluatorOrderMetadata,
   tierForOrderMetadata,
   type GeneratorDeps,
   type GeneratorSupabase,
@@ -1092,5 +1093,84 @@ describe("paid-order pipeline budget (G19)", () => {
     expect(mod.orderCallMax()).toBe(48);
     if (prevC === undefined) delete process.env.REPORT_ORDER_CALL_MAX; else process.env.REPORT_ORDER_CALL_MAX = prevC;
     if (prevD === undefined) delete process.env.REPORT_ORDER_DEADLINE_MS; else process.env.REPORT_ORDER_DEADLINE_MS = prevD;
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// G35 Pricing v5 — evaluator card orders (metadata.buyer_role = "evaluator")
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("evaluator card order (G35 deal flow)", () => {
+  const OWNER_EMAIL = "owner@startup.au";
+  const EVALUATOR_EMAIL = "partner@fund.au";
+
+  function evaluatorState(): FakeState {
+    const s = happyState();
+    s.rows = {
+      ...s.rows,
+      report_orders: {
+        ...baseOrder(),
+        product_sku: "report_full",
+        metadata: { sku: "report_full", payment_path: "card", buyer_role: "evaluator", evaluation_id: "eval-1" },
+      },
+      app_users: { id: USER_ID, email: EVALUATOR_EMAIL },
+    };
+    return s;
+  }
+
+  it("isEvaluatorOrderMetadata only matches the server-stamped buyer role", () => {
+    expect(isEvaluatorOrderMetadata({ buyer_role: "evaluator" })).toBe(true);
+    expect(isEvaluatorOrderMetadata({ buyer_role: "founder" })).toBe(false);
+    expect(isEvaluatorOrderMetadata({ quote: { depth: "standard" } })).toBe(false);
+    expect(isEvaluatorOrderMetadata(null)).toBe(false);
+    expect(isEvaluatorOrderMetadata("evaluator")).toBe(false);
+  });
+
+  it("keys the account + analysis lookups on the project OWNER's e-mail, buyer as caller (no owner pre-project fallback)", async () => {
+    const findAccount = vi.fn(async () => baseAccount());
+    const findAnalysis = vi.fn(async () => baseAnalysis());
+    const evaluatorBaseline = vi.fn(async () => ({ ownerEmail: OWNER_EMAIL }));
+    const evaluatorAccess = vi.fn(async () => true);
+    const state = evaluatorState();
+    const result = await run(state, { findAccount, findAnalysis, evaluatorBaseline, evaluatorAccess });
+    expect(result).toMatchObject({ ok: true, reportId: REPORT_ID, paygTier: "full" });
+    expect(evaluatorAccess).toHaveBeenCalledWith(USER_ID, BUSINESS_ID);
+    expect(evaluatorBaseline).toHaveBeenCalledWith(BUSINESS_ID);
+    expect(findAccount).toHaveBeenCalledWith(OWNER_EMAIL, BUSINESS_ID, expect.any(String), { callerEmail: EVALUATOR_EMAIL });
+    expect(findAnalysis).toHaveBeenCalledWith(OWNER_EMAIL, BUSINESS_ID, expect.any(String), { callerEmail: EVALUATOR_EMAIL });
+    // The stored report belongs to the buyer (owner-scoped reads grant the evaluator).
+    const stored = (state.inserts?.assembled_reports ?? [])[0] as Row | undefined;
+    expect(stored?.user_id).toBe(USER_ID);
+    expect(stored?.payg_tier).toBe("full");
+  });
+
+  it("access revoked since checkout → permanent failure (the worker refunds), nothing generated", async () => {
+    const orchestrate = vi.fn(async () => baseReport());
+    const evaluatorBaseline = vi.fn(async () => ({ ownerEmail: OWNER_EMAIL }));
+    const result = await run(evaluatorState(), { orchestrate, evaluatorBaseline, evaluatorAccess: async () => false });
+    expect(result).toEqual({ ok: false, transient: false, reason: "evaluator_access_revoked" });
+    expect(evaluatorBaseline).not.toHaveBeenCalled();
+    expect(orchestrate).not.toHaveBeenCalled();
+  });
+
+  it("baseline: missing project / owner is permanent; anything else is transient", async () => {
+    const access = async () => true;
+    const permanent = await run(evaluatorState(), { evaluatorAccess: access, evaluatorBaseline: async () => { throw new Error("owner_not_found"); } });
+    expect(permanent).toMatchObject({ ok: false, transient: false });
+    const transient = await run(evaluatorState(), { evaluatorAccess: access, evaluatorBaseline: async () => { throw new Error("analysis_insert_failed"); } });
+    expect(transient).toMatchObject({ ok: false, transient: true });
+    const accessErr = await run(evaluatorState(), { evaluatorAccess: async () => { throw new Error("db down"); }, evaluatorBaseline: async () => ({ ownerEmail: OWNER_EMAIL }) });
+    expect(accessErr).toMatchObject({ ok: false, transient: true });
+  });
+
+  it("a founder / legacy order never takes the evaluator path (buyer e-mail, 3-arg lookups)", async () => {
+    const findAccount = vi.fn(async () => baseAccount());
+    const evaluatorBaseline = vi.fn(async () => ({ ownerEmail: OWNER_EMAIL }));
+    const evaluatorAccess = vi.fn(async () => true);
+    const result = await run(happyState(), { findAccount, evaluatorBaseline, evaluatorAccess });
+    expect(result.ok).toBe(true);
+    expect(evaluatorBaseline).not.toHaveBeenCalled();
+    expect(evaluatorAccess).not.toHaveBeenCalled();
+    expect(findAccount).toHaveBeenCalledWith(EMAIL, BUSINESS_ID, expect.any(String));
   });
 });

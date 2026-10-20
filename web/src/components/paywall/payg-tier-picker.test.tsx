@@ -67,6 +67,21 @@ describe("<PaygTierPicker>", () => {
     const html = renderToStaticMarkup(<PaygTierPicker offer={offer([], 5)} businessId={BIZ} surface="test" />);
     expect(html).toContain("fully booked");
   });
+
+  it("evaluator deal flow: card only (no credits button), Pay button still explicit", () => {
+    const html = renderToStaticMarkup(<PaygTierPicker offer={offer()} businessId={BIZ} surface="evaluator_dealflow" creditBalance={500} evaluationId="e-1" allowCredits={false} />);
+    expect(html).toContain("Confirm &amp; Pay A$49");
+    expect(html).not.toContain('data-testid="payg-redeem"');
+    expect(html).not.toContain("credits instead of a card");
+  });
+});
+
+describe("checkoutBodyFor — evaluator", () => {
+  it("adds evaluationId so the server authorises the evaluator by the evaluations row", () => {
+    const full = paygChoices(offer())[1];
+    expect(checkoutBodyFor(full, BIZ, undefined, "e-1")).toEqual({ businessId: BIZ, evaluationId: "e-1", tier: "full" });
+    expect(checkoutBodyFor(full, BIZ)).not.toHaveProperty("evaluationId");
+  });
 });
 
 describe("<ReportPaywallGate> — flag on vs off", () => {

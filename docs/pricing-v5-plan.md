@@ -45,7 +45,7 @@ Thứ tự deploy: **L0 → L1+L2 → P1–P3 (flag off) → A1 → P4 → P5 (f
 
 - **Member:** `ReportPaywallGate` (dialog confirm-before-pay, không qua `/checkout/review`) → `POST /api/reports/checkout` (auth bắt buộc, `mode:'payment'`, `automatic_tax`, metadata `bid_scope:'report_order'`, `bid_sku`, reseller fields; **không reuse `customer`**, **không `invoice_creation`**) → insert `report_orders` `CHECKOUT_INITIATED` → webhook `checkout.session.completed` → `handleReportOrderCompleted` (PAID, audit, `enqueueOrder` → `report_generation_queue`, `revenue_events`) → cron `report-order-drain` 2 phút/1 order → `generateTrustReportForOrder` (orchestrateReport → `assembled_reports` + `report_v2`) → 3 lần fail → `refundFailedOrder`.
 - **Guest:** `/api/guest-analysis/create-order` → `guest_analyses` → webhook → `runGuestAnalysis` → `sendGuestReport` (có tax invoice + ABN).
-- **Evaluator:** `report-dialog.tsx` → `POST /api/evaluations/[id]/report` dùng quota plan hoặc credits, không qua Stripe.
+- **Evaluator:** `report-dialog.tsx` → `POST /api/evaluations/[id]/report` dùng quota plan hoặc credits, không qua Stripe. *(20/10 follow-up, sau `payg_enabled`: thêm mua bằng thẻ — preview trả `cost.payg.card`, dialog mở `PaygTierPicker`, checkout `/api/reports/checkout` + `evaluationId`, xem SOT §12.15.)*
 - **Webhook:** chữ ký `constructEvent` 300 s; idempotent theo `stripe_webhook_events` (PK event id) + unique `report_orders.stripe_session_id` + unique queue `order_id`.
 - **Credits redeem:** `/api/reports/redeem` (`sku_trust_report_credits`).
 
