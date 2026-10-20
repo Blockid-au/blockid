@@ -18,6 +18,28 @@ export const MAX_CLASSES_PER_WINDOW = 50;
 /** Rule (c): one line with any of these is an alert on its own. */
 export const CRITICAL_PATTERNS = [/fully_degraded/i, /fullyDegraded/, /AIBudgetExhaustedError/, /permission denied/i];
 
+/**
+ * L1-13 (O1): known-benign noise that Next.js prints as `Error:` lines — a
+ * stale browser tab (or a bot) POSTing a Server Action id from an older or
+ * newer build ("Failed to find Server Action", "The Server Reference ID did
+ * not match the expected format. Received \"x\"" — ~1 000 / day). Not an
+ * app fault and not actionable per line: counted as a WARNING (row
+ * `warnings.<kind>`), never an error class, never an alert. The client side
+ * keeps the ChunkLoadError auto-reload that heals real stale tabs.
+ */
+export const WARNING_PATTERNS = [
+  { kind: "stale_server_action", re: /Failed to find Server Action|Server Reference ID did not match the expected format/i },
+  // (the trailing "Read more: …/failed-to-find-server-action" line is untagged
+  // and already ignored, so each occurrence is counted once)
+];
+
+/** The warning kind for a benign-noise line, else null. Exported for the test. */
+export function warningKind(line) {
+  if (typeof line !== "string") return null;
+  for (const w of WARNING_PATTERNS) if (w.re.test(line)) return w.kind;
+  return null;
+}
+
 /** A tagged line counts as an error class only when it smells like one. */
 export const ERROR_HINT =
   /\b(error|errors|err|fail|failed|failure|failing|reject|rejected|refused|timeout|timed out|degraded|exhausted|denied|unavailable|invalid|cooldown|exception|unhandled|uncaught|fatal|crash|crashed|missing|cannot|could not|not found|E[A-Z]{4,}|5\d\d)\b/i;
@@ -56,6 +78,8 @@ export function isCritical(line) {
 export function classifyLine(line) {
   if (typeof line !== "string" || !line.trim()) return null;
   const critical = isCritical(line);
+  const warning = critical ? null : warningKind(line);
+  if (warning) return { tag: "warning", msg: warning, critical: false, warning };
   let tag = null;
   let rest = "";
   let m = TAGGED.exec(line);
@@ -86,10 +110,16 @@ export const classKey = (tag, msg) => `${tag}|${msg}`;
  */
 export function digestLines(lines, nowIso = new Date().toISOString()) {
   const map = new Map();
+  const warnings = {};
   let total = 0;
   for (const line of lines) {
     const c = classifyLine(line);
     if (!c) continue;
+    if (c.warning) {
+      // L1-13: counted, not an error class (no `total`, no alert).
+      warnings[c.warning] = (warnings[c.warning] ?? 0) + 1;
+      continue;
+    }
     total += 1;
     const key = classKey(c.tag, c.msg);
     const cur = map.get(key);
@@ -101,7 +131,7 @@ export function digestLines(lines, nowIso = new Date().toISOString()) {
     }
   }
   const classes = [...map.values()].sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
-  return { total, lines: lines.length, classes };
+  return { total, lines: lines.length, classes, warnings };
 }
 
 /**
@@ -225,6 +255,7 @@ export function toReportRow(digest, tsIso, windowMin = WINDOW_MIN) {
     window_min: windowMin,
     total: digest.total,
     classes: digest.classes.slice(0, MAX_CLASSES_PER_WINDOW).map(({ tag, msg, count, first_seen, critical }) => ({ tag, msg, count, first_seen, ...(critical ? { critical: true } : {}) })),
+    ...(digest.warnings && Object.keys(digest.warnings).length > 0 ? { warnings: { ...digest.warnings } } : {}),
   };
 }
 

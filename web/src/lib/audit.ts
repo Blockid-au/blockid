@@ -4,12 +4,10 @@
 // equity request lifecycle, wholesale verification, plan change, chain sync)
 // gets one row here. The DB trigger `audit_events_hash_chain` (migration
 // 0076_compliance_and_equity.sql) computes `curr_hash` server-side as
-// sha256(prev_hash || row_fields), so we do NOT compute it in the app layer
-// — instead we compute an HMAC signature over the resulting curr_hash using
-// AUDIT_HMAC_SECRET, which lives only in the app process. An attacker with
-// direct DB write (bypassing the trigger) cannot forge a valid HMAC without
-// the app-side secret; an attacker with only the app secret cannot forge
-// the hash chain without also breaking sha256.
+// sha256(prev_hash || row_fields), so we do NOT compute it in the app layer.
+// The table is append-only (0076 trigger + 0338 grants), so the app never
+// UPDATEs a row; `hmac_signature` (an HMAC over curr_hash keyed by the
+// app-only AUDIT_HMAC_SECRET) is therefore not persisted — see appendAudit.
 //
 // The scripts/verify-audit-chain.ts CLI walks the table and re-validates
 // both the hash chain and HMAC signatures for nightly cron use.
@@ -53,17 +51,20 @@ export function signAuditHash(curr_hash: string, secret?: string): string {
 
 /**
  * Append one row to audit_events. The DB trigger computes curr_hash from
- * prev_hash + row fields. We read curr_hash back, compute the HMAC, and
- * update the same row with hmac_signature. Returns the row id + curr_hash.
+ * prev_hash + row fields; the row is returned with its id + curr_hash.
  *
- * Throws if AUDIT_HMAC_SECRET is missing or supabase is unavailable.
+ * audit_events is append-only (0076 no-update trigger, 0338 grants:
+ * service_role has INSERT + SELECT only), so nothing here ever UPDATEs a
+ * row. The former follow-up `UPDATE … SET hmac_signature` was refused on
+ * every call ("permission denied … further attempts skipped") and was
+ * removed in O1 / L1-13: the hash chain (and 0460's serialized ids) is the
+ * integrity guarantee. `hmac_signature` stays NULL; `signAuditHash` is
+ * kept for scripts/verify-audit-chain.ts, which checks it only when present.
+ *
+ * Throws if AUDIT_HMAC_SECRET is missing (kept as a deploy-config guard so
+ * every environment still carries the key the verifier uses) or supabase
+ * is unavailable.
  */
-/** Set once the DB refuses the hmac UPDATE (0338 append-only grants). Test hook: `__resetHmacUpdateGate()`. */
-let hmacUpdateDenied = false;
-export function __resetHmacUpdateGate(): void {
-  hmacUpdateDenied = false;
-}
-
 export async function appendAudit(
   params: AppendAuditParams,
 ): Promise<AppendAuditResult> {
@@ -71,8 +72,8 @@ export async function appendAudit(
   if (!admin) {
     throw new Error("appendAudit: Supabase admin client unavailable");
   }
-  // Fail fast if the HMAC secret is missing — do not write an unsigned row.
-  const secret = getHmacSecret();
+  // Fail fast if the HMAC secret is missing (deploy-config guard, see above).
+  getHmacSecret();
 
   const insertRow = {
     user_id: params.user_id ?? null,
@@ -99,32 +100,6 @@ export async function appendAudit(
   }
 
   const curr_hash = String(inserted.curr_hash);
-  const hmac = signAuditHash(curr_hash, secret);
-
-  // Persist the HMAC signature on the same row. audit_events has an
-  // update-blocking rule for tamper-proofing; the migration seeds that rule
-  // AFTER inserts complete, so a follow-up update by the service role is
-  // permitted only if the migration was written to allow it. If not, we
-  // fall back to logging and rely on the chain hash alone.
-  // 0338 made audit_events append-only for the service role, so this UPDATE
-  // is refused on production by design. Try once per process; after a
-  // permission-denied answer skip the round trip (and the log line) — the
-  // chain hash is the integrity guarantee, not the HMAC column.
-  const updateErr = hmacUpdateDenied
-    ? null
-    : (await admin.from("audit_events").update({ hmac_signature: hmac }).eq("id", inserted.id)).error;
-
-  if (updateErr) {
-    // Non-fatal: the row exists and is chained; HMAC absence is loggable
-    // ops noise, not a correctness break for the chain itself.
-    if (/permission denied|append-only|no_mutate/i.test(updateErr.message ?? "")) hmacUpdateDenied = true;
-    console.warn(
-      "[audit] hmac_signature update failed for id=",
-      inserted.id,
-      updateErr.message,
-      hmacUpdateDenied ? "(append-only by 0338 — further attempts skipped this process)" : "",
-    );
-  }
 
   return {
     id: BigInt(inserted.id as number),
