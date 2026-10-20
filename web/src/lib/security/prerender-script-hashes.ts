@@ -74,10 +74,61 @@ export function prerenderScriptHashes(
   pathname: string,
   opts: { dir?: string; now?: number } = {},
 ): readonly string[] | null {
-  const file = prerenderHtmlPath(pathname, opts.dir);
+  const dir = opts.dir ?? prerenderHtmlDir();
+  const file = prerenderHtmlPath(pathname, dir);
   if (!file) return null;
   const now = opts.now ?? Date.now();
+  // Next ≥ 16.4 keeps the build output at `app/<route>.html` only as an
+  // immutable seed; every regeneration (and the first-request promotion of
+  // the seed) is written to a scoped entry `server/route-cache/APP_PAGE/
+  // <sha256(sourceRoute)>/$/<route>.html`, whose key the seed's `.meta`
+  // records as `routeCache.key`. Hash both: the seed is what Next serves
+  // before promotion, the scoped file afterwards. Allowing either document's
+  // exact scripts costs nothing security-wise (see GRACE_MS above).
+  const seed = documentHashes(file, now);
+  const scopedFile = scopedRouteCacheHtmlPath(file, dir);
+  const scoped = scopedFile ? documentHashes(scopedFile, now) : null;
+  if (!seed && !scoped) return null;
+  if (!seed) return scoped;
+  if (!scoped) return seed;
+  return Array.from(new Set<string>([...scoped, ...seed]));
+}
 
+// `/route-cache/APP_PAGE/<64 hex>/$/<normalized page path>` (Next 16.4 route-cache-key).
+const ROUTE_CACHE_KEY = /^\/route-cache\/APP_PAGE\/[0-9a-f]{64}\/\$\/[A-Za-z0-9_\-~.]+(?:\/[A-Za-z0-9_\-~.]+)*$/;
+const metaKeys = new Map<string, { mtimeMs: number; size: number; key: string | null }>();
+
+/** Scoped route-cache document for a seed `<dir>/<route>.html`, via its `.meta`; null when absent/unsafe. */
+export function scopedRouteCacheHtmlPath(seedHtml: string, dir: string = prerenderHtmlDir()): string | null {
+  const metaPath = seedHtml.replace(/\.html$/, ".meta");
+  let st;
+  try {
+    st = statSync(metaPath);
+  } catch {
+    metaKeys.delete(metaPath);
+    return null;
+  }
+  let hit = metaKeys.get(metaPath);
+  if (!hit || hit.mtimeMs !== st.mtimeMs || hit.size !== st.size) {
+    let key: string | null = null;
+    try {
+      const meta = JSON.parse(readFileSync(metaPath, "utf8")) as { routeCache?: { key?: unknown } };
+      const k = meta.routeCache?.key;
+      if (typeof k === "string" && ROUTE_CACHE_KEY.test(k) && !k.split("/").some((seg) => seg === "." || seg === "..")) key = k;
+    } catch {
+      key = null;
+    }
+    hit = { mtimeMs: st.mtimeMs, size: st.size, key };
+    metaKeys.set(metaPath, hit);
+  }
+  if (!hit.key) return null;
+  const serverDir = resolve(dir, "..");
+  const file = resolve(serverDir, `.${hit.key}.html`);
+  if (!file.startsWith(resolve(serverDir, "route-cache") + sep)) return null;
+  return file;
+}
+
+function documentHashes(file: string, now: number): readonly string[] | null {
   let mtimeMs: number;
   let size: number;
   try {
@@ -117,4 +168,5 @@ export function prerenderScriptHashes(
 /** @internal — tests only. */
 export function resetPrerenderScriptHashCache(): void {
   cache.clear();
+  metaKeys.clear();
 }
