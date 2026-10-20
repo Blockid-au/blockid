@@ -8,7 +8,12 @@
 // character-for-character (the amounts are derived from the legacy SKU rows,
 // never typed); flag ON returns the v5 copy. Pure, isomorphic.
 
-import { paygRefundSentence, paygSingleReportSentence, type PaygView } from "@/lib/pricing/payg-copy";
+import {
+  paygRefundSentence,
+  paygSingleReportSentence,
+  paygSingleReportSentenceVi,
+  type PaygView,
+} from "@/lib/pricing/payg-copy";
 
 /** "Without a subscription, …" — the single-report sentence closing the plan-switch FAQ answer. */
 export function singleReportFaqSentence(view: PaygView): string {
@@ -32,8 +37,8 @@ export function moneyFinderFaqAnswer(view: PaygView): string {
 /** VI single-report sentence. OFF = today's /vi/pricing text. */
 export function singleReportFaqSentenceVi(view: PaygView): string {
   return view.enabled
-    ? `Không có gói thì bạn có thể mua từng báo cáo: Snapshot ${view.snapshot}, Full ${view.full} hoặc Verified ${view.verified} (tất cả bằng AUD, đã gồm GST).`
-    : `Không có gói thì mỗi Trusted Business Report là ${view.reportEntry} cho một startup.`;
+    ? paygSingleReportSentenceVi(view)
+    :`Không có gói thì mỗi Trusted Business Report là ${view.reportEntry} cho một startup.`;
 }
 
 /** VI refund answer. OFF = today's /vi/pricing text. */
