@@ -1,6 +1,6 @@
 # G35 — Pricing v5 (Pay-as-you-go 3 tier) + rà soát platform + AI cost routing
 
-**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** `PLAN — chờ founder duyệt D25–D30` (Lane 0 cần duyệt riêng, hạn **22/10**).
+**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0 **LIVE 20/10** (`ea206babe`, xem SOT change log); W1+ `PLAN — chờ founder duyệt D25–D30`.
 
 **Nguồn:** spec founder `blockid-payg-pricing-update.md` (20/10) + yêu cầu bổ sung: *bỏ hẳn A$1 / A$3 khỏi chương trình; rà soát toàn platform; sửa bug; kiểm tra link hỏng; cơ chế đổi free model; chọn model chất lượng tốt nhất với giá thấp nhất; agent điều phối đánh giá tổng hợp + chi tiết (paid + free); cảnh báo khi model trả phí sắp hết tiền; sẵn sàng chạy lâu dài.*
 
