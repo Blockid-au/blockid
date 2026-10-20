@@ -59,6 +59,7 @@ import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { campaignPriority } from "@/lib/lifecycle/campaigns";
 import { isInCommercialSendWindow, nextCommercialSendSlot } from "@/lib/lifecycle/send-window";
 import { lifecycleStopDecision } from "@/lib/lifecycle/stop-conditions";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -92,6 +93,9 @@ async function handle(request: Request): Promise<Response> {
   const failures: string[] = [];
   const wouldSend: string[] = [];
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au").replace(/\/$/, "");
+  // G35 P5 — the Pricing v5 switch for price words in the copy, read once
+  // per run (and only when something is due). OFF = today's e-mails.
+  const payg = drips.length > 0 ? await getPaygView() : null;
 
   for (const drip of drips) {
     try {
@@ -170,7 +174,7 @@ async function handle(request: Request): Promise<Response> {
       }
 
       const payload = (drip.payload ?? {}) as DripPayload;
-      const rendered = renderDripBody(drip.campaign, drip.email, payload);
+      const rendered = renderDripBody(drip.campaign, drip.email, payload, payg ? { payg } : {});
       const unsubscribeUrl = `${siteUrl}/unsubscribe?email=${encodeURIComponent(drip.email)}`;
       const result = await sendEmail({
         to: drip.email,

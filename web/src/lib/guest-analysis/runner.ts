@@ -211,7 +211,7 @@ export async function runGuestAnalysis(
   const { data: row, error: fetchErr } = await supabase
     .from("guest_analyses")
     .select(
-      "id, email, input_type, input_value, input_filename, status",
+      "id, email, input_type, input_value, input_filename, status, paid_amount_aud_cents",
     )
     .eq("id", guestAnalysisId)
     .maybeSingle();
@@ -567,6 +567,10 @@ export async function runGuestAnalysis(
         reportData,
         pdfUrl: reportPdfUrl ?? "",
         guestAnalysisId,
+        // G35 P5 — the tax-invoice line prints what Stripe actually charged.
+        amountCents: typeof (row as { paid_amount_aud_cents?: unknown }).paid_amount_aud_cents === "number"
+          ? (row as { paid_amount_aud_cents: number }).paid_amount_aud_cents
+          : null,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
