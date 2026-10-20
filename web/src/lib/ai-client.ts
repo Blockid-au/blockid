@@ -1753,33 +1753,41 @@ async function callClaudeHaikuDirect(opts: AICallOptions): Promise<AICallResult>
 // Last updated: 2026-08-13 — daily refresh writes to ai-free-models.json.
 // Hardcoded list is fallback if file is missing/stale (getDynamicModels prefers file).
 const OPENROUTER_DEFAULT_MODELS: string[] = [
-  // ── S-tier: Frontier-class free models ──────────────────────────
-  "google/gemini-2.5-flash:free",                        // Google Gemini 2.5 Flash — fastest frontier model
-  "deepseek/deepseek-r1:free",                           // DeepSeek R1 reasoning — strongest free reasoning
-  "deepseek/deepseek-chat-v3.1:free",                    // DeepSeek V3.1 chat — S-tier reasoning (Sep 2026 add)
-  "deepseek/deepseek-v3:free",                           // DeepSeek V3 — top-tier general + coding
-  "meta-llama/llama-4-maverick:free",                    // Llama 4 Maverick — Meta's best free MoE
-  "qwen/qwen3-235b-a22b:free",                           // Qwen3 235B MoE — Alibaba flagship free
-  "moonshotai/kimi-k2:free",                             // Kimi K2 — 1T MoE, strong agentic tasks
-
-  // ── A-tier: Strong general-purpose ──────────────────────────────
-  "meta-llama/llama-4-scout:free",                       // Llama 4 Scout — Meta efficient MoE
-  "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",        // NVIDIA Nemotron 253B — large reasoning
-  "microsoft/phi-4-reasoning-plus:free",                 // Phi-4 Reasoning Plus — strong for size
-  "tngtech/deepseek-r1t-chimera:free",                   // DeepSeek R1T Chimera — hybrid reasoning
-  "inclusionai/ling-3.0-flash-fin:free",                 // Ling 3.0 Fin — 124B MoE, 262K ctx, finance-tuned (BlockID domain fit)
-
-  // ── B-tier: Solid quality, reliable ─────────────────────────────
-  "google/gemma-3-27b-it:free",                          // Gemma 3 27B — Google efficient instruct
-  "mistralai/mistral-small-3.2-24b-instruct:free",       // Mistral Small 3.2 — reliable European model
-  "liquid/lfm-2.5-2.6b:free",                            // Liquid LFM 2.5 2.6B — 65K ctx, ultra-fast small fallback
+  // W1 (2026-10-20): ids verified on the public catalogue
+  // (openrouter.ai/api/v1/models, pricing 0). The previous list — gemini-2.5-
+  // flash:free, deepseek-r1:free, deepseek-chat-v3.1:free, qwen3-235b:free,
+  // kimi-k2:free … — answers 404 "unavailable for free". The first three are
+  // the stronger W1 candidates: admitted for NON-report free paths only
+  // (FREE_NON_REPORT_ONLY_MODELS — report-scoped calls stay DeepInfra-only).
+  "nvidia/nemotron-3-ultra-550b-a55b:free",              // 550B MoE, 1M ctx
+  "nvidia/nemotron-3-super-120b-a12b:free",              // 120B MoE, 262K ctx
+  "google/gemma-4-31b-it:free",                          // Gemma 4 31B, 262K ctx
+  "minimax/minimax-m3.1-flash:free",                     // MiniMax M3.1 Flash, 1M ctx (healthy on the probe)
+  "nvidia/nemotron-3.5-super-vl:free",                   // Nemotron 3.5 Super, 1M ctx (healthy on the probe)
 ];
+
+/** W1: an OpenRouter model billed at zero (the `:free` variant) — exempt from the credit floor. */
+export function isOpenRouterFreeModel(model: string): boolean {
+  return model.endsWith(":free");
+}
+
+/** W1: the OpenRouter ids to dial — `:free` only while credits are under the floor. Pure; exported for tests. */
+export function openRouterDialList(models: string[], lowCredit: boolean): string[] {
+  return lowCredit ? models.filter(isOpenRouterFreeModel) : models;
+}
+
+/** W1: true while the last probe says OpenRouter credits are under the floor. */
+function openRouterLowCredit(now: number = Date.now()): boolean {
+  const st = cachedProviderStatus("openrouter");
+  return Boolean(st && st.status === "low_credit" && now - new Date(st.checked_at).getTime() < PROBE_TTL_MS);
+}
 
 async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  const FREE_MODELS = getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS);
+  // W1: under the credit floor only `:free` ids are dialled (no credit spend).
+  const FREE_MODELS = openRouterDialList(getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS), openRouterLowCredit());
 
   let lastErr: Error | null = null;
   const openrouterRungs = readyModels("openrouter", FREE_MODELS, cls);
@@ -2202,7 +2210,12 @@ export function providerBlockReason(p: Provider, now: number = Date.now()): stri
     if (st && now - new Date(st.checked_at).getTime() < PROBE_TTL_MS) {
       if (st.status === "invalid_key") return "invalid_key";
       if (st.status === "quota_exceeded") return "quota_exceeded";
-      if (st.status === "low_credit") return "low_credit";
+      // W1 (pricing v5 §7.2 #4): the credit floor protects PAID OpenRouter
+      // spend only. `:free` models cost no credit (free requests stay
+      // available — 964/1000 left on 2026-10-20 at US$1.55), so the provider
+      // stays dialable while its ladder has a `:free` rung; callOpenRouter
+      // then dials `:free` ids only.
+      if (st.status === "low_credit" && !(p === "openrouter" && ladderFor("openrouter").some(isOpenRouterFreeModel))) return "low_credit";
       if (st.status === "unreachable" && p === "claude-proxy") return "unreachable";
     }
   }

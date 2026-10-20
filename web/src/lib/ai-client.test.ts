@@ -1779,6 +1779,37 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
   });
 });
 
+describe("W1 — OpenRouter credit floor exempts :free models (pricing v5 §7.2 #4)", () => {
+  const STATUS_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-provider-status.json";
+  const FREE_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-free-models.json";
+  const lowCredit = () => JSON.stringify({ updated_at: new Date().toISOString(), providers: { openrouter: { provider: "openrouter", status: "low_credit", checked_at: new Date().toISOString(), latency_ms: 1, headroom: { credits_remaining_usd: 1.55 } } } });
+
+  it("low_credit no longer blocks OpenRouter while its ladder has a :free rung; it still blocks a paid-only ladder", async () => {
+    process.env.OPENROUTER_API_KEY = "or-test";
+    fsMock.files.set(STATUS_FILE, lowCredit());
+    const { providerBlockReason, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(providerBlockReason("openrouter")).toBeNull(); // curated defaults are all :free
+    fsMock.files.set(FREE_FILE, JSON.stringify({ openrouter: ["openai/gpt-5-mini", "anthropic/claude-sonnet-5"] }));
+    const again = await loadClient();
+    again._resetDispatcherForTests();
+    expect(again.providerBlockReason("openrouter")).toBe("low_credit");
+  });
+
+  it("under the floor only :free ids are dialled; the W1 candidates are verified catalogue ids", async () => {
+    const { openRouterDialList, isOpenRouterFreeModel, ladderFor } = await loadClient();
+    const list = ["nvidia/nemotron-3-ultra-550b-a55b:free", "openai/gpt-5-mini", "google/gemma-4-31b-it:free"];
+    expect(openRouterDialList(list, true)).toEqual(["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemma-4-31b-it:free"]);
+    expect(openRouterDialList(list, false)).toEqual(list);
+    expect(isOpenRouterFreeModel("openrouter/free")).toBe(false);
+    const ladder = ladderFor("openrouter");
+    for (const id of ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free"]) expect(ladder).toContain(id);
+    expect(ladder.every(isOpenRouterFreeModel)).toBe(true);
+    // the dead 404 "unavailable for free" ids are gone from the curated list
+    for (const dead of ["deepseek/deepseek-r1:free", "qwen/qwen3-235b-a22b:free", "deepseek/deepseek-chat-v3.1:free"]) expect(ladder).not.toContain(dead);
+  });
+});
+
 // No external model/account combination has qualified for this scope yet.
 describe("G30 BlockID report policy", () => {
   const request = { system: "rubric", user: "evidence", policy: "blockid-report-v1" as const };

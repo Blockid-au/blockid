@@ -33,6 +33,13 @@ export const KNOWN_GOOD_FREE_MODELS: readonly KnownModel[] = [
   { provider: "groq", model: "openai/gpt-oss-120b", family: "gpt-oss", contextWindow: 131_072 },
   { provider: "groq", model: "openai/gpt-oss-20b", family: "gpt-oss", contextWindow: 131_072 },
 
+  // OpenRouter :free — W1 (§7.2 #4) stronger candidates, verified on the public
+  // catalogue 2026-10-20. NON-report free paths only (ai-client
+  // FREE_NON_REPORT_ONLY_MODELS); exempt from the OpenRouter credit floor.
+  { provider: "openrouter", model: "nvidia/nemotron-3-ultra-550b-a55b:free", family: "nemotron-3", contextWindow: 1_000_000 },
+  { provider: "openrouter", model: "nvidia/nemotron-3-super-120b-a12b:free", family: "nemotron-3", contextWindow: 262_144 },
+  { provider: "openrouter", model: "google/gemma-4-31b-it:free", family: "gemma-4", contextWindow: 262_144 },
+
   // Chutes — awaits key wiring
   { provider: "chutes", model: "unsloth/Llama-3.3-70B-Instruct", family: "llama-3.3", contextWindow: 128_000 },
   { provider: "chutes", model: "deepseek-ai/DeepSeek-R1", family: "deepseek-r1", contextWindow: 64_000 },

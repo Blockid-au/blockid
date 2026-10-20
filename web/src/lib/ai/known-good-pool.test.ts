@@ -26,6 +26,11 @@ describe("KNOWN_GOOD_FREE_MODELS", () => {
     }
   });
 
+  it("carries the W1 OpenRouter :free candidates (exact catalogue ids)", () => {
+    const ids = KNOWN_GOOD_FREE_MODELS.filter((m) => m.provider === "openrouter").map((m) => m.model);
+    expect(ids).toEqual(["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free"]);
+  });
+
   it("poolWithKeys keeps only providers with a key", () => {
     const pool = poolWithKeys((p) => p === "groq");
     expect(pool.length).toBeGreaterThan(0);
