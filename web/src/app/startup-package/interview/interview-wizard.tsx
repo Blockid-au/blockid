@@ -288,7 +288,7 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
       if (res.status === 402) {
         dispatch({
           type: "ERROR",
-          message: `Not enough credits (${data.credits_needed ?? currentStep.creditCost} needed). Top up at /credits.`,
+          message: `Not enough credits (${data.credits_needed ?? currentStep.creditCost} needed). Top up in Billing → Credits (${data.url ?? "/workspace/billing#credits"}).`,
         });
         return;
       }

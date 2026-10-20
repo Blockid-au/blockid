@@ -149,7 +149,7 @@ async function POST_handler(request: Request) {
         reason: "insufficient_credits",
         credits_needed: creditsNeeded,
         credits_balance: balance,
-        url: "/credits",
+        url: "/workspace/billing#credits",
       },
       { status: 402 },
     );

@@ -8,6 +8,7 @@ import {
   getDeployHealth24h,
   getGrowth7d,
   getReleaseInfo,
+  getLinkHealth,
   getSecurityPosture,
 } from "@/lib/ops-metrics";
 import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
@@ -38,6 +39,7 @@ export default async function AdminOpsPage() {
     experiments,
     growth,
     posture,
+    linkHealth,
   ] = await Promise.all([
     getReleaseInfo(),
     getDeployHealth24h(),
@@ -46,6 +48,7 @@ export default async function AdminOpsPage() {
     getActiveExperiments(),
     getGrowth7d(),
     getSecurityPosture(),
+    getLinkHealth(),
   ]);
 
   return (
@@ -65,6 +68,7 @@ export default async function AdminOpsPage() {
         experiments={experiments}
         growth={growth}
         posture={posture}
+        linkHealth={linkHealth}
       />
     </>
   );

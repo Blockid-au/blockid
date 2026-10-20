@@ -6567,7 +6567,7 @@
       "summary": "Members invest individually.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "low"
     },
     {
       "id": "cbr-anu-discovery-translation-fund",
@@ -6742,11 +6742,11 @@
         "prerequisite": "Activate"
       },
       "status": "open",
-      "official_url": "https://enterprize.space/programs/enterprize-elevate/",
+      "official_url": "https://enterprize.space/programs/",
       "summary": "Tasmania's main incubator program.",
-      "last_verified_at": "2026-09-10",
+      "last_verified_at": "2026-10-20",
       "verified_by": "seed",
-      "status_confidence": "high"
+      "status_confidence": "medium"
     },
     {
       "id": "hba-enterprize-activate",
@@ -6810,9 +6810,9 @@
       "cost_to_founder": "private offices from A$655/month",
       "eligibility": {},
       "status": "open",
-      "official_url": "https://enterprize.space/workspaces/",
+      "official_url": "https://enterprize.space/join/",
       "summary": "Coworking.",
-      "last_verified_at": "2026-09-10",
+      "last_verified_at": "2026-10-20",
       "verified_by": "seed",
       "status_confidence": "high"
     },
@@ -7617,7 +7617,7 @@
         "private": true
       },
       "status": "open",
-      "official_url": "https://aws.amazon.com/activate/",
+      "official_url": "https://aws.amazon.com/startups/",
       "summary": "Cloud credits.",
       "last_verified_at": "2026-09-10",
       "verified_by": "seed",

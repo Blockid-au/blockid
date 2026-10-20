@@ -9,6 +9,7 @@ import { FAQJsonLd } from "@/components/seo/json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
+import { OG_IMAGE } from "@/lib/seo/page-meta";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +34,12 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       locale: "vi_VN",
       images: [
+        // W1 links: /og/pricing.png never existed (404 on every share) — the
+        // site OG card is what the EN /pricing page ships too.
         {
-          url: "https://blockid.au/og/pricing.png",
-          width: 1200,
-          height: 630,
+          url: OG_IMAGE.url,
+          width: OG_IMAGE.width,
+          height: OG_IMAGE.height,
           alt: "BlockID.au — Bảng giá 12 SKU, 7 ngày dùng thử",
         },
       ],
@@ -45,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: t(m, "meta.pricing.title"),
       description: t(m, "meta.pricing.description"),
-      images: ["https://blockid.au/og/pricing.png"],
+      images: [OG_IMAGE.url],
     },
     robots: { index: true, follow: true },
   };

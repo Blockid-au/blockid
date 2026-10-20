@@ -15,51 +15,71 @@
 //      still status-checked when linked) and, with --include-sitemap,
 //      /sitemap.xml (+ nested sitemaps) — every <loc> becomes a seed.
 //   2. BFS from / over same-origin HTML pages (≤ --max; a URL with a query
-//      string is status-checked but not parsed for links). For every <a href>,
-//      <link href> (stylesheet/canonical/alternate/icon), <img src>,
-//      <source src>, <script src>:
+//      string is parsed one level deep — seeds and query pages linked from a
+//      query-less page, ≤ 25 variants per pathname). For every <a href>,
+//      <link href> (stylesheet/canonical/alternate+hreflang/icon), <img src>,
+//      <source src>, <script src>, <meta og:image|og:url|twitter:image> and
+//      every URL property inside <script type="application/ld+json">:
 //        internal → GET, redirects followed by hand (≤ 5 hops; > 2 reported as
-//                   a chain), final status must be 200; `#fragment` targets are
-//                   verified against the ids of the crawled page;
+//                   a chain; a loop or > 5 hops is broken), final status must
+//                   be 200; `#fragment` targets of <a> are verified against
+//                   the ids of the crawled page;
 //        /api /workspace /dashboard /admin /auth /s /apply → HEAD once, only
-//                   a 5xx / network failure counts as broken;
-//        external → HEAD (GET retry on 404/5xx); only 404/410/5xx/DNS count.
-//   3. Writes content/reports/link-check.jsonl (one row per run:
-//      {ts, base, pages, links, broken:[…], redirect_chains:[…], slow:[…]}) +
-//      link-check-latest.json; Telegram/e-mail via scripts/lib/ops-env.mjs
-//      sendTelegram when broken > 0 (skip with --no-alert). --dry-run writes
-//      and sends nothing.
-//   4. Exit 1 when broken > 0 (unless --dry-run); exit 2 on a crash or when
-//      another run holds the lock.
+//                   a 404 / 5xx / network failure counts as broken;
+//        external → HEAD then GET, redirects followed by hand (private-host
+//                   guard on every hop); 404/410/5xx/DNS/timeout/loop/> 5 hops
+//                   = broken; 401/403/405/429/999 = `unverifiable` (recorded).
+//   3. Writes content/reports/<name>.jsonl (one row per run) +
+//      <name>-latest.json, name = `link-check` for blockid.au, else
+//      `link-check-<host>` (--report-name overrides). Each broken link keeps
+//      an `open_since` across runs (`open`, `open_count`, `oldest_open_since`,
+//      `changes: {added, resolved, escalated}`). Telegram/e-mail via
+//      scripts/lib/ops-env.mjs sendTelegram ONLY when the broken set changed
+//      (new or resolved) or a link has been open > 48 h (escalated once).
+//      --no-alert skips sending; --dry-run writes and sends nothing.
+//   4. Exit 1 when broken > 0 or an internal redirect chain > 2 hops exists
+//      (unless --dry-run); exit 2 on a crash or when another run holds the lock.
 //
-// Lock: /tmp/blockid-link-check.lock (pid file, stale-safe). Every request:
-// 10 s timeout (--timeout), User-Agent BlockID-LinkCheck/1.0.
+// Lock: /tmp/blockid-link-check.lock (/tmp/blockid-<name>.lock for other
+// sites; pid file, stale-safe). Every request: 10 s timeout (--timeout),
+// User-Agent BlockID-LinkCheck/1.0.
+//
+//   node scripts/link-check.mjs --base https://startupvalueindex.com --include-sitemap --max 300
+//                                   # SVI: writes link-check-startupvalueindex-com{.jsonl,-latest.json}
 
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { acquireLock, appendJsonl, sendTelegram, WEB_DIR, writeJsonAtomic } from "./lib/ops-env.mjs";
+import { acquireLock, appendJsonl, readJson, sendTelegram, WEB_DIR, writeJsonAtomic } from "./lib/ops-env.mjs";
 import {
+  MAX_FOLLOW_HOPS,
   USER_AGENT,
   classify,
   extractIds,
   extractLinks,
+  formatChangeAlert,
   formatSummary,
   isAssetPath,
   isEdgeInjectedPath,
   isNoCrawlPath,
   makeSite,
   normalizeUrl,
+  oldestOpenSince,
   parseArgs,
   parseRobots,
   parseSitemap,
+  reconcileOpen,
+  reportNameFor,
   robotsAllows,
+  seedOpenFromHistory,
+  shouldParseQueryPage,
   summarize,
   toFetchUrl,
   toSiteUrl,
 } from "./lib/link-check-core.mjs";
 
 const LOCK = "/tmp/blockid-link-check.lock";
-const MAX_HOPS = 5;
+const MAX_HOPS = MAX_FOLLOW_HOPS;
 
 /** Bounded pool: every request (page, resource, external) waits for a slot. */
 function makeLimiter(size) {
@@ -107,9 +127,14 @@ async function rawRequest(url, { method, timeoutMs, fetchImpl, redirect }) {
 /** GET an internal URL, following redirects by hand so the chain is visible. */
 async function fetchInternal(fetchUrl, site, opts) {
   const chain = [];
+  const visited = new Set();
   let current = fetchUrl;
   let totalMs = 0;
   for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    if (visited.has(current)) {
+      return { status: null, error: "redirect_loop", hops: hop, chain, final_url: toSiteUrl(current, site), ms: totalMs, html: null, contentType: "" };
+    }
+    visited.add(current);
     const r = await request(current, { ...opts, method: "GET", redirect: "manual" });
     totalMs += r.ms;
     if (r.error) return { status: null, error: r.error, hops: hop, chain, final_url: toSiteUrl(current, site), ms: totalMs, html: null, contentType: "" };
@@ -148,7 +173,7 @@ async function fetchInternal(fetchUrl, site, opts) {
     }
     return { status, hops: chain.length, chain, final_url: toSiteUrl(current, site), ms: totalMs, html, contentType };
   }
-  return { status: null, error: "redirect_loop", hops: MAX_HOPS + 1, chain, final_url: null, ms: totalMs, html: null, contentType: "" };
+  return { status: null, error: "too_many_redirects", hops: MAX_HOPS + 1, chain, final_url: null, ms: totalMs, html: null, contentType: "" };
 }
 
 // G17 review P1: external hrefs come from user content (e.g. /reports/[ticker]
@@ -194,6 +219,73 @@ function safeHost(u) {
   }
 }
 
+async function drain(res) {
+  try {
+    await res.body?.cancel();
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * One method, redirects followed BY HAND (W1): every hop is re-checked
+ * against the private-host guard, an exact repeat is `redirect_loop`, more
+ * than MAX_HOPS hops is `too_many_redirects` (both broken). A login wall that
+ * bounces HEAD through ever-longer ReturnUrl= URLs (investmentcouncil.com.au)
+ * ends as too_many_redirects on HEAD and is then retried with GET.
+ */
+async function followExternal(url, method, opts) {
+  const chain = [];
+  const visited = new Set();
+  let current = url;
+  let ms = 0;
+  for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    if (visited.has(current)) return { status: null, error: "redirect_loop", hops: hop, chain, final_url: current, ms };
+    visited.add(current);
+    let host;
+    try {
+      host = new URL(current).hostname;
+    } catch {
+      return { status: null, error: "bad_url", hops: hop, chain, final_url: current, ms };
+    }
+    if (!opts.ownHosts?.has(host) && (await isPrivateHost(host, opts.lookup))) {
+      return { status: null, error: "skipped_private", hops: hop, chain, final_url: current, ms };
+    }
+    const r = await request(current, { ...opts, method, redirect: "manual" });
+    ms += r.ms;
+    if (r.error) return { status: null, error: r.error, hops: hop, chain, final_url: current, ms };
+    const status = r.res.status;
+    const location = r.res.headers?.get?.("location");
+    await drain(r.res);
+    if (status >= 300 && status < 400 && location) {
+      chain.push({ url: current, status });
+      try {
+        current = new URL(location, current).toString();
+      } catch {
+        return { status, error: "bad_location", hops: hop + 1, chain, final_url: null, ms };
+      }
+      continue;
+    }
+    return { status, hops: chain.length, chain, final_url: current, ms };
+  }
+  return { status: null, error: "too_many_redirects", hops: MAX_HOPS + 1, chain, final_url: current, ms };
+}
+
+/**
+ * External link: HEAD, then GET when HEAD is refused or inconclusive
+ * (401/403/404/405/429/999, 5xx, loop, network error) — many hosts reject
+ * HEAD or bot UAs. The GET answer is the verdict input (externalVerdict()).
+ */
+async function probeExternal(url, opts) {
+  const h = await followExternal(url, "HEAD", opts);
+  if (h.error === "skipped_private" || h.error === "bad_url") return h;
+  const retry = h.error || h.status === 401 || h.status === 403 || h.status === 404 || h.status === 405 || h.status === 429 || h.status === 999 || h.status >= 500;
+  if (!retry) return h;
+  const g = await followExternal(url, "GET", opts);
+  return { ...g, ms: h.ms + g.ms };
+}
+
+/** Gated internal path: HEAD once, redirects followed by fetch (login wall = healthy). */
 async function probe(url, opts, { getFallback = true } = {}) {
   try {
     const host = new URL(url).hostname;
@@ -215,11 +307,18 @@ async function probe(url, opts, { getFallback = true } = {}) {
   return { status: g.res.status, final_url: g.res.url || url, ms: h.ms + g.ms };
 }
 
-/** Load /sitemap.xml (+ one level of nested sitemaps) → absolute site URLs. */
-export async function loadSitemap(site, opts, log) {
+/**
+ * Load /sitemap.xml (+ nested sitemaps, + same-site `Sitemap:` lines from
+ * robots.txt) → absolute site URLs.
+ */
+export async function loadSitemap(site, opts, log, robotsSitemaps = []) {
   const seen = new Set();
   const urls = [];
   const queue = [`${site.base}/sitemap.xml`];
+  for (const sm of robotsSitemaps) {
+    const n = normalizeUrl(sm, `${site.site}/`);
+    if (n && classify(n.href, site) === "internal") queue.push(toFetchUrl(n.href, site));
+  }
   let fetched = 0;
   while (queue.length && fetched < 20) {
     const u = queue.shift();
@@ -275,6 +374,8 @@ export async function crawl(args, deps = {}) {
   const queued = new Map();
   let pagesCrawled = 0;
   let sitemapStats = null;
+  /** pathname → query-string variants parsed so far (W1 cap). */
+  const queryVariants = new Map();
 
   const enqueuePage = (siteHref, from, kind) => {
     if (queued.has(siteHref)) return;
@@ -284,7 +385,7 @@ export async function crawl(args, deps = {}) {
 
   enqueuePage(`${site.site}/`, "(seed)", "a");
   if (args.includeSitemap) {
-    const urls = await loadSitemap(site, opts, log);
+    const urls = await loadSitemap(site, opts, log, robots?.sitemaps ?? []);
     sitemapStats = { urls: urls.length, ok: 0, failed: 0, seeds: urls };
     for (const u of urls) enqueuePage(u, "(sitemap)", "sitemap");
   }
@@ -304,25 +405,32 @@ export async function crawl(args, deps = {}) {
         const r = await fetchInternal(toFetchUrl(siteHref, site), site, opts);
         Object.assign(rec, { status: r.status, final_url: r.final_url, ms: r.ms, hops: r.hops, chain: r.chain, error: r.error });
         if (r.offsite) {
-          const ext = await probe(r.offsite, opts);
+          const ext = await probeExternal(r.offsite, opts);
           rec.status = ext.status;
           rec.final_url = ext.final_url;
           rec.ms += ext.ms;
+          rec.hops = (rec.hops ?? 0) + (ext.hops ?? 0);
+          if (ext.error) rec.error = ext.error;
           rec.internal = false; // judged by the external rule
           rec.offsite = true;
         }
         if (r.html !== null) {
           pageIds.set(siteHref, extractIds(r.html));
-          // A URL with a query string is checked but never parsed for more
-          // links unless it is a seed: the funding directories' filter links
-          // (?state=…&stage=…&industry=…) otherwise combine into thousands of
-          // "pages" (2,502 of 3,000 in the first production profile) and
-          // crowd the real ones out of --max.
-          const isSeed = queued.get(siteHref)?.from === "(seed)" || queued.get(siteHref)?.from === "(sitemap)";
-          const crawlable = !isAssetPath(pathname) && (!new URL(siteHref).search || isSeed) && robotsAllows(pathname, robots) && pagesCrawled < args.max;
+          // A URL with a query string is parsed only one level deep (W1):
+          // seeds, and query pages linked from a query-less page (at most
+          // QUERY_VARIANT_CAP per pathname). The funding directories' filter
+          // links (?state=…&stage=…&industry=…) otherwise combine into
+          // thousands of "pages" (2,502 of 3,000 in the first production
+          // profile) and crowd the real ones out of --max.
+          const ref = queued.get(siteHref) ?? { from };
+          const isSeed = ref.from === "(seed)" || ref.from === "(sitemap)";
+          const hasQuery = Boolean(new URL(siteHref).search);
+          const queryOk = shouldParseQueryPage({ url: siteHref, from: ref.from, isSeed, variantsSeen: queryVariants.get(pathname) ?? 0 });
+          const crawlable = !isAssetPath(pathname) && queryOk && robotsAllows(pathname, robots) && pagesCrawled < args.max;
           if (crawlable) {
             pagesCrawled += 1;
             rec.crawled = true;
+            if (hasQuery && !isSeed) queryVariants.set(pathname, (queryVariants.get(pathname) ?? 0) + 1);
             for (const { raw, kind: k } of extractLinks(r.html)) {
               const n = normalizeUrl(raw, siteHref);
               if (!n) continue;
@@ -330,7 +438,8 @@ export async function crawl(args, deps = {}) {
               const targetInternal = classify(target, site) === "internal";
               if (targetInternal && isEdgeInjectedPath(new URL(target).pathname)) continue;
               if (!targetInternal && !args.externals) continue;
-              if (n.fragment && targetInternal) fragments.push({ page: target, fragment: n.fragment, from: siteHref });
+              // Fragments only on navigations: a JSON-LD / meta URL's #id is an identifier.
+              if (n.fragment && targetInternal && k === "a") fragments.push({ page: target, fragment: n.fragment, from: siteHref });
               if (target === siteHref) continue; // self link (#anchor) — fragment check covers it
               if (targetInternal && !isNoCrawlPath(new URL(target).pathname) && !isAssetPath(new URL(target).pathname) && k === "a") enqueuePage(target, siteHref, k);
               else void checkLink(target, siteHref, k);
@@ -338,8 +447,8 @@ export async function crawl(args, deps = {}) {
           }
         }
       } else {
-        const r = await probe(siteHref, opts);
-        Object.assign(rec, { status: r.status, final_url: r.final_url, ms: r.ms, error: r.error });
+        const r = await probeExternal(siteHref, opts);
+        Object.assign(rec, { status: r.status, final_url: r.final_url, ms: r.ms, error: r.error, hops: r.hops ?? 0, chain: r.chain ?? [] });
       }
       records.set(siteHref, rec);
       pending.delete(siteHref);
@@ -397,11 +506,36 @@ export async function crawl(args, deps = {}) {
   return { summary, records: all };
 }
 
+/** Last `n` parseable rows of a jsonl file, oldest first ([] when absent). */
+async function readJsonlTail(file, n) {
+  let text = "";
+  try {
+    text = await readFile(file, "utf8");
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const line of text.trim().split("\n").slice(-n)) {
+    try {
+      out.push(JSON.parse(line));
+    } catch {
+      /* skip a torn line */
+    }
+  }
+  return out;
+}
+
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const args = parseArgs(argv);
   const log = deps.log ?? ((s) => process.stdout.write(`${s}\n`));
   const outDir = args.outDir ? path.resolve(args.outDir) : path.join(WEB_DIR, "content", "reports");
-  const release = deps.skipLock ? () => {} : acquireLock(deps.lockPath ?? LOCK);
+  // Per-site report stem + lock: blockid.au keeps link-check.jsonl /
+  // link-check-latest.json; startupvalueindex.com gets its own files and lock.
+  const reportName = args.reportName ?? reportNameFor(makeSite(args.base, args.site).site);
+  const historyFile = path.join(outDir, `${reportName}.jsonl`);
+  const latestFile = path.join(outDir, `${reportName}-latest.json`);
+  const lockPath = deps.lockPath ?? (reportName === "link-check" ? LOCK : `/tmp/blockid-${reportName}.lock`);
+  const release = deps.skipLock ? () => {} : acquireLock(lockPath);
   if (!release) {
     log("[link-check] another run holds the lock — exiting");
     return { exitCode: 2, summary: null };
@@ -411,20 +545,45 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     const { summary } = await crawl(args, deps);
     summary.duration_ms = Date.now() - t0;
     summary.dry_run = args.dryRun;
+    summary.report_name = reportName;
+
+    // W1: carry the open set over from the previous run (or, for a report
+    // written before W1, rebuild it from the jsonl history) so every broken
+    // link has an `open_since`, and alert only on a change.
+    const prev = readJson(latestFile, null);
+    const prevOpen = Array.isArray(prev?.open) ? prev.open : prev ? seedOpenFromHistory(await readJsonlTail(historyFile, 120)) : [];
+    const now = deps.now ? deps.now() : new Date();
+    const change = reconcileOpen(prevOpen, summary.broken, { now });
+    summary.open = change.open;
+    summary.open_count = change.open.length;
+    summary.oldest_open_since = oldestOpenSince(change.open);
+    summary.escalated_open = change.open.filter((o) => o.escalated_at).length;
+    summary.changes = {
+      added: change.added.map((o) => o.url),
+      resolved: change.resolved.map((o) => o.url),
+      escalated: change.escalated.map((o) => o.url),
+    };
+
     if (!args.dryRun) {
-      appendJsonl(path.join(outDir, "link-check.jsonl"), summary);
-      writeJsonAtomic(path.join(outDir, "link-check-latest.json"), summary);
+      appendJsonl(historyFile, summary);
+      writeJsonAtomic(latestFile, summary);
     }
     if (args.json) log(JSON.stringify(summary));
     else log(formatSummary(summary));
-    if (summary.broken.length > 0 && args.alert && !args.dryRun) {
-      const head = `⚠ link-check: ${summary.broken.length} broken (${summary.broken_internal} internal) on ${summary.base} — ${summary.pages} pages, ${summary.links} links`;
-      const body = summary.broken.slice(0, 12).map((b) => `• ${b.url} ← ${b.from} (${b.fragment_missing ? `#${b.fragment_missing} missing` : b.error ?? b.status})`).join("\n");
-      const r = await (deps.sendTelegram ?? sendTelegram)(`${head}\n${body}`, {});
-      if (!args.json) log(`  alert: ${r.sent ? `sent${r.via ? ` via ${r.via}` : ""}` : `not sent (${r.reason})`}`);
+    const alertText = formatChangeAlert(summary, change);
+    if (args.alert && !args.dryRun) {
+      if (alertText) {
+        const r = await (deps.sendTelegram ?? sendTelegram)(alertText, {});
+        if (!args.json) log(`  alert: ${r.sent ? `sent${r.via ? ` via ${r.via}` : ""}` : `not sent (${r.reason})`}`);
+      } else if (!args.json) {
+        log(`  alert: skipped — broken set unchanged (${summary.open_count} open)`);
+      }
     }
-    // Spec D7: redirect chains > 2 count as failures too (review 2026-09-19).
-    const exitCode = (summary.broken.length > 0 || (summary.redirect_chains?.length ?? 0) > 0) && !args.dryRun ? 1 : 0;
+    // Spec D7: internal redirect chains > 2 count as failures too (review
+    // 2026-09-19). External chains are reported, never fatal — we cannot fix
+    // someone else's redirects, only re-point our href (which the report shows).
+    const internalChains = (summary.redirect_chains ?? []).filter((c) => c.internal !== false).length;
+    const exitCode = (summary.broken.length > 0 || internalChains > 0) && !args.dryRun ? 1 : 0;
     return { exitCode, summary };
   } finally {
     release();

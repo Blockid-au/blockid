@@ -39,7 +39,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 
 export async function checkoutReviewMetadata(locale: CheckoutLocale): Promise<Metadata> {
   const s = checkoutReviewStrings(await getMessages(locale), locale);
-  return pageMetadata({
+  const meta = pageMetadata({
     title: s.metaTitle,
     description: s.metaDescription,
     path: locale === "vi" ? CHECKOUT_REVIEW_VI_PATH : CHECKOUT_REVIEW_PATH,
@@ -48,6 +48,14 @@ export async function checkoutReviewMetadata(locale: CheckoutLocale): Promise<Me
     // A per-order page with query params — never in the index.
     index: false,
   });
+  // W1 links: the bare /checkout/review URL (no order params) is a 404, so a
+  // canonical / hreflang / og:url pointing at it is a broken link on a page
+  // that is noindex anyway. Keep title, description, robots and the OG card.
+  const { alternates: _alternates, openGraph, ...rest } = meta;
+  void _alternates;
+  const og = { ...(openGraph ?? {}) } as Record<string, unknown>;
+  delete og.url;
+  return { ...rest, openGraph: og as Metadata["openGraph"] };
 }
 
 /** Pure: the back-link label for an order (pinned by the page test). */

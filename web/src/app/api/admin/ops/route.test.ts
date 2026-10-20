@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => ({
   getActiveExperiments: vi.fn(),
   getGrowth7d: vi.fn(),
   getSecurityPosture: vi.fn(),
+  getLinkHealth: vi.fn(),
 }));
 
 // Partial mock of @/lib/auth so the real ADMIN_EMAIL export stays live and
@@ -60,6 +61,7 @@ vi.mock("@/lib/ops-metrics", () => ({
   getActiveExperiments: () => mocks.getActiveExperiments(),
   getGrowth7d: () => mocks.getGrowth7d(),
   getSecurityPosture: () => mocks.getSecurityPosture(),
+  getLinkHealth: () => mocks.getLinkHealth(),
 }));
 
 import * as routeModule from "./route";
@@ -76,6 +78,7 @@ const CRON = [{ job: "x", lastRunAt: null, lastStatus: "ok", lagMinutes: 0 }];
 const EXPS: Array<unknown> = [];
 const GROWTH = { signupsDaily: [], analysesDaily: [] };
 const POSTURE = { headers: "ok" };
+const LINKS = [{ name: "link-check", site: "https://blockid.au", openCount: 2 }];
 
 function primeMocks() {
   mocks.getReleaseInfo.mockResolvedValue(RELEASE);
@@ -85,6 +88,7 @@ function primeMocks() {
   mocks.getActiveExperiments.mockResolvedValue(EXPS);
   mocks.getGrowth7d.mockResolvedValue(GROWTH);
   mocks.getSecurityPosture.mockResolvedValue(POSTURE);
+  mocks.getLinkHealth.mockResolvedValue(LINKS);
 }
 
 async function body(res: Response) {
@@ -100,6 +104,7 @@ beforeEach(() => {
   mocks.getActiveExperiments.mockReset();
   mocks.getGrowth7d.mockReset();
   mocks.getSecurityPosture.mockReset();
+  mocks.getLinkHealth.mockReset();
 });
 
 afterEach(() => {
@@ -134,6 +139,7 @@ describe("GET /api/admin/ops — auth gate", () => {
     expect(mocks.getActiveExperiments).not.toHaveBeenCalled();
     expect(mocks.getGrowth7d).not.toHaveBeenCalled();
     expect(mocks.getSecurityPosture).not.toHaveBeenCalled();
+    expect(mocks.getLinkHealth).not.toHaveBeenCalled();
   });
 
   it("403 Forbidden on a signed-in non-admin (distinct from the 401 unauth path)", async () => {
@@ -149,6 +155,7 @@ describe("GET /api/admin/ops — auth gate", () => {
     expect(mocks.getReleaseInfo).not.toHaveBeenCalled();
     expect(mocks.getCronHealth24h).not.toHaveBeenCalled();
     expect(mocks.getSecurityPosture).not.toHaveBeenCalled();
+    expect(mocks.getLinkHealth).not.toHaveBeenCalled();
   });
 
   it("admits the admin@blockid.au primary email even without role=admin", async () => {
@@ -178,9 +185,10 @@ describe("GET /api/admin/ops — happy-path envelope", () => {
     expect(b.experiments).toEqual(EXPS);
     expect(b.growth).toEqual(GROWTH);
     expect(b.posture).toEqual(POSTURE);
+    expect(b.linkHealth).toEqual(LINKS);
   });
 
-  it("exposes exactly the eight documented keys — no drift, no leaked internal state", async () => {
+  it("exposes exactly the nine documented keys — no drift, no leaked internal state", async () => {
     mocks.getCurrentUser.mockResolvedValue(ADMIN);
     primeMocks();
     const b = await body(await GET());
@@ -192,6 +200,7 @@ describe("GET /api/admin/ops — happy-path envelope", () => {
         "experiments",
         "generatedAt",
         "growth",
+        "linkHealth",
         "posture",
         "release",
       ],
@@ -217,6 +226,7 @@ describe("GET /api/admin/ops — happy-path envelope", () => {
     expect(mocks.getActiveExperiments).toHaveBeenCalledTimes(1);
     expect(mocks.getGrowth7d).toHaveBeenCalledTimes(1);
     expect(mocks.getSecurityPosture).toHaveBeenCalledTimes(1);
+    expect(mocks.getLinkHealth).toHaveBeenCalledTimes(1);
   });
 
   it("runs the seven reads concurrently (Promise.all — not sequential await)", async () => {
@@ -243,6 +253,7 @@ describe("GET /api/admin/ops — happy-path envelope", () => {
     mocks.getActiveExperiments.mockImplementation(waitForBarrier(EXPS));
     mocks.getGrowth7d.mockImplementation(waitForBarrier(GROWTH));
     mocks.getSecurityPosture.mockImplementation(waitForBarrier(POSTURE));
+    mocks.getLinkHealth.mockImplementation(waitForBarrier(LINKS));
 
     const inFlight = GET();
 
@@ -259,6 +270,7 @@ describe("GET /api/admin/ops — happy-path envelope", () => {
     expect(mocks.getActiveExperiments).toHaveBeenCalledTimes(1);
     expect(mocks.getGrowth7d).toHaveBeenCalledTimes(1);
     expect(mocks.getSecurityPosture).toHaveBeenCalledTimes(1);
+    expect(mocks.getLinkHealth).toHaveBeenCalledTimes(1);
 
     release();
     const res = await inFlight;
@@ -283,9 +295,11 @@ describe("GET /api/admin/ops — degradation posture", () => {
     mocks.getActiveExperiments.mockResolvedValue([]);
     mocks.getGrowth7d.mockResolvedValue(null);
     mocks.getSecurityPosture.mockResolvedValue(null);
+    mocks.getLinkHealth.mockResolvedValue([]);
     const res = await GET();
     expect(res.status).toBe(200);
     const b = await body(res);
+    expect(b.linkHealth).toEqual([]);
     expect(b.release).toBeNull();
     expect(b.deployHealth).toBeNull();
     expect(b.creditBurn).toBeNull();

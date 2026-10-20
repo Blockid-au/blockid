@@ -141,7 +141,7 @@ export function demoMoneyOnTable(): MoneyOnTableInput {
   return {
     grants: [
       { id: "rdti", name: "R&D Tax Incentive (refundable offset)", amountAud: 87_000, fit: 84, url: "https://business.gov.au/grants-and-programs/research-and-development-tax-incentive" },
-      { id: "mvp-nsw", name: "NSW MVP Ventures", amountAud: 200_000, deadline: "2026-11-30", fit: 71, url: "https://www.investment.nsw.gov.au/grants-and-rebates/mvp-ventures/" },
+      { id: "mvp-nsw", name: "NSW MVP Ventures", amountAud: 200_000, deadline: "2026-11-30", fit: 71, url: "https://www.nsw.gov.au/business-and-economy/innovation/grants-and-programs/mvp-ventures-program" },
     ],
     programs: [{ id: "startmate", name: "Startmate Accelerator", amountAud: 120_000, deadline: "2026-10-15", fit: 58, url: "https://www.startmate.com/accelerator" }],
   };

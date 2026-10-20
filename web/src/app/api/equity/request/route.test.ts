@@ -278,7 +278,6 @@ describe("POST /api/equity/request", () => {
     expect(json).toEqual({
       ok: false,
       reason: "wholesale_verification_required",
-      link: "/wholesale/verify",
     });
     expect(getSupabaseAdminMock).not.toHaveBeenCalled();
     expect(recordConsentMock).not.toHaveBeenCalled();

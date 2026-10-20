@@ -437,7 +437,9 @@ export function SolutionsPageShell(props: SolutionPageProps) {
       <BreadcrumbListJsonLd
         items={[
           { name: "Home", href: lang === "vi" ? "/vi" : "/" },
-          { name: lang === "vi" ? "Giải pháp" : "Solutions", href: `${lang === "vi" ? "/vi" : ""}/solutions` },
+          // W1 links: there is no /vi/solutions index (404) — both languages
+          // roll up to the one /solutions hub.
+          { name: lang === "vi" ? "Giải pháp" : "Solutions", href: "/solutions" },
           { name: fillPrices(headline), href: pagePath },
         ]}
       />

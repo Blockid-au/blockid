@@ -80,7 +80,8 @@ async function POST_handler(request: Request) {
         {
           ok: false,
           reason: "wholesale_verification_required",
-          link: "/wholesale/verify",
+          // W1 links: no /wholesale/verify page exists (the WholesaleGate
+          // component is not mounted on any route), so no link is returned.
         },
         { status: 403 },
       );
