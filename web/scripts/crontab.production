@@ -938,3 +938,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # agents lock theirs), idle >= 48 h and with no process inside it; never
 # --force, never deletes branches. Sun 06:40 UTC (16:40 AEST), before live QA.
 40 6 * * 0 cd /home/dovanlong/blockid.au && mkdir -p web/content/reports/logs && nice -n 19 ionice -c3 bash scripts/cleanup-merged-worktrees.sh --apply >> web/content/reports/logs/worktree-cleanup-$(date +\%G-W\%V).log 2>&1
+
+# G35 W1 L2 (20/10/2026): nightly link check for startupvalueindex.com + weekly
+# read-only official_url health report for au_grants/au_programs (--apply is manual).
+55 3 * * * cd /home/dovanlong/blockid.au/web && nice -n 10 node scripts/link-check.mjs --base https://startupvalueindex.com --include-sitemap --max 300 >> /data/logs/blockid-link-check-svi.log 2>&1
+30 6 * * 0 cd /home/dovanlong/blockid.au/web && nice -n 10 node scripts/funding-link-health.mjs >> /data/logs/blockid-funding-link-health.log 2>&1
