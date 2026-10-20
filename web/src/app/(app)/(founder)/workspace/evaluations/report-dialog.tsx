@@ -16,6 +16,13 @@
 // POLL_INTERVAL_MS for up to POLL_MAX_MS and picks up the row the server
 // writes; a retried POST with the same key is answered from that row too.
 // The server never charges twice for one key.
+//
+// G35 Pricing v5 (payg_enabled only): the preview may carry a card offer
+// (`cost.payg.card`). "Pay by card instead" reveals <PaygTierPicker> — the
+// review step (tier, included, price inc. GST, one-off, delivery) whose
+// explicit "Confirm & Pay" posts /api/reports/checkout with `evaluationId`;
+// the order is the evaluator's and is fulfilled by the paid-order drain.
+// Flag off → no card offer and the dialog is exactly the credits flow.
 
 import * as React from "react";
 import Link from "next/link";
@@ -24,7 +31,9 @@ import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-d
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { TRUST_REPORT_PRICE_AUD, trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { emitClientEvent } from "@/lib/analytics/client-emit";
-import { PAYG_SKUS } from "@/lib/pricing/v5-payg";
+import { PAYG_SKUS, type PaygTier } from "@/lib/pricing/v5-payg";
+import type { PaygOfferEnabled } from "@/lib/pricing/payg-offer";
+import { PaygTierPicker } from "@/components/paywall/payg-tier-picker";
 
 export type ReportKind = "full" | "rescore";
 
@@ -46,20 +55,62 @@ export interface ReportCostPreview {
   /** Absent on older servers → treated as not trialing. */
   trial?: ReportTrialPreview | null;
   /** G35 Pricing v5 (payg_enabled): beyond the quota a full report is the PAYG Full report. */
-  payg?: { enabled: boolean; full_price_label: string; full_credits: number | null } | null;
+  payg?: {
+    enabled: boolean;
+    full_price_label: string;
+    full_credits: number | null;
+    /**
+     * Preview only, flag ON: the card offer for this startup (the founder
+     * paywall's offer over the evaluator's own orders). Absent → no card.
+     */
+    card?: { business_id: string; offer: PaygOfferEnabled } | null;
+  } | null;
 }
 
 /**
  * G35 Pricing v5: once the plan quota is used, a full report is offered as
- * the pay-as-you-go Full report (credits) or a plan with more included
- * reports. Using the quota never charges. Null when PAYG is off / not relevant.
+ * the pay-as-you-go Full report (credits or card) or a plan with more
+ * included reports. Using the quota never charges. Null when PAYG is off /
+ * not relevant.
  */
 export function paygQuotaExhaustedOffer(kind: ReportKind, cost: ReportCostPreview | null): { title: string; body: string } | null {
   if (!cost?.payg?.enabled || kind !== "full" || cost.via === "quota") return null;
   const credits = cost.payg.full_credits ?? cost.list_credits;
+  const card = cost.payg.card ? ", or pay by card below" : "";
   return {
     title: "Your included reports are used",
-    body: `Run this as a pay-as-you-go Full report — ${credits} credits (the Full report is ${cost.payg.full_price_label} one-off, inc. GST) — or move to a plan with more included reports. Reports included in your plan are always Full and never charged.`,
+    body: `Run this as a pay-as-you-go Full report — ${credits} credits${card} (the Full report is ${cost.payg.full_price_label} one-off, inc. GST) — or move to a plan with more included reports. Reports included in your plan are always Full and never charged.`,
+  };
+}
+
+/**
+ * G35 Pricing v5 — the card purchase the evaluator dialog offers (flag ON,
+ * full report, server sent an offer). Beyond the quota: Snapshot / Full /
+ * Verified (+ D28 upgrades). While a Full report is still included, only
+ * Verified (the human review the plan never includes) and upgrades — an
+ * included report is never sold by card (the server refuses it too).
+ */
+export function evaluatorCardPurchase(
+  kind: ReportKind,
+  cost: ReportCostPreview | null,
+): { businessId: string; offer: PaygOfferEnabled; onlyTiers: ReadonlyArray<PaygTier> | undefined; heading: string; toggle: string } | null {
+  const card = cost?.payg?.enabled ? cost.payg.card : null;
+  if (kind !== "full" || !card?.offer?.enabled || !card.business_id) return null;
+  if (cost?.via === "quota") {
+    return {
+      businessId: card.business_id,
+      offer: card.offer,
+      onlyTiers: ["verified"],
+      heading: "Need the team-reviewed version?",
+      toggle: "Buy Verified by card",
+    };
+  }
+  return {
+    businessId: card.business_id,
+    offer: card.offer,
+    onlyTiers: undefined,
+    heading: "Or buy a report by card",
+    toggle: "Pay by card instead",
   };
 }
 
@@ -247,6 +298,8 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
   const [running, setRunning] = React.useState(false);
   const [result, setResult] = React.useState<ReportRunResult | null>(null);
   const [slow, setSlow] = React.useState(false);
+  // G35: the card review step is opened explicitly — showing it charges nothing.
+  const [cardOpen, setCardOpen] = React.useState(false);
   // One key per dialog open (the parent remounts per evaluation/kind via `key`).
   const idempotencyKey = React.useRef<string | null>(null);
   if (idempotencyKey.current === null) idempotencyKey.current = newIdempotencyKey();
@@ -330,7 +383,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
       aria-describedby="report-dialog-what"
       data-testid="report-dialog"
     >
-      <div className="w-full max-w-md rounded-2xl bg-surface shadow-2 border border-line-subtle overflow-hidden">
+      <div className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-surface shadow-2 border border-line-subtle">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <h2 id="report-dialog-title" tabIndex={-1} className="text-lg font-bold text-ink-900 outline-none">
             {copy.title} — {startupName}
@@ -375,6 +428,47 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                 <Link href="/workspace/billing" className="mt-2 inline-block font-semibold text-action underline">
                   Compare plans
                 </Link>
+              </div>
+            );
+          })()}
+
+          {(() => {
+            // G35 Pricing v5 (flag ON): buy a PAYG report for this startup by
+            // card. The toggle only reveals the review step (tier, what is
+            // included, price inc. GST, one-off, delivery); Stripe opens from
+            // the picker's explicit "Confirm & Pay" button, never from here.
+            const card = evaluatorCardPurchase(kind, preview);
+            if (!card || result || running) return null;
+            return (
+              <div data-testid="report-card-offer" className="rounded-xl border border-line-subtle bg-surface px-4 py-3 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-ink-900">{card.heading}</p>
+                  <button
+                    type="button"
+                    onClick={() => setCardOpen((v) => !v)}
+                    aria-expanded={cardOpen}
+                    aria-controls="report-card-review"
+                    data-testid="report-card-toggle"
+                    className="rounded-lg border border-line-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-sunken cursor-pointer"
+                  >
+                    {cardOpen ? "Hide card options" : card.toggle}
+                  </button>
+                </div>
+                {cardOpen ? (
+                  <div id="report-card-review">
+                    <PaygTierPicker
+                      offer={card.offer}
+                      businessId={card.businessId}
+                      evaluationId={evaluationId}
+                      surface="evaluator_dealflow"
+                      onlyTiers={card.onlyTiers}
+                      allowCredits={false}
+                    />
+                    <p className="mt-2 text-xs text-ink-600">
+                      Paid once by card through Stripe, with a tax invoice. The report is yours — it opens from your reports when it is ready.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             );
           })()}

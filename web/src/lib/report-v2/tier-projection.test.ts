@@ -22,7 +22,7 @@ import {
   reportSectionIds,
   tierForStoredDocument,
 } from "./tier-projection";
-import { resolveOrderTier, tierForOrderSku } from "./order-tier";
+import { paygOrderLabelTier, paygTierLabel, resolveOrderTier, tierForOrderSku } from "./order-tier";
 import { ensureInvestmentView } from "./investment-view";
 
 const SENTINEL = "LOCKEDSENTINEL";
@@ -228,6 +228,21 @@ describe("upgrade = a different projection of the same stored report", () => {
     expect(resolveOrderTier({ product_sku: "sku_bogus" }, null)).toBe("snapshot");
     expect(tierForOrderSku("report_funding")).toBeNull();
     expect(tierForOrderSku("toString")).toBeNull();
+  });
+
+  it("D26 follow-up: only a PAYG order is labelled with its tier", () => {
+    expect(paygOrderLabelTier({ product_sku: "report_snapshot" }, null)).toBe("snapshot");
+    expect(paygOrderLabelTier({ product_sku: "report_snapshot" }, "full")).toBe("full");
+    expect(paygOrderLabelTier({ product_sku: "report_full" }, null)).toBe("full");
+    expect(paygOrderLabelTier({ product_sku: "upgrade_full_verified" }, null)).toBe("verified");
+    // legacy A$3 / credits / Money Finder / unknown: no label
+    expect(paygOrderLabelTier({ product_sku: "sku_trust_report_5aud" }, null)).toBeNull();
+    expect(paygOrderLabelTier({ product_sku: "sku_trust_report_credits" }, null)).toBeNull();
+    expect(paygOrderLabelTier({ product_sku: "report_funding" }, null)).toBeNull();
+    expect(paygOrderLabelTier({ product_sku: "sku_bogus" }, "bogus")).toBeNull();
+    expect(paygTierLabel("snapshot")).toBe("Snapshot report");
+    expect(paygTierLabel("full")).toBe("Full report");
+    expect(paygTierLabel("verified")).toBe("Verified report");
   });
 });
 

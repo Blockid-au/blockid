@@ -106,6 +106,23 @@
     "note": "Copy says \"~\" / \"1 to 3\" — an observed range, never a promise."
   },
   {
+    "id": "guest-full-report-delivery",
+    "claim": "A guest Full report (all 16 sections) is usually ready in about ten minutes after payment (Pricing v5, payg_enabled only).",
+    "class": "observed",
+    "value": "about 10 minutes",
+    "source": "src/lib/guest-analysis/full-report.ts → src/lib/analyses/first-analysis/report-v2-job.ts (background run budget src/lib/report-pipeline/pipeline-timeouts.ts: 420 s deadline + intake); stage-timeline ETAs",
+    "surfaces": [
+      "/one-click-report/success",
+      "/analyze"
+    ],
+    "reviewed": "2026-10-20",
+    "patterns": [
+      "10 minutes",
+      "about 10 minutes"
+    ],
+    "note": "Copy says \"usually\" / \"about\" — the run deadline plus intake, never a promise. Shown only while payg_enabled is ON."
+  },
+  {
     "id": "report-length-pages",
     "claim": "The written Trusted Business Report runs to ten pages or more (about twelve pages as PDF).",
     "class": "observed",

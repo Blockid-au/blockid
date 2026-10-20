@@ -434,6 +434,9 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
     if (orderState.phase === "pending" || orderState.phase === "loading") return { report: null, status: "pending" };
     return null;
   }, [paidOrderId, orderState]);
+  // G35 D26 follow-up: "Snapshot / Full / Verified report" beside the title —
+  // only for a Pricing v5 order (the API sends no tier for a legacy one).
+  const paygTier = orderState.phase === "ready" ? orderState.paygTier : null;
   const surface: "founder" | "share" = shareToken ? "share" : "founder";
 
   useEffect(() => {
@@ -739,6 +742,15 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           <span className="inline-flex items-center rounded-full bg-surface-sunken border border-brand-300 px-2.5 py-0.5 text-xs font-semibold text-action">
             {t.brandBadge}
           </span>
+          {founderMode && paygTier && (
+            <span
+              data-testid="tbr-payg-tier"
+              data-payg-tier={paygTier}
+              className="inline-flex items-center rounded-full bg-action px-2.5 py-0.5 text-xs font-semibold text-on-action"
+            >
+              {t.v2.order.tierBadge(paygTier)}
+            </span>
+          )}
           {!pdfMode && (
             // Wave 31D — 4-way locale selector (EN | VI | ES | JA). Each button
             // swaps the /vi, /es, /ja prefix on the current path so the user

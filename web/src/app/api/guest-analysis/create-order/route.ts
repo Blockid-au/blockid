@@ -32,7 +32,10 @@
  *              the v5 Stripe Price (`priceIdForSku`), metadata.sku = the v5
  *              SKU (webhook books its revenue kind), ATO tax invoice as today.
  *              The chosen tier is stamped on `report_data.payg` (no new
- *              column) so the runner renders the matching cut.
+ *              column) so the runner delivers the matching product:
+ *              Snapshot = the short SVI PDF; Full = the 16-section Trusted
+ *              Business Report via the /analyze ReportV2 job
+ *              (lib/guest-analysis/full-report.ts).
  */
 
 import { NextResponse } from "next/server";
