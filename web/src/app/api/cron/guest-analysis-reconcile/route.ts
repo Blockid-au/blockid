@@ -475,7 +475,7 @@ async function sendRecoveryEmails(
         guestAnalysisId: row.id,
         // G35 P5 — the resumed checkout's own (intended) amount, not a literal.
         amountCents: typeof (row as { amount_paid_aud_cents?: unknown }).amount_paid_aud_cents === "number"
-          ? (row as { amount_paid_aud_cents: number }).amount_paid_aud_cents
+          ? (row as unknown as { amount_paid_aud_cents: number }).amount_paid_aud_cents
           : null,
       });
       if (result.ok) {

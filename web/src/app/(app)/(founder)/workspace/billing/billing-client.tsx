@@ -622,7 +622,7 @@ export function BillingClient({
       </section>
 
       {/* ---- Credits Section ---- */}
-      <CreditsPurchaseSection />
+      <CreditsPurchaseSection paygEnabled={paygEnabled} />
 
       {/* ---- Downgrade Confirmation Dialog ---- */}
       {showDowngradeConfirm && (
@@ -689,7 +689,7 @@ const FEATURE_COST_LIST = [
   { feature: "Dilution Calculator", cost: 0 },
 ] as const;
 
-function CreditsPurchaseSection() {
+function CreditsPurchaseSection({ paygEnabled = false }: { paygEnabled?: boolean }) {
   const [balance, setBalance] = React.useState<number | null>(null);
   const [showCosts, setShowCosts] = React.useState(false);
 
