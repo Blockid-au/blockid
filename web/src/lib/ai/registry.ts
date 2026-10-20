@@ -90,11 +90,73 @@ export function writeRegistry(reg: Registry): void {
   cache = { data: reg, at: Date.now() };
 }
 
-/** Append a health-check batch to the JSONL log + refresh current snapshot. */
+// W1 (pricing v5 §7.2 #3): the probe log is bounded — the last 7 days AND at
+// most 5 MB (it had grown to 16 MB / 53k lines of dead-model probes).
+export const HEALTH_LOG_MAX_BYTES = 5 * 1024 * 1024;
+export const HEALTH_LOG_MAX_AGE_DAYS = 7;
+
+/** Pure: the lines to keep — younger than `maxAgeDays` (by `checked_at`;
+ *  unparseable lines are dropped) and, newest first, within `maxBytes`. */
+export function compactHealthLogLines(lines: string[], now: number, maxBytes = HEALTH_LOG_MAX_BYTES, maxAgeDays = HEALTH_LOG_MAX_AGE_DAYS): string[] {
+  const cutoff = now - maxAgeDays * 24 * 60 * 60_000;
+  const young: string[] = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    try {
+      const t = Date.parse(String((JSON.parse(line) as { checked_at?: unknown }).checked_at));
+      if (Number.isFinite(t) && t >= cutoff) young.push(line);
+    } catch { /* malformed line — drop */ }
+  }
+  const out: string[] = [];
+  let bytes = 0;
+  for (let i = young.length - 1; i >= 0; i--) {
+    const size = Buffer.byteLength(young[i]) + 1;
+    if (bytes + size > maxBytes) break;
+    bytes += size;
+    out.push(young[i]);
+  }
+  return out.reverse();
+}
+
+function firstLineCheckedAt(file: string): number | null {
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(file, "r");
+    const buf = Buffer.alloc(4096);
+    const n = fs.readSync(fd, buf, 0, buf.length, 0);
+    const first = buf.subarray(0, n).toString("utf8").split("\n")[0] ?? "";
+    const t = Date.parse(String((JSON.parse(first) as { checked_at?: unknown }).checked_at));
+    return Number.isFinite(t) ? t : null;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== null) try { fs.closeSync(fd); } catch { /* ignore */ }
+  }
+}
+
+/** Rotate the health log in place when it is over the size cap or its oldest
+ *  line is past the age cap. Atomic (tmp + rename); fail-open. Returns true
+ *  when the file was rewritten. */
+export function rotateHealthLog(file: string = HEALTH_LOG_FILE, now: number = Date.now()): boolean {
+  try {
+    const size = fs.statSync(file).size;
+    const oldest = firstLineCheckedAt(file);
+    const tooOld = oldest === null || oldest < now - HEALTH_LOG_MAX_AGE_DAYS * 24 * 60 * 60_000;
+    if (size <= HEALTH_LOG_MAX_BYTES && !tooOld) return false;
+    const kept = compactHealthLogLines(fs.readFileSync(file, "utf8").split("\n"), now);
+    atomicWrite(file, kept.length ? kept.join("\n") + "\n" : "");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Append a health-check batch to the JSONL log (then rotate it — W1) + refresh current snapshot. */
 export function persistHealthResults(results: HealthResult[]): void {
   ensureDir();
   const lines = results.map((r) => JSON.stringify(r)).join("\n") + "\n";
   try { fs.appendFileSync(HEALTH_LOG_FILE, lines); } catch { /* ignore */ }
+  rotateHealthLog(HEALTH_LOG_FILE);
   const snapshot = {
     updated_at: new Date().toISOString(),
     total: results.length,

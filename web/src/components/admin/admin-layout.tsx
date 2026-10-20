@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BadgeCheck,
   BarChart3,
   Bot,
   Calendar,
@@ -110,6 +111,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/comparables", label: "AU Comparables", icon: BarChart3 },
       { href: "/admin/external-signals", label: "External Signals", icon: Database },
       { href: "/admin/evidence-review", label: "Evidence Review", icon: Shield },
+      { href: "/admin/verified-reviews", label: "Verified Reviews", icon: BadgeCheck },
       { href: "/admin/ai-health", label: "AI Health", icon: Activity },
       { href: "/admin/drip-stats", label: "Drip Stats", icon: Mail },
     ],

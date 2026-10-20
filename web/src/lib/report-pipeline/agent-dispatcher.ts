@@ -50,13 +50,14 @@ import { benchmarkFor, benchmarkStageForSvi, criteriaForDimension, DIM_ORDER, DI
 import { loadAgentKnowledgeRows, type AgentKnowledgeRow, type KnowledgeDb } from "./knowledge-loader";
 import { evidenceHashFor } from "./chapter-cache";
 import { precomputeModulesForDim, type ModuleOutput } from "./module-precompute";
-import { bumpQualityCounter, REPORT_TIER_CONFIG } from "./types";
+import { bumpQualityCounter, noteSectionModel, REPORT_TIER_CONFIG, type AICallMeta, type AICallMetaSink } from "./types";
 import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, itemsFromModuleOutputs, type CitableItem } from "./auto-cite";
 import { computedFactRows, computedFacts } from "./computed-facts";
 import { trimVerdict } from "./verdict-trim";
 import {
   callStructured,
   type StructuredModelCaller,
+  structuredMetaFields,
 } from "@/lib/ai/call-structured";
 import {
   AreaEnum,
@@ -76,6 +77,8 @@ type AICaller = (
   userPrompt: string,
   maxTokens: number,
   taskClass?: AITaskClassHint,
+  /** W1: filled by the metered pipeline caller with the model that answered. */
+  onMeta?: AICallMetaSink,
 ) => Promise<string>;
 
 /**
@@ -439,7 +442,7 @@ export function callAIToModelCallerWithClass(
   maxTokens: number,
   taskClass: AITaskClassHint | undefined,
 ): StructuredModelCaller {
-  const base = callAIToModelCaller((sys, user, max) => callAI(sys, user, max, taskClass), maxTokens);
+  const base = callAIToModelCaller((sys, user, max, _cls, onMeta) => callAI(sys, user, max, taskClass, onMeta), maxTokens);
   return base;
 }
 
@@ -472,15 +475,11 @@ export function callAIToModelCaller(
       )
       .join("\n\n");
     try {
-      const text = await callAI(system, user, maxTokens);
-      return {
-        ok: true,
-        text,
-        // The free chain does not report usage; estimate ~4 chars/token so
-        // the ai_runs row still carries usable volume data.
-        tokensIn: Math.ceil((system.length + user.length) / 4),
-        tokensOut: Math.ceil((text ?? "").length / 4),
-      };
+      // W1: the metered caller reports which provider / model answered, its
+      // real usage and cost — the ai_runs row records THAT, not the label.
+      let meta: AICallMeta | null = null;
+      const text = await callAI(system, user, maxTokens, undefined, (m) => { meta = m; });
+      return { ok: true, text, ...structuredMetaFields(meta, system.length + user.length, text) };
     } catch (err) {
       return {
         ok: false,
@@ -657,6 +656,7 @@ async function dispatchAgent(
 
   if (structured.overrun) bumpQualityCounter(context, "budgetOverruns");
   if (structured.ok) {
+    noteSectionModel(context, task.criterion, structured.servedBy ?? null);
     return adaptPayload(task, context, structured.data, allowedIds, {
       runId: structured.runId,
       durationMs: Date.now() - startTime,
@@ -778,7 +778,10 @@ async function legacyProseDispatch(
   const userPrompt = buildUserPrompt(task.criterion, context);
 
   try {
-    const raw = await callAI(systemPrompt, userPrompt, tierConfig.maxTokensPerAgent);
+    let meta: AICallMeta | null = null;
+    const raw = await callAI(systemPrompt, userPrompt, tierConfig.maxTokensPerAgent, undefined, (m) => { meta = m; });
+    const served = meta as AICallMeta | null;
+    noteSectionModel(context, task.criterion, served?.model ? { model: served.model, ...(served.provider ? { provider: served.provider } : {}) } : null);
     // G24-D: the degraded prose path skipped the auto-citer, so a schema-failed
     // criterion (run 2: customer_size, website) lost every register number it
     // quoted — "182 startups and 3,302 weekly snapshots" read as uncited.
@@ -1718,7 +1721,10 @@ async function dispatchChapter(
       : null;
   if (cacheKey) {
     const hit = await opts.chapterCache!.get(cacheKey).catch(() => null);
-    if (hit && hit.dim === dim) return hit;
+    if (hit && hit.dim === dim) {
+      noteSectionModel(context, `dim:${dim}`, "cache");
+      return hit;
+    }
   }
 
   const systemPrompt = buildAgentPrompt(role, context, {
@@ -1758,11 +1764,13 @@ async function dispatchChapter(
   const runIds = structured.runId ? [structured.runId] : [];
   if (structured.overrun) bumpQualityCounter(context, "budgetOverruns");
   if (structured.ok) {
+    noteSectionModel(context, `dim:${dim}`, structured.servedBy ?? null);
     const chapter = buildDimensionChapter(context, dim, shared.tierV2, structured.data as DimensionChapterPayload | DimensionCardPayload, { runIds, degraded: false });
     chapter.modules = [...chapter.modules, { id: "report-pipeline/agent-dispatcher.ts:dispatchChapter", output: { durationMs: Date.now() - started, renderAs, taskClass: taskClass ?? "free-chain" } }];
     if (cacheKey) await opts.chapterCache!.set(cacheKey, chapter).catch(() => undefined);
     return chapter;
   }
+  noteSectionModel(context, `dim:${dim}`, "deterministic");
   return buildDimensionChapter(context, dim, shared.tierV2, null, { runIds, degraded: true, degradeReason: `schema/model: ${structured.reason}` });
 }
 

@@ -85,6 +85,36 @@ describe("buildTbrQualityRow", () => {
     expect(Object.keys(r).sort()).toEqual(["autoCited", "budgetOverruns", "calls", "consistencyIssues", "costUsd", "degradedSections", "durationMs", "groundedShare", "pages", "pendingDims", "pipelineVersion", "projectId", "snapshotId", "sviVersion", "tier", "ts", "verdictTrimmed", "words"]);
   });
 
+  it("W1: with sectionModels it records which provider:model wrote each audited section and the grounded share per model", () => {
+    const report = demoReportV2();
+    report.appendix = {
+      ...report.appendix,
+      auditLog: [
+        { sectionId: "executive", uncitedClaims: [], findings: [], revised: false, grounded: true },
+        { sectionId: "dim:tre", uncitedClaims: ["A$1M"], findings: [], revised: false, grounded: false },
+        { sectionId: "dim:mpc", uncitedClaims: [], findings: [], revised: false, grounded: true },
+        { sectionId: "problem", uncitedClaims: [], findings: [], revised: false, grounded: true },
+      ],
+    };
+    const r = buildTbrQualityRow({
+      projectId: null, snapshotId: null, tier: "standard", report, calls: 3, costUsd: 0.01, durationMs: 1, sviVersion: "2.2.0", now: NOW,
+      sectionModels: { executive: "deepinfra:deepseek-ai/DeepSeek-V3.2", "dim:tre": "deepinfra:deepseek-ai/DeepSeek-V4-Flash", "dim:mpc": "deepinfra:deepseek-ai/DeepSeek-V3.2" },
+    });
+    expect(r.sections).toEqual([
+      { id: "executive", model: "deepinfra:deepseek-ai/DeepSeek-V3.2", grounded: true },
+      { id: "dim:tre", model: "deepinfra:deepseek-ai/DeepSeek-V4-Flash", grounded: false },
+      { id: "dim:mpc", model: "deepinfra:deepseek-ai/DeepSeek-V3.2", grounded: true },
+      { id: "problem", model: null, grounded: true },
+    ]);
+    expect(r.groundedByModel).toEqual({
+      "deepinfra:deepseek-ai/DeepSeek-V3.2": { sections: 2, grounded: 2 },
+      "deepinfra:deepseek-ai/DeepSeek-V4-Flash": { sections: 1, grounded: 0 },
+      unknown: { sections: 1, grounded: 1 },
+    });
+    // a run with no report still writes the (empty) attribution when asked
+    expect(buildTbrQualityRow({ projectId: null, snapshotId: null, tier: "standard", report: null, calls: 0, costUsd: 0, durationMs: 0, sviVersion: "2.2.0", sectionModels: {} })).toMatchObject({ sections: [], groundedByModel: {} });
+  });
+
   it("degrades to zeros without a ReportV2 (never throws), clamps negatives, and 'anonymous' without a project", () => {
     const r = buildTbrQualityRow({ projectId: null, snapshotId: null, tier: "free", report: null, calls: -1, costUsd: Number.NaN, durationMs: -5, sviVersion: "2.2.0", pipelineVersion: "p", now: NOW });
     expect(r).toMatchObject({ projectId: "anonymous", snapshotId: null, calls: 0, costUsd: 0, groundedShare: 0, degradedSections: 0, consistencyIssues: 0, pendingDims: 0, words: 0, pages: 0, durationMs: 0, pipelineVersion: "p" });

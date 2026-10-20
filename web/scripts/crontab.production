@@ -361,6 +361,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # (meta.email_sent_at dedupe). Max 10 rows per tick. `?dry=1` previews.
 */30 * * * * bash $RUN funding-report-retry --timeout 120
 
+# Every 30 min (:19 / :49, off the */30 ticks) — Verified review SLA alerts
+# (G35 Pricing v5 P4, plan §6.6). IN_REVIEW Verified report orders that are
+# overdue (past sla_due_at = 2 Sydney business days, NSW holidays excluded) or
+# due within 4 business hours alert the admin ONCE per order per level: a
+# founder_notifications row (kind verified_review_sla = the dedupe record) +
+# one ops e-mail per run. Light (one indexed select). `?dry=1` previews.
+19,49 * * * * bash $RUN verified-review-sla --timeout 60
+
 # Every 5 min — first-analysis report retry + delivery (S32-B, 2026-09-15).
 # Re-runs /analyze first-analysis jobs left `failed` (attempts < 3) or stuck
 # `running` > 15 min, keeping the C-level sections already written, and sends

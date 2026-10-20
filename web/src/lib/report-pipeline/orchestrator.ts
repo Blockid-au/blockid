@@ -62,6 +62,7 @@ import type {
   AgentRole,
   SectionAuditRecord,
   AgentAnalysisResult,
+  AICallMetaSink,
 } from "./types";
 import type { CriterionKey, QualityLevel } from "@/lib/evaluation-criteria";
 import { CRITERIA, CRITERION_KEYS, QUALITY_LEVELS } from "@/lib/evaluation-criteria";
@@ -114,6 +115,9 @@ export interface AICallerResult {
   /** Dispatcher provider that served the call (`deepinfra`, `claude-apikey`, …). */
   provider?: string;
   model?: string;
+  /** W1: real token usage when the provider reported it (DeepInfra / Gemini / Anthropic). */
+  tokensIn?: number;
+  tokensOut?: number;
 }
 
 export type AITaskClass = "classify" | "report" | "synthesis";
@@ -126,7 +130,9 @@ export type AITaskClass = "classify" | "report" | "synthesis";
 export type AICallerInput = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass, hint?: PipelineCallHint) => Promise<string | AICallerResult>;
 
 // Internal: every stage sees a string transport (metered, deadline-aware).
-type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass) => Promise<string>;
+// W1: the optional `onMeta` sink receives the provider / model / usage / cost
+// of the call that answered — callStructured records it on `ai_runs`.
+type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass, onMeta?: AICallMetaSink) => Promise<string>;
 
 // ── Call budget (D7/D8/D9) ──────────────────────────────────────────────────
 
@@ -381,7 +387,7 @@ export function meterCallAI(
   // late W1 repair that fires after W4 started is still a `criterion` call
   // and is refused inside the reserve — never re-labelled as a chapter call.
   const stage: PipelineCallStage = opts.stage ?? "criterion";
-  return async (system, user, maxTokens, taskClass) => {
+  return async (system, user, maxTokens, taskClass, onMeta) => {
     if (opts.deadline?.expired()) throw new ReportDeadlineExceededError(opts.deadline.ms);
     // G28-B: a criterion call may not start inside the W4 reserve.
     if (stage === "criterion" && opts.deadline?.softExpired()) throw new ReportDeadlineExceededError(opts.deadline.softMs);
@@ -395,6 +401,9 @@ export function meterCallAI(
     const out = await callAI(system, user, maxTokens, taskClass, hint);
     if (typeof out === "string") return out;
     opts.meter?.record(out);
+    try {
+      onMeta?.({ provider: out.provider, model: out.model, costUsd: out.costUsd, tokensIn: out.tokensIn, tokensOut: out.tokensOut });
+    } catch { /* a telemetry sink never fails the call */ }
     return out.text;
   };
 }
@@ -411,7 +420,7 @@ export type PipelineEvent =
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number; /** G24-D: the full per-section audit (scripts/run-self-analysis.mjs --audit-dump); not forwarded on the SSE mapper. */ dump?: AuditDump }
   | { type: "progress"; completed: number; total: number; phase: PipelinePhase }
-  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean; /** G29-B: the wave whose race the deadline (soft W4-reserve or hard) first won — null when neither fired. */ deadlineHitPhase?: PipelinePhase | null; budgetOverruns: number; verdictTrimmed: number; autoCited: number }
+  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean; /** G29-B: the wave whose race the deadline (soft W4-reserve or hard) first won — null when neither fired. */ deadlineHitPhase?: PipelinePhase | null; budgetOverruns: number; verdictTrimmed: number; autoCited: number; /** W1: section id → `provider:model` that wrote it (tbr-quality attribution). */ sectionModels?: Record<string, string> }
   | { type: "error"; dim?: DimKey; message: string; degraded: true }
   /** G29-B: emitted by run-for-project (not the orchestrator) right before a failed run re-throws — the strike ledger + wave timings for the audit dump. */
   | ({ type: "run_diagnostics" } & RunDiagnostics);
@@ -866,6 +875,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
       budgetOverruns: context.qualityCounters?.budgetOverruns ?? 0,
       verdictTrimmed: context.qualityCounters?.verdictTrimmed ?? 0,
       autoCited: context.qualityCounters?.autoCited ?? 0,
+      sectionModels: { ...(context.sectionModels ?? {}) },
     });
     return report;
   } finally {

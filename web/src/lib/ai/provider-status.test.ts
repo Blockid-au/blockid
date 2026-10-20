@@ -27,6 +27,8 @@ const fsMock = vi.hoisted(() => {
 vi.mock("fs", () => ({ default: fsMock, ...fsMock }));
 
 import {
+  DEFAULT_PROBE_MODEL,
+  PROBE_COMPLETION_MAX_TOKENS,
   PROBE_TTL_MS,
   PROVIDER_STATUS_FILE,
   _resetProviderStatusForTests,
@@ -137,13 +139,51 @@ describe("probeProvider — verdict ladder", () => {
     expect(JSON.stringify(u)).not.toContain("px-secret");
   });
 
-  it("cerebras / sambanova / deepinfra use the models endpoint; ollama uses /api/tags", async () => {
-    replies.set("https://api.cerebras.ai/v1/models", { status: 200 });
-    replies.set("https://api.sambanova.ai/v1/models", { status: 403, body: "{}" });
-    replies.set("https://api.deepinfra.com/v1/openai/models", { status: 503, body: "{}" });
-    replies.set("http://localhost:11434/api/tags", { status: 200 });
+  const okCompletion = JSON.stringify({ choices: [{ message: { content: "ok" } }] });
+
+  it("W1: cerebras / sambanova never probe the public /v1/models list — a real completion that must carry content", async () => {
+    replies.set("https://api.cerebras.ai/v1/chat/completions", { status: 200, body: okCompletion });
+    replies.set("https://api.sambanova.ai/v1/chat/completions", { status: 200, body: okCompletion });
     expect((await probeProvider("cerebras", "k", { fetchImpl, env: env() })).status).toBe("valid");
-    expect((await probeProvider("sambanova", "k", { fetchImpl, env: env() })).status).toBe("invalid_key");
+    expect((await probeProvider("sambanova", "k", { fetchImpl, env: env() })).status).toBe("valid");
+    expect(calls.some((c) => c.url.endsWith("/v1/models"))).toBe(false);
+    const cb = calls.find((c) => c.url === "https://api.cerebras.ai/v1/chat/completions");
+    const sent = JSON.parse(String(cb?.init?.body)) as { model: string; max_tokens: number };
+    expect(sent).toMatchObject({ model: DEFAULT_PROBE_MODEL.cerebras, max_tokens: PROBE_COMPLETION_MAX_TOKENS });
+    expect(DEFAULT_PROBE_MODEL.cerebras).toBe("qwen-3.8-27b");
+  });
+
+  it("W1: the SambaNova case — models list 200 for any key, completion 401 → invalid_key", async () => {
+    replies.set("https://api.sambanova.ai/v1/models", { status: 200, body: '{"data":[]}' });
+    replies.set("https://api.sambanova.ai/v1/chat/completions", { status: 401, body: '{"error":{"message":"Invalid API key"}}' });
+    const r = await probeProvider("sambanova", "sn-wrong", { fetchImpl, env: env() });
+    expect(r.status).toBe("invalid_key");
+    expect(JSON.stringify(r)).not.toContain("sn-wrong");
+  });
+
+  it("W1: a 200 with empty content, a 404 for the probe model, a 402 → never valid", async () => {
+    replies.set("https://api.cerebras.ai/v1/chat/completions", { status: 200, body: JSON.stringify({ choices: [{ message: { content: "" } }] }) });
+    const empty = await probeProvider("cerebras", "k", { fetchImpl, env: env() });
+    expect(empty.status).toBe("unreachable");
+    expect(empty.detail).toContain("empty completion content");
+    replies.set("https://api.cerebras.ai/v1/chat/completions", { status: 404, body: '{"message":"Model foo does not exist","code":"model_not_found"}' });
+    expect((await probeProvider("cerebras", "k", { fetchImpl, env: env({ CEREBRAS_PROBE_MODEL: "foo" }) })).status).toBe("unreachable");
+    replies.set("https://api.cerebras.ai/v1/chat/completions", { status: 402, body: '{"message":"payment_required"}' });
+    expect((await probeProvider("cerebras", "k", { fetchImpl, env: env() })).status).toBe("quota_exceeded");
+    replies.set("https://api.sambanova.ai/v1/chat/completions", { status: 200, body: "not json" });
+    expect((await probeProvider("sambanova", "k", { fetchImpl, env: env() })).status).toBe("unreachable");
+  });
+
+  it("W1: deepinfra probes the authenticated /v1/me (no token spend), not the public models list; ollama uses /api/tags", async () => {
+    replies.set("https://api.deepinfra.com/v1/me", { status: 200, body: '{"email":"x"}' });
+    replies.set("http://localhost:11434/api/tags", { status: 200 });
+    expect((await probeProvider("deepinfra", "k", { fetchImpl, env: env() })).status).toBe("valid");
+    expect(calls.some((c) => c.url.includes("/v1/openai/models"))).toBe(false);
+    replies.set("https://api.deepinfra.com/v1/me", { status: 401, body: '{"detail":"User is not authorized to access this resource"}' });
+    expect((await probeProvider("deepinfra", "k", { fetchImpl, env: env() })).status).toBe("invalid_key");
+    replies.set("https://api.deepinfra.com/v1/me", { status: 503, body: "{}" });
+    expect((await probeProvider("deepinfra", "k", { fetchImpl, env: env() })).status).toBe("unreachable");
+    replies.set("https://api.deepinfra.com/v1/me", { status: 404, body: "{}" });
     expect((await probeProvider("deepinfra", "k", { fetchImpl, env: env() })).status).toBe("unreachable");
     expect((await probeProvider("ollama", "http://localhost:11434", { fetchImpl, env: env() })).status).toBe("valid");
   });

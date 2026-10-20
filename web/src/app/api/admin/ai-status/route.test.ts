@@ -29,9 +29,8 @@
 //   - Losing the comma-split count on ANTHROPIC_PROXY_API_KEY so a
 //     rotated-key list shows as "1 key" and the operator does not notice
 //     one leg of the rotation went missing.
-//   - Regressing the head/tail credential masking on the OpenAI + Gemini
-//     detail strings — printing the full key would land it in browser
-//     history + the admin's clipboard.
+//   - W1: printing ANY key fragment (the old head/tail masking included) on
+//     the OpenAI + Gemini detail strings — set / unset only.
 //   - Losing `export const dynamic = "force-dynamic"` — the route reads
 //     process.env + ~/.claude/.credentials.json per request and MUST NOT
 //     be pinned to a build-time snapshot.
@@ -351,13 +350,13 @@ describe("openai-apikey provider (from OPENAI_API_KEY)", () => {
     expect(byId["openai-apikey"].detail).toMatch(/OPENAI_API_KEY/);
   });
 
-  it("marks configured + masks the key as head-8 + '...' + tail-4 (never full-key)", async () => {
+  it("W1: marks configured with set / unset only — no key fragment (head or tail) ever leaves the server", async () => {
     process.env.OPENAI_API_KEY = "sk-openai-1234567890abcdef";
     const byId = providersById(await jsonOf(await GET()));
     expect(byId["openai-apikey"].status).toBe("configured");
-    expect(byId["openai-apikey"].detail).toContain("sk-opena");
-    expect(byId["openai-apikey"].detail).toContain("cdef");
-    expect(byId["openai-apikey"].detail).not.toContain("sk-openai-1234567890abcdef");
+    expect(byId["openai-apikey"].detail).toBe("OPENAI_API_KEY set");
+    expect(byId["openai-apikey"].detail).not.toContain("sk-opena");
+    expect(byId["openai-apikey"].detail).not.toContain("cdef");
   });
 });
 
@@ -369,13 +368,13 @@ describe("gemini provider (from GOOGLE_GEMINI_API_KEY)", () => {
     expect(byId["gemini"].detail).toMatch(/GOOGLE_GEMINI_API_KEY/);
   });
 
-  it("marks configured + masks the key as head-10 + '...' + tail-4 (Gemini keys are longer → wider head window)", async () => {
+  it("W1: marks configured with set / unset only — no key fragment", async () => {
     process.env.GOOGLE_GEMINI_API_KEY = "AIzaSyABCDEFGHIJKLMNOP1234";
-    const byId = providersById(await jsonOf(await GET()));
+    const body = await jsonOf(await GET());
+    const byId = providersById(body);
     expect(byId["gemini"].status).toBe("configured");
-    expect(byId["gemini"].detail).toContain("AIzaSyABCD");
-    expect(byId["gemini"].detail).toContain("1234");
-    expect(byId["gemini"].detail).not.toContain("AIzaSyABCDEFGHIJKLMNOP1234");
+    expect(byId["gemini"].detail).toBe("GOOGLE_GEMINI_API_KEY set");
+    expect(JSON.stringify(body)).not.toMatch(/AIzaSy|1234/);
   });
 });
 

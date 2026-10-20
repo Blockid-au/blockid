@@ -35,6 +35,9 @@ describe("scoreModel — hard-negative filter", () => {
     "some/audio-generator",
     "openai/vision-only-mini",
     "moderat-preview-2026",
+    "allam-2-7b",
+    "canopylabs/orpheus-v1-english",
+    "playai-tts",
   ])("returns -1 for non-text-completion id %s", (id) => {
     expect(scoreModel(id)).toBe(-1);
   });
@@ -226,6 +229,11 @@ describe("rank", () => {
 
   it("returns [] when topN is 0", () => {
     expect(rank(models, 0)).toEqual([]);
+  });
+
+  it("W1: never lists a model whose id encodes a size below the 20B capability floor", () => {
+    const out = rank([{ id: "llama-3.1-8b-instant" }, { id: "liquid/lfm-2.5-2.6b:free" }, { id: "qwen/qwen3.8-27b" }], 10);
+    expect(out).toEqual(["qwen/qwen3.8-27b"]);
   });
 
   it("respects requested topN when smaller than eligible set", () => {

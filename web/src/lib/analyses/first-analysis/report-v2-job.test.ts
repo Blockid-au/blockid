@@ -439,11 +439,12 @@ describe("deliverReportV2", () => {
 describe("customer report AI policy", () => {
   it("binds every stage to the report policy while preserving run strikes and usage", async () => {
     const mock = vi.mocked(callAI);
-    mock.mockResolvedValue({ text: "analysis", provider: "groq", via: "deepinfra", model: "exact-model", cost_usd: 0.02 });
+    mock.mockResolvedValue({ text: "analysis", provider: "groq", via: "deepinfra", model: "exact-model", cost_usd: 0.02, usage: { input_tokens: 700, output_tokens: 90, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } });
     const caller = makeReportCaller("analysis-policy", "owner-1");
     for (const taskClass of ["report", "synthesis", "classify"] as const) {
+      // W1: real usage travels with the answer so ai_runs records it
       expect(await caller("rubric", "evidence", 800, taskClass)).toEqual({
-        text: "analysis", provider: "deepinfra", model: "exact-model", costUsd: 0.02,
+        text: "analysis", provider: "deepinfra", model: "exact-model", costUsd: 0.02, tokensIn: 700, tokensOut: 90,
       });
       expect(mock).toHaveBeenLastCalledWith(expect.objectContaining({
         policy: "blockid-report-v1", system: "rubric", user: "evidence", maxTokens: 800,

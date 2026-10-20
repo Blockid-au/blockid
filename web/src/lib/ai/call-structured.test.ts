@@ -44,7 +44,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 // Import AFTER vi.mock so the module picks up the mock.
-import { callStructured, NIL_PROMPT_VERSION_ID, promptVersionIdForRow } from "./call-structured";
+import { callStructured, NIL_PROMPT_VERSION_ID, promptVersionIdForRow, structuredMetaFields } from "./call-structured";
 
 const InputSchema = z.object({ q: z.string().min(1) });
 const OutputSchema = z.object({ answer: z.string().min(1), score: z.number().min(0).max(100) });
@@ -282,6 +282,56 @@ describe("callStructured — injected modelCaller", () => {
     expect(inserted).toHaveLength(1);
     expect(inserted[0]!.status).toBe("ok");
     expect(inserted[0]!.tokens_in).toBe(11);
+  });
+
+  it("W1: records the provider / model that ANSWERED and its real price — never the nominal Claude label", async () => {
+    const res = await callStructured({
+      ...baseArgs,
+      model: "claude-opus-5#synthesis",
+      modelCaller: async () => ({
+        ok: true as const,
+        text: JSON.stringify({ answer: "42", score: 72 }),
+        tokensIn: 10_000,
+        tokensOut: 1_000,
+        provider: "deepinfra",
+        model: "deepseek-ai/DeepSeek-V3.2",
+      }),
+    });
+    expect(res.ok).toBe(true);
+    expect(res.servedBy).toEqual({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V3.2" });
+    expect(inserted[0]!.model).toBe("deepinfra:deepseek-ai/DeepSeek-V3.2");
+    // DeepInfra V3.2 $0.26 / $0.38 per 1M — not Opus $5 / $25
+    expect(inserted[0]!.cost_usd).toBeCloseTo(0.0026 + 0.00038, 8);
+  });
+
+  it("W1: a transport-reported cost wins; repair-pass costs are summed; the accepted answer's model is recorded", async () => {
+    let call = 0;
+    const res = await callStructured({
+      ...baseArgs,
+      modelCaller: async () => {
+        call += 1;
+        return call === 1
+          ? { ok: true as const, text: "not json", tokensIn: 5, tokensOut: 5, provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", costUsd: 0.001 }
+          : { ok: true as const, text: JSON.stringify({ answer: "42", score: 30 }), tokensIn: 5, tokensOut: 5, provider: "gemini", model: "gemini-2.5-flash", costUsd: 0.002 };
+      },
+    });
+    expect(res.ok).toBe(true);
+    expect(inserted[0]!.model).toBe("gemini:gemini-2.5-flash");
+    expect(inserted[0]!.cost_usd).toBeCloseTo(0.003, 8);
+  });
+
+  it("W1: an injected transport that names no model costs 0 under the caller's label (no phantom Claude price)", async () => {
+    await callStructured({
+      ...baseArgs,
+      modelCaller: async () => ({ ok: true as const, text: JSON.stringify({ answer: "42", score: 72 }), tokensIn: 1_000_000, tokensOut: 1_000_000 }),
+    });
+    expect(inserted[0]!.model).toBe("claude-sonnet-5");
+    expect(inserted[0]!.cost_usd).toBe(0);
+  });
+
+  it("W1: structuredMetaFields uses real usage when reported, the chars/4 estimate otherwise", () => {
+    expect(structuredMetaFields({ provider: "deepinfra", model: "m", tokensIn: 120, tokensOut: 30, costUsd: 0.01 }, 400, "x".repeat(40))).toEqual({ tokensIn: 120, tokensOut: 30, provider: "deepinfra", model: "m", costUsd: 0.01 });
+    expect(structuredMetaFields(null, 400, "x".repeat(40))).toEqual({ tokensIn: 100, tokensOut: 10 });
   });
 
   it("runs the repair pass through the injected transport", async () => {

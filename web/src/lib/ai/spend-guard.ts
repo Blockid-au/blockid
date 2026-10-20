@@ -12,8 +12,11 @@
 //   AI_USD_AUD_RATE          (default 1.55) — the FX used for the AUD cap.
 //
 // The ledger is one small JSON file per day (content/reports/ai-spend-daily
-// .json, rewritten in place, the previous day is dropped) so a restart never
-// forgets the day's spend. Every write is fail-open: an unwritable disk must
+// .json, rewritten in place) so a restart never forgets the day's spend.
+// W1 (pricing v5 §7.2 #5): the first read on a new UTC day appends the
+// closed day to content/reports/ai-spend-history.jsonl (one line per day,
+// deduped by day) before the ledger rolls over — previous days used to be
+// overwritten with no history at all. Every write is fail-open: an unwritable disk must
 // not block an AI call — it just means the cap is enforced from memory.
 //
 // When the cap trips, the founder is told ONCE per day: a
@@ -26,6 +29,7 @@ export const DEFAULT_DAILY_CAP_AUD = 50;
 export const DEFAULT_OPENROUTER_MIN_CREDIT_USD = 2;
 export const DEFAULT_USD_AUD_RATE = 1.55;
 export const SPEND_LEDGER_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-spend-daily.json";
+export const SPEND_HISTORY_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-spend-history.jsonl";
 
 /** S-R3 cost telemetry: one bucket per report tier (goal doc §3 D9 COGS check). */
 export interface ReportSpendBucket {
@@ -78,11 +82,34 @@ function fresh(now: number): DailySpend {
   return { day: dayOf(now), spent_usd: 0, calls: 0, by_provider: {} };
 }
 
+/** W1: append a closed day to the history file once (deduped by `day`). Fail-open. */
+function archiveClosedDay(closed: Partial<DailySpend>, now: number): void {
+  if (typeof closed.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(closed.day) || typeof closed.spent_usd !== "number") return;
+  try {
+    let prior = "";
+    try { prior = fs.readFileSync(SPEND_HISTORY_FILE, "utf-8"); } catch { /* first archive */ }
+    if (prior.includes(`"day":"${closed.day}"`)) return;
+    const row = {
+      day: closed.day,
+      spent_usd: Math.round(closed.spent_usd * 1e8) / 1e8,
+      calls: typeof closed.calls === "number" ? closed.calls : 0,
+      by_provider: closed.by_provider && typeof closed.by_provider === "object" ? closed.by_provider : {},
+      ...(closed.reports && typeof closed.reports === "object" ? { reports: closed.reports } : {}),
+      ...(typeof closed.cap_notified_at === "string" ? { cap_notified_at: closed.cap_notified_at } : {}),
+      archived_at: new Date(now).toISOString(),
+    };
+    fs.appendFileSync(SPEND_HISTORY_FILE, JSON.stringify(row) + "\n");
+  } catch {
+    /* fail-open: history is telemetry, never a reason to block a call */
+  }
+}
+
 export function readDailySpend(now: number = Date.now()): DailySpend {
   const today = dayOf(now);
   if (memo && memo.day === today) return memo;
   try {
     const parsed = JSON.parse(fs.readFileSync(SPEND_LEDGER_FILE, "utf-8")) as Partial<DailySpend>;
+    if (parsed && typeof parsed.day === "string" && parsed.day < today) archiveClosedDay(parsed, now);
     if (parsed && parsed.day === today && typeof parsed.spent_usd === "number") {
       memo = {
         day: today,

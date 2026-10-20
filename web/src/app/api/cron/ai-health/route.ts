@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { sendEmail } from "@/lib/email";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { isRepresentativeHealthAnswer } from "@/lib/ai/model-capability";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +24,7 @@ export async function GET(request: Request) {
   const configured = isAIConfigured();
 
   if (!configured) {
-    await alertAdmin("No AI providers configured at all");
+    await alertAdminOncePerDay("not_configured", "No AI providers configured at all");
     return NextResponse.json({ ok: false, error: "No providers configured", alerted: true });
   }
 
@@ -29,20 +33,35 @@ export async function GET(request: Request) {
     const result = await callAI({ priority: "background", // S31-A: crons yield to user traffic
       system: "Reply with exactly: OK",
       user: "health check",
-      maxTokens: 5,
+      // W1: 64, not 5 — a reasoning model spends a tiny budget on its hidden
+      // trace and answers empty (G30 D-A6), which read as "all providers down".
+      maxTokens: 64,
+      taskClass: "classify",
     });
+
+    // W1 (pricing v5 §7.2 #1): an answer from a model below the capability
+    // floor (Groq allam-2-7b answered every health check while the real
+    // chain was degraded) is not evidence that the AI stack is healthy.
+    const representative = isRepresentativeHealthAnswer(result.model, result.text);
+    if (!representative) {
+      const detail = `health answer came from a non-representative model (${result.via ?? result.provider} ${result.model}) — the capable chain did not answer`;
+      await alertAdminOncePerDay("non_representative", detail);
+      return NextResponse.json({ ok: false, representative: false, provider: result.via ?? result.provider, model: result.model, error: detail });
+    }
 
     return NextResponse.json({
       ok: true,
-      provider: result.provider,
+      representative: true,
+      provider: result.via ?? result.provider,
       model: result.model,
       response: result.text.slice(0, 20),
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
 
-    // All providers failed — alert admin
-    await alertAdmin(errorMsg);
+    // All providers failed — alert admin (once per UTC day: the token
+    // guardian calls this route every 30 min).
+    await alertAdminOncePerDay("all_failed", errorMsg);
 
     return NextResponse.json({
       ok: false,
@@ -50,6 +69,28 @@ export async function GET(request: Request) {
       alerted: true,
     });
   }
+}
+
+function alertStateFile(): string {
+  return process.env.AI_HEALTH_ALERT_STATE_FILE || join(homedir(), ".local/state/blockid-runtime/ai-health-alert.json");
+}
+
+/** The token guardian hits this route every 30 min — each alert kind is sent
+ *  at most once per UTC day. Never throws. */
+async function alertAdminOncePerDay(kind: "non_representative" | "all_failed" | "not_configured", error: string): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  const file = alertStateFile();
+  let sent: string[] = [];
+  try {
+    const prior = JSON.parse(await readFile(file, "utf8")) as { day?: unknown; kinds?: unknown };
+    if (prior.day === day && Array.isArray(prior.kinds)) sent = prior.kinds.filter((k): k is string => typeof k === "string");
+  } catch { /* no state yet */ }
+  if (sent.includes(kind)) return;
+  try {
+    await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+    await writeFile(file, JSON.stringify({ day, kinds: [...sent, kind] }), { mode: 0o600 });
+  } catch { /* best effort — still alert */ }
+  await alertAdmin(error);
 }
 
 async function alertAdmin(error: string) {

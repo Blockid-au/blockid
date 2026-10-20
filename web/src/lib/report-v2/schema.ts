@@ -610,6 +610,23 @@ export interface ReportV2 {
    * cut for and which sections had their bodies removed. Never stored.
    */
   projection?: ReportProjection;
+  /**
+   * G35 Pricing v5 P4: the "BlockID Reviewed" stamp — set ONLY on a server
+   * read of a Verified order whose `assembled_reports.reviewed` is true
+   * (`lib/verified-review/badge.ts` attachReviewBadge). Never stored; a
+   * refund (reviewed=false) or any non-Verified tier reads without it.
+   */
+  reviewBadge?: ReportReviewBadge;
+}
+
+/** G35 Pricing v5 P4: "BlockID Reviewed · <date> · <reviewer>" (plan §6.6). */
+export interface ReportReviewBadge {
+  /** ISO instant the admin marked the report reviewed. */
+  reviewedAt: string;
+  /** Reviewer display name (never an e-mail address; "BlockID team" when unset). */
+  reviewerName: string;
+  /** The rendered line, e.g. "BlockID Reviewed · 21 Oct 2026 · Long Do". */
+  label: string;
 }
 
 /** G35 Pricing v5: the access tiers a stored report can be served at (`free` = no purchase). */
@@ -1146,6 +1163,7 @@ export const reportV2Schema = z.object({
       highlights: z.object({ strengths: z.array(z.string()).max(3), risks: z.array(z.string()).max(3) }).optional(),
     })
     .optional(),
+  reviewBadge: z.object({ reviewedAt: z.string(), reviewerName: z.string(), label: z.string() }).optional(),
 });
 
 export class ReportV2ValidationError extends Error {

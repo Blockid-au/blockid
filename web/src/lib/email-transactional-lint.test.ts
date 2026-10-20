@@ -69,6 +69,8 @@ const TEMPLATES: Array<{ file: string; fn: string; kind: Kind }> = [
   { file: "lib/email/report-order-emails.ts", fn: "sendReportOrderPaid", kind: "receipt" },
   { file: "lib/email/report-order-emails.ts", fn: "sendReportOrderReady", kind: "report" },
   { file: "lib/email/report-order-emails.ts", fn: "sendReportOrderInReview", kind: "report" },
+  // G35 Pricing v5 P4 — Verified report reviewed (report link + Investor Pack attached).
+  { file: "lib/verified-review/email.ts", fn: "sendVerifiedReviewedEmail", kind: "report" },
   // G34-BT4 EM12 — "score updated" on the drip engine (the only T-class lifecycle flow).
   { file: "lib/lifecycle/templates.ts", fn: "renderScoreUpdated", kind: "report" },
   // receipts

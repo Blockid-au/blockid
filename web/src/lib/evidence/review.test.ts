@@ -107,6 +107,18 @@ describe("applyEvidenceReview", () => {
     expect(f.updates).toHaveLength(1);
   });
 
+  it("G35 P4 verified_order scope: decides a never-requested row of the order's project, refuses another project's row", async () => {
+    const row = { id: "e", project_id: "p", dimension: "tre", evidence_type: "stripe_mrr", confidence_level: "document_uploaded", review_status: "none" };
+    const own = fakeDb({ row });
+    const res = await applyEvidenceReview(own.db, { evidenceId: "e", decision: "approve", reviewerUserId: "admin-1", now: NOW, scope: { kind: "verified_order", projectId: "p" } });
+    expect(res).toMatchObject({ ok: true, row: { confidence_level: "third_party_verified", review_status: "approved" } });
+    expect(own.updates[0]).toMatchObject({ table: "svi_dimension_evidence", patch: { review_status: "approved", verified_by_user_id: "admin-1" } });
+
+    const other = fakeDb({ row });
+    expect(await applyEvidenceReview(other.db, { evidenceId: "e", decision: "approve", reviewerUserId: "admin-1", scope: { kind: "verified_order", projectId: "someone-else" } })).toEqual({ ok: false, error: "not_found" });
+    expect(other.updates).toEqual([]);
+  });
+
   it("a throwing evidence lookup never fails the decision", async () => {
     const db = {
       from: (table: string) => {

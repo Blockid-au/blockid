@@ -17,6 +17,8 @@
 //   6. Moderation penalty — heavily-moderated models add latency/refusals that
 //      hurt user-facing quality.
 
+import { passesDiscoveryFloor } from "@/lib/ai/model-capability";
+
 export interface RawModel {
   id: string;
   name?: string;
@@ -41,7 +43,7 @@ export function scoreModel(
   } = {},
 ): number {
   const hay = `${id} ${name}`.toLowerCase();
-  if (/guard|safety|moderation|content-safety|embed|rerank|\btts\b|whisper|\bstt\b|image|audio|vision-only|moderat/.test(hay)) {
+  if (/guard|safety|moderation|content-safety|embed|rerank|\btts\b|whisper|\bstt\b|image|audio|vision-only|moderat|allam|orpheus|playai/.test(hay)) {
     return -1;
   }
   const FAM: [RegExp, number][] = [
@@ -110,6 +112,9 @@ export function rank(models: RawModel[], topN: number, exclude: Set<string> = ne
       }),
     }))
     .filter((m) => m.s >= 0
+      // W1: never list a model below the free-pool capability floor (allam-2-7b
+      // reached the Groq list this way and then answered classify calls).
+      && passesDiscoveryFloor(m.id)
       && !KNOWN_PAID.has(m.id)
       && !KNOWN_PAID.has(m.id.toLowerCase())
       && !exclude.has(m.id))

@@ -565,3 +565,25 @@ describe("G23-A — auto-cite, per-role budgets, salvage fill, citable ids", () 
     expect(buildEvidenceCatalogue("code_git", context).find((e) => e.label === MARKET_ANCHOR_LABEL)).toBeUndefined();
   });
 });
+
+describe("W1 callAIToModelCaller — the answering model reaches the structured ledger", () => {
+  it("forwards provider / model / real usage / cost from the metered caller's onMeta sink", async () => {
+    const { callAIToModelCaller, callAIToModelCallerWithClass } = await import("./agent-dispatcher");
+    const callAI = vi.fn(async (_s: string, _u: string, _m: number, _c?: string, onMeta?: (m: Record<string, unknown>) => void) => {
+      onMeta?.({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", tokensIn: 1200, tokensOut: 300, costUsd: 0.000162 });
+      return "{}";
+    });
+    const res = await callAIToModelCaller(callAI, 500)({ model: "label", system: "s", messages: [{ role: "user", content: "u" }] });
+    expect(res).toEqual({ ok: true, text: "{}", tokensIn: 1200, tokensOut: 300, provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash", costUsd: 0.000162 });
+    // the class wrapper keeps forwarding the sink
+    const withClass = await callAIToModelCallerWithClass(callAI, 500, "report")({ model: "label", system: "s", messages: [{ role: "user", content: "u" }] });
+    expect(withClass).toMatchObject({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V4-Flash" });
+    expect(callAI.mock.calls.at(-1)?.[3]).toBe("report");
+  });
+
+  it("falls back to the chars/4 estimate and no model when the transport says nothing", async () => {
+    const { callAIToModelCaller } = await import("./agent-dispatcher");
+    const res = await callAIToModelCaller(vi.fn(async () => "x".repeat(40)), 500)({ model: "label", system: "s".repeat(20), messages: [{ role: "user", content: "u".repeat(20) }] });
+    expect(res).toEqual({ ok: true, text: "x".repeat(40), tokensIn: 10, tokensOut: 10 });
+  });
+});

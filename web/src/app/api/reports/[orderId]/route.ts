@@ -88,6 +88,7 @@ import { readAssembledReportJson, readAssembledReportPaygTier } from "@/lib/repo
 import { resolveOrderTier } from "@/lib/report-v2/order-tier";
 import { projectReportForTier, type ReportAccessTier } from "@/lib/report-v2/tier-projection";
 import type { ReportV2 } from "@/lib/report-v2/schema";
+import { attachReviewBadge, readReviewBadgeState } from "@/lib/verified-review/badge";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const dynamic = "force-dynamic";
@@ -292,7 +293,12 @@ export async function GET(
     return json({ ok: false, reason: "Lookup failed" }, 500);
   }
   const tier = resolveOrderTier({ product_sku: skuRow }, paygTier);
-  const reportV2 = storedV2 ? projectReportForTier(storedV2, tier) : null;
+  const projectedV2 = storedV2 ? projectReportForTier(storedV2, tier) : null;
+  // G35 Pricing v5 P4 (plan §6.6): "BlockID Reviewed · date · reviewer" —
+  // only on a Verified order whose assembled_reports.reviewed is true (a
+  // refund flips it back to false). Read only when it can apply.
+  const reviewState = tier === "verified" && projectedV2 ? await readReviewBadgeState(supabase, reportId) : null;
+  const reportV2 = projectedV2 ? attachReviewBadge(projectedV2, tier, reviewState) : null;
   if (!reportV2 && (tier === "snapshot" || tier === "free")) {
     // A Snapshot has no legacy markdown rendering: never fall back to the
     // full-markdown view / exports for it.

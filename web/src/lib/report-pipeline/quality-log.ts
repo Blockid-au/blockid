@@ -7,7 +7,9 @@
 //     costUsd, groundedShare, degradedSections, consistencyIssues,
 //     pendingDims (S41 `assessed:false` chapters), words, pages, durationMs,
 //     sviVersion, pipelineVersion,
-//     providers_struck?, deadline_hit_wave? (G29-B — degraded runs only) }
+//     providers_struck?, deadline_hit_wave? (G29-B — degraded runs only),
+//     sections?, groundedByModel? (W1 — which provider:model wrote each
+//     audited section, and the grounded share per model) }
 //
 // Readers:
 //   /api/status.tbr_quality   summariseTbrQuality() over the last 24 h —
@@ -116,6 +118,12 @@ export interface TbrQualityRow {
   providers_struck?: string[];
   /** G29-B (degraded runs): the wave whose wall-clock race the deadline won; null when the deadline never fired. */
   deadline_hit_wave?: string | null;
+  /** W1 (pricing v5 §7.2 #5): every audited section with the `provider:model` that wrote it
+   *  (`deterministic` = degraded card, `cache` = chapter-cache hit, null = unknown) and its grounding
+   *  verdict — so groundedShare can be attributed to a model. */
+  sections?: Array<{ id: string; model: string | null; grounded: boolean }>;
+  /** W1: the same, rolled up per model: audited sections / grounded sections. */
+  groundedByModel?: Record<string, { sections: number; grounded: number }>;
 }
 
 /** G29-B: the most recent no-report (fully degraded) run — what /api/status and /admin/funnel print instead of a placeholder share. */
@@ -217,6 +225,8 @@ export function buildTbrQualityRow(input: {
   providersStruck?: string[];
   /** G29-B: written only when given (degraded runs). */
   deadlineHitWave?: string | null;
+  /** W1: section id → `provider:model` (orchestrator `done.sectionModels`); written with the audit verdicts when given. */
+  sectionModels?: Record<string, string>;
 }): TbrQualityRow {
   const report = input.report ?? null;
   const est = report ? estimatePages(report) : null;
@@ -242,7 +252,28 @@ export function buildTbrQualityRow(input: {
     autoCited: Math.floor(nonNeg(input.autoCited)),
     ...(input.providersStruck !== undefined ? { providers_struck: input.providersStruck.filter((p) => typeof p === "string" && p.length > 0).slice(0, 12) } : {}),
     ...(input.deadlineHitWave !== undefined ? { deadline_hit_wave: input.deadlineHitWave ?? null } : {}),
+    ...(input.sectionModels !== undefined ? sectionAttribution(report, input.sectionModels) : {}),
   };
+}
+
+/** W1: per-section model attribution from the report's audit log (pure). */
+export function sectionAttribution(
+  report: ReportV2 | null,
+  sectionModels: Record<string, string>,
+): Pick<TbrQualityRow, "sections" | "groundedByModel"> {
+  const audit = report?.appendix?.auditLog ?? [];
+  const sections = audit
+    .filter((a) => a && typeof a.sectionId === "string")
+    .slice(0, 48)
+    .map((a) => ({ id: a.sectionId, model: typeof sectionModels[a.sectionId] === "string" ? sectionModels[a.sectionId]! : null, grounded: Boolean(a.grounded) }));
+  const groundedByModel: Record<string, { sections: number; grounded: number }> = {};
+  for (const sec of sections) {
+    const key = sec.model ?? "unknown";
+    const bucket = (groundedByModel[key] ??= { sections: 0, grounded: 0 });
+    bucket.sections += 1;
+    if (sec.grounded) bucket.grounded += 1;
+  }
+  return { sections, groundedByModel };
 }
 
 /**
