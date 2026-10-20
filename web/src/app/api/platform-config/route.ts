@@ -3,11 +3,17 @@
 
 import { NextResponse } from "next/server";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { paygView } from "@/lib/pricing/payg-copy";
 
 export const revalidate = 60; // ISR: revalidate every 60s
 
 export async function GET() {
   const cfg = await getPlatformConfig();
+  // G35 P5: the Pricing v5 switch + DISPLAY prices (validated — an invalid
+  // admin value falls back to the catalogue, never A$0). The amount charged
+  // is always the Stripe Price. `payg_verified_max_open` (review capacity)
+  // stays admin-only.
+  const payg = paygView(cfg);
 
   // Only expose fields safe for public consumption
   const publicConfig = {
@@ -23,6 +29,11 @@ export async function GET() {
     promo_code: cfg.promo_code,
     promo_label: cfg.promo_label,
     early_bird_deadline: cfg.early_bird_deadline,
+    payg_enabled: payg.enabled,
+    payg_snapshot_cents: payg.snapshotCents,
+    payg_full_cents: payg.fullCents,
+    payg_verified_cents: payg.verifiedCents,
+    verified_sla_business_days: payg.slaDays,
   };
 
   return NextResponse.json(publicConfig, {

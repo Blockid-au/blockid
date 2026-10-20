@@ -49,7 +49,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// The 12 fields the route explicitly whitelists into publicConfig. Pinned
+// The 17 fields the route explicitly whitelists into publicConfig. Pinned
 // here so any deletion/addition to the projection is a conscious PR.
 const PUBLIC_KEYS = [
   "founding_plan_name",
@@ -64,6 +64,12 @@ const PUBLIC_KEYS = [
   "promo_code",
   "promo_label",
   "early_bird_deadline",
+  // G35 P5 — Pricing v5 switch + display prices.
+  "payg_enabled",
+  "payg_snapshot_cents",
+  "payg_full_cents",
+  "payg_verified_cents",
+  "verified_sla_business_days",
 ] as const;
 
 // Admin-only fields that MUST NEVER appear in the public payload.
@@ -77,6 +83,7 @@ const ADMIN_ONLY_KEYS = [
   "stage_thresholds",
   "growth_plan_credits_monthly",
   "linkedin_post_enabled",
+  "payg_verified_max_open",
 ] as const;
 
 async function callGet(): Promise<{ res: Response; body: Record<string, unknown> }> {
@@ -95,13 +102,35 @@ describe("GET /api/platform-config", () => {
     }
   });
 
-  it("exposes exactly the 12 whitelisted keys — no more, no less", async () => {
+  it("exposes exactly the 17 whitelisted keys — no more, no less", async () => {
     const { body } = await callGet();
     const returned = new Set(Object.keys(body));
     expect(returned.size).toBe(PUBLIC_KEYS.length);
     for (const key of PUBLIC_KEYS) {
       expect(returned.has(key)).toBe(true);
     }
+  });
+
+  it("G35 P5: flag OFF by default with the catalogue display prices", async () => {
+    const { body } = await callGet();
+    expect(body.payg_enabled).toBe(false);
+    expect(body.payg_snapshot_cents).toBe(1900);
+    expect(body.payg_full_cents).toBe(4900);
+    expect(body.payg_verified_cents).toBe(14900);
+    expect(body.verified_sla_business_days).toBe(2);
+  });
+
+  it("G35 P5: exposes the admin-set flag + display prices, normalising invalid values", async () => {
+    getPlatformConfigMock.mockResolvedValue({
+      ...CONFIG_DEFAULTS,
+      payg_enabled: true,
+      payg_full_cents: 5900,
+      payg_snapshot_cents: -1,
+    });
+    const { body } = await callGet();
+    expect(body.payg_enabled).toBe(true);
+    expect(body.payg_full_cents).toBe(5900);
+    expect(body.payg_snapshot_cents).toBe(1900);
   });
 
   it("never leaks any of the admin-only keys", async () => {
