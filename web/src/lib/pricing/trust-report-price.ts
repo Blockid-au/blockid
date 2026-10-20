@@ -13,6 +13,7 @@
 
 import { formatAud, withGst } from "@/lib/plans-v2";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
+import type { PaygView } from "@/lib/pricing/payg-copy";
 
 /** Stripe SKU id the checkout route books (historical id — never renamed). */
 export const TRUST_REPORT_SKU_ID = TRUST_REPORT_5AUD.id;
@@ -31,4 +32,23 @@ export function trustReportPriceLabel(): string {
 /** "A$3 inc. GST" — the long form for the confirm step and e-mails. */
 export function trustReportPriceLabelLong(): string {
   return withGst(trustReportPriceLabel());
+}
+
+// ─── Pricing v5 (G35 P5) — flag-aware labels ────────────────────────────────
+//
+// `platform_config.payg_enabled` OFF → exactly the legacy helpers above.
+// ON → the one-off report a signed-in founder / evaluator buys outside an
+// included quota is the Full tier (D26: included report = Full), priced from
+// the PaygView (platform_config display price) — never a typed literal.
+
+type ReportPriceView = Pick<PaygView, "enabled" | "full">;
+
+/** OFF: "A$3" · ON: "Full A$49". */
+export function reportPriceLabelFor(view: ReportPriceView): string {
+  return view.enabled ? `Full ${view.full}` : trustReportPriceLabel();
+}
+
+/** OFF: "A$3 inc. GST" · ON: "Full A$49 inc. GST". */
+export function reportPriceLabelLongFor(view: ReportPriceView): string {
+  return withGst(reportPriceLabelFor(view));
 }

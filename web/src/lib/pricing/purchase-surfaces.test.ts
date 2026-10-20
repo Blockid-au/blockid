@@ -262,7 +262,8 @@ describe("5. Trusted Business Report — ReportPaywallGate + unlock rail read tr
       "src/app/(app)/(founder)/workspace/evaluations/[evaluationId]/dossier/assessment/actions-block.tsx",
     ]) {
       const s = src(rel);
-      expect(s, rel).toContain("trustReportPriceLabel");
+      // G35 P5: list + dossier read the flag-aware helpers (OFF = trustReportPriceLabel, ON = Full tier / "1 credit").
+      expect(s, rel).toMatch(/trustReportPriceLabel|reportPriceLabelFor/);
       expect(s, rel).not.toMatch(/A\$[13]\b/);
     }
     expect(TRUST_REPORT_RESCORE_CREDITS).toBe(1);

@@ -32,6 +32,12 @@ vi.mock("next/navigation", () => ({
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
+// G35 P5 — the Pricing v5 switch (OFF = today's copy; ON = "1 credit" re-score, Full report).
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => (paygState.enabled ? PAYG_ON_VIEW : PAYG_OFF_VIEW) };
+});
 
 vi.mock("@/lib/projects", () => ({ getCurrentProjectIsSandbox: async () => false }));
 
@@ -244,6 +250,16 @@ describe("/workspace/evaluations", () => {
     getReportQuotaMock.mockResolvedValue({ limit: 0, used: 0, remaining: 0, unlimited: false });
     out = await html();
     expect(out).toContain("Trusted Business Report A$3 · re-score A$1");
+
+    // G35 P5 — payg_enabled ON: D27 re-score in credits, the one-off is the Full tier.
+    paygState.enabled = true;
+    try {
+      out = await html();
+      expect(out).toContain("Full A$49 report · re-score 1 credit");
+      expect(out).not.toContain("re-score A$1");
+    } finally {
+      paygState.enabled = false;
+    }
 
     getReportQuotaMock.mockResolvedValue({ limit: Number.MAX_SAFE_INTEGER, used: 40, remaining: Number.MAX_SAFE_INTEGER, unlimited: true });
     out = await html();

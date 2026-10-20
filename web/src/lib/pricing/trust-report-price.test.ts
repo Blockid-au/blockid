@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { FEATURE_COSTS } from "@/lib/credits";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
-import { TRUST_REPORT_AMOUNT_CENTS, TRUST_REPORT_PRICE_AUD, TRUST_REPORT_SKU_ID, trustReportPriceLabel, trustReportPriceLabelLong } from "./trust-report-price";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
+import {
+  TRUST_REPORT_AMOUNT_CENTS,
+  TRUST_REPORT_PRICE_AUD,
+  TRUST_REPORT_SKU_ID,
+  reportPriceLabelFor,
+  reportPriceLabelLongFor,
+  trustReportPriceLabel,
+  trustReportPriceLabelLong,
+} from "./trust-report-price";
 
 describe("trust-report-price (G16-B copy truth)", () => {
   it("reads the amount off the v3 SKU the checkout route books", () => {
@@ -27,5 +36,18 @@ describe("trust-report-price (G16-B copy truth)", () => {
   it("formats through plans-v2 formatAud (no literal in the helper)", () => {
     expect(trustReportPriceLabel()).toBe(`A$${TRUST_REPORT_PRICE_AUD.toLocaleString("en-AU")}`);
     expect(trustReportPriceLabelLong()).toBe(`${trustReportPriceLabel()} inc. GST`);
+  });
+});
+
+describe("reportPriceLabelFor (G35 P5 payg switch)", () => {
+  it("flag OFF renders exactly the legacy label", () => {
+    expect(reportPriceLabelFor(PAYG_OFF_VIEW)).toBe(trustReportPriceLabel());
+    expect(reportPriceLabelLongFor(PAYG_OFF_VIEW)).toBe(trustReportPriceLabelLong());
+  });
+
+  it("flag ON names the Full tier at the view's display price", () => {
+    expect(reportPriceLabelFor(PAYG_ON_VIEW)).toBe(`Full ${PAYG_ON_VIEW.full}`);
+    expect(reportPriceLabelLongFor(PAYG_ON_VIEW)).toBe(`Full ${PAYG_ON_VIEW.full} inc. GST`);
+    expect(reportPriceLabelFor({ enabled: true, full: "A$55" })).toBe("Full A$55");
   });
 });

@@ -17,9 +17,8 @@ import Link from "next/link";
 import type { DossierView } from "@/lib/evaluations/dossier";
 import { clampIcKind } from "@/lib/evaluations/ic-reports";
 import { DossierActions } from "../dossier-actions";
-import { formatAud } from "@/lib/plans-v2";
-import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
-import { TRUST_REPORT_RESCORE_CREDITS } from "@/lib/credits-public";
+import { reportPriceLabelFor } from "@/lib/pricing/trust-report-price";
+import { PAYG_OFF_VIEW, rescoreLabel, type PaygView } from "@/lib/pricing/payg-copy";
 
 const AUDIT_ACTION_LABEL: Record<string, string> = {
   "dossier.viewed": "Opened the dossier",
@@ -47,7 +46,18 @@ function fmt(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function ActionsBlock({ view, plan, batchAllowed = false }: { view: DossierView; plan?: string | null; batchAllowed?: boolean }) {
+export function ActionsBlock({
+  view,
+  plan,
+  batchAllowed = false,
+  payg = PAYG_OFF_VIEW,
+}: {
+  view: DossierView;
+  plan?: string | null;
+  batchAllowed?: boolean;
+  /** G35 P5 — server-read Pricing v5 view. OFF (default) = today's "A$1" / "A$3"; ON = "1 credit" / "Full A$49" (D27). */
+  payg?: PaygView;
+}) {
   const founder = view.viewer.role === "founder";
   const mine = view.assessment.mine;
   // Scout → one-pager; Firm / Program → memo (the route clamps again server-side).
@@ -101,7 +111,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
               <DossierActions evaluationId={view.header.evaluationId} founderClaimed={view.header.founderClaimed} founderEmailOnFile={view.header.ownerKind !== "evaluator"} icKind={icKind} batchAllowed={batchAllowed} />
               <ul className="list-disc space-y-1 pl-5 text-xs">
                 <li>
-                  Re-score ({formatAud(TRUST_REPORT_RESCORE_CREDITS)}) and the full Trusted Business Report ({trustReportPriceLabel()}) — from the row on{" "}
+                  Re-score ({rescoreLabel(payg)}) and the full {payg.enabled ? "report" : "Trusted Business Report"} ({reportPriceLabelFor(payg)}) — from the row on{" "}
                   <Link href="/workspace/evaluations" className="text-action hover:underline">
                     Startups I&apos;m evaluating
                   </Link>{" "}
