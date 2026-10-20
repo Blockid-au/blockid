@@ -97,6 +97,7 @@ const POSITIVE_SKIP: Record<string, string> = {
   "agent-research": "AI research tasks (static guard only)",
   "agent-upgrade": "AI upgrade tasks + email (static guard only)",
   "ai-health-check": "live provider probes (static guard only)",
+  "ai-balance": "live balance endpoints + runtime file writes (own test: ai-balance/route.test.ts)",
   "ai-health": "provider probe + admin alert (static guard only)",
   "ai-model-discovery": "live provider catalogue fetch (static guard only)",
   "ceo-daily-summary": "AI summary + report file write (static guard only)",

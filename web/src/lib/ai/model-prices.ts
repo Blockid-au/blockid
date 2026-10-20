@@ -41,6 +41,16 @@ export const PAID_PRICING_USD_PER_1M: Record<string, PricePer1M> = {
   "deepinfra:meta-llama/Llama-3.3-70B-Instruct-Turbo": { in: 0.10, out: 0.32 },
   "deepinfra:moonshotai/Kimi-K2.6": { in: 0.75, out: 3.50 },
   "deepinfra:deepseek-ai/DeepSeek-V4-Pro": { in: 1.30, out: 2.60 },
+  // A1 (pricing v5 §7.3 challengers) — public feed api.deepinfra.com/v1/openai/models,
+  // 2026-10-20. Not report-admitted; priced so a challenger call is ledgered at
+  // its real cost. GLM-5.3-Flash carries a 50 % promo ending 2026-10-20 23:59 UTC
+  // (feed `discount_ends_at`) — the nightly sync-prices drift alert catches the
+  // step-up; update this row when it does.
+  "deepinfra:deepseek-ai/DeepSeek-V4-Flash-0731": { in: 0.06, out: 0.18 },
+  "deepinfra:deepseek-ai/DeepSeek-V4.1-Flash": { in: 0.20, out: 0.60 },
+  "deepinfra:zai-org/GLM-5.3-Flash": { in: 0.15, out: 0.50 },
+  "deepinfra:Qwen/Qwen3-VL-30B-A3B-Instruct": { in: 0.15, out: 0.60 },
+  "deepinfra:google/gemma-4-31B-it": { in: 0.20, out: 0.40 },
   // Gemini — paid tier, standard, text, prompts ≤ 200k; output includes
   // thinking tokens. W1: verified on ai.google.dev/gemini-api/docs/pricing
   // 2026-10-20 — the 3.x previews are NOT billed as their 2.5 siblings

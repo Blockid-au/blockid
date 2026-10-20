@@ -211,9 +211,10 @@ export function getSpendGuardStatus(now: number = Date.now()): SpendGuardStatus 
 
 // ── Founder notification (once per UTC day) ───────────────────────────
 
-/** Resolve the platform founder's app_users id (ADMIN_EMAIL). Cached. */
+/** Resolve the platform founder's app_users id (ADMIN_EMAIL). Cached.
+ *  Exported for the A3 balance alerts (/api/cron/ai-balance). */
 let founderIdMemo: { id: string | null; at: number } | null = null;
-async function founderUserId(): Promise<string | null> {
+export async function founderUserId(): Promise<string | null> {
   if (founderIdMemo && Date.now() - founderIdMemo.at < 60 * 60_000) return founderIdMemo.id;
   try {
     const { getSupabaseAdmin } = await import("@/lib/supabase");

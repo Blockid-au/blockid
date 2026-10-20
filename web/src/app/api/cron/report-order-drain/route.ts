@@ -19,8 +19,13 @@
  * than the pipeline budget), or fails + refunds them once their attempts
  * are spent. A no-op until pending-authority/0472 is applied.
  *
+ * Balance pause (G35 A3): while the hourly /api/cron/ai-balance check rates
+ * the DeepInfra balance critical (lib/ai/balance-flags.ts), no order is
+ * claimed — paid orders stay `queued` instead of burning their retries into a
+ * refund, and drain again on the first tick after the flag clears.
+ *
  * Response:
- *   { ok: true, processed, remaining, results[], reclaimed[] }
+ *   { ok: true, processed, remaining, results[], reclaimed[], paused? }
  *   { ok: false, error }
  */
 
@@ -59,6 +64,7 @@ async function onSettled(order: SettledOrder): Promise<void> {
     slaBusinessDays: verifiedSlaBusinessDays,
   });
 }
+import { readBalanceFlags } from "@/lib/ai/balance-flags";
 
 export const dynamic = "force-dynamic";
 // Background generation may take up to REPORT_ORDER_DEADLINE_MS (7 min) + grace.
@@ -134,8 +140,10 @@ async function handle(request: Request): Promise<Response> {
     refunded?: boolean;
   }> = [];
   let processed = 0;
+  // G35 A3: DeepInfra balance critical → queue, do not claim (see header).
+  const paused = readBalanceFlags().deepinfra_critical ? "deepinfra_balance_critical" : null;
 
-  for (let i = 0; i < MAX_PER_INVOCATION; i += 1) {
+  for (let i = 0; !paused && i < MAX_PER_INVOCATION; i += 1) {
     let outcome;
     try {
       outcome = await processNextQueuedOrder({
@@ -196,6 +204,7 @@ async function handle(request: Request): Promise<Response> {
     })),
   };
   if (reclaim.skipped) body.reclaimSkipped = reclaim.skipped;
+  if (paused) body.paused = paused;
   if (processed === 0 && remaining === 0 && reclaim.reclaimed.length === 0) {
     body.noop = true;
   }

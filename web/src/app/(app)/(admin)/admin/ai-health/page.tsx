@@ -5,6 +5,7 @@ import { getCurrentUser, ADMIN_EMAIL } from "@/lib/auth";
 import { readRegistry } from "@/lib/ai/registry";
 import { ArrowLeft, Shield } from "lucide-react";
 import { AIHealthClient } from "./ai-health-client";
+import { AIEconomicsCards } from "./ai-economics";
 
 export const metadata: Metadata = {
   title: "AI Model Health — Admin",
@@ -12,6 +13,11 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+/** Request time for the policy countdown (force-dynamic: one render per request). */
+function requestTime(): number {
+  return Date.now();
+}
 
 export default async function AIHealthPage() {
   const user = await getCurrentUser();
@@ -30,6 +36,7 @@ export default async function AIHealthPage() {
   }
 
   const registry = readRegistry(true);
+  const now = requestTime();
 
   return (
     <div className="min-h-svh bg-surface-100 text-ink-800">
@@ -42,7 +49,8 @@ export default async function AIHealthPage() {
           Updated {registry.updated_at ? new Date(registry.updated_at).toLocaleString() : "never"}
         </span>
       </header>
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-6xl mx-auto p-6 space-y-6">
+        <AIEconomicsCards now={now} />
         <AIHealthClient initialRegistry={registry} />
       </main>
     </div>
