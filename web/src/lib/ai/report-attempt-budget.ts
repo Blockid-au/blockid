@@ -21,6 +21,12 @@ const PRICES: Record<string, { input: number; output: number; context: number }>
   "deepseek-ai/DeepSeek-V4-Flash": { input: 90, output: 180, context: 1048576 },
   "Qwen/Qwen3-VL-235B-A22B-Instruct": { input: 200, output: 880, context: 262144 },
 };
+/** A1 (pricing v5 §7.4): read-only copy of the pinned table above — integer
+ *  micro-USD per 1k tokens (= USD per 1M × 1000). Only for the nightly price
+ *  feed check (renewal proposal) and the catalogue integrity test; reserve()
+ *  and settle() keep reading PRICES, so the policy itself is unchanged. */
+export const REPORT_POLICY_PINNED_PRICES: Readonly<Record<string, Readonly<{ input: number; output: number; context: number }>>> =
+  Object.freeze(Object.fromEntries(Object.entries(PRICES).map(([model, row]) => [model, Object.freeze({ ...row })])));
 // Price-policy expiry: reserve() refuses EVERY report call at/after this instant
 // (fail closed on stale prices). Prices re-observed on the official DeepInfra
 // pages 2026-10-20 — all four unchanged (V3.2 0.26/0.38, Qwen3-235B-2507
