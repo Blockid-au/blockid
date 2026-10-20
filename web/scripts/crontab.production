@@ -191,6 +191,23 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
 
+# O1 (2026-10-20) — long-run ops hygiene. All plain scripts, own locks/logs.
+#   analytics heartbeat  L1-5: no-op UPDATE on _analytics.plans so Logflare's
+#                        temporary cainophile_* logical slot confirms an LSN and
+#                        stops pinning WAL (was 3.9 GB, safe_wal_size ≈ 0);
+#                        P1 ops alert when a slot still retains > 1 GB.
+#   analytics retention  L1-5: delete _analytics.log_events_* rows > 14 days
+#                        (batched) + VACUUM ANALYZE. 04:47 UTC daily.
+#   JSONL rotation       L1-10: cron-health / uptime-guardian / ai-model-health …
+#                        keep 30 days (≤ 5 MB), older rows gzipped to
+#                        /data/logs/archive. 04:37 UTC daily.
+#   ops e-mail digest    L1-12: one e-mail per UTC day listing the P2 alert
+#                        repeats held by the per-(kind, level, day) dedup. 00:07 UTC.
+4,19,34,49 * * * * /home/dovanlong/blockid.au/scripts/db/analytics-log-hygiene.sh heartbeat >> /data/logs/analytics-log-hygiene.log 2>&1
+47 4 * * * /home/dovanlong/blockid.au/scripts/db/analytics-log-hygiene.sh retention >> /data/logs/analytics-log-hygiene.log 2>&1
+37 4 * * * cd /home/dovanlong/blockid.au/web && node scripts/rotate-runtime-jsonl.mjs >> /data/logs/rotate-runtime-jsonl.log 2>&1
+7 0 * * * cd /home/dovanlong/blockid.au/web && node scripts/ops-alert-email.mjs --digest >> /data/logs/ops-alert-digest.log 2>&1
+
 # G14-S39 (2026-09-16) — SVI backtest v0 / calibration. Scores every curated
 # AU comparable (src/lib/data/au-comparables-backtest.ts) with computeSVI()
 # at confidence document_uploaded → Spearman ρ vs log(round) / log(valuation),

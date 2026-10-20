@@ -88,3 +88,63 @@ content/reports/tbr-audit-latest.json
 # G23-C cron logs (live-qa / calibration, one file per ISO week; pruned after 8 weeks by crontab.production)
 content/reports/logs/*
 !content/reports/logs/.gitkeep
+# O1 / L1-10 (2026-10-20): runtime outputs that crons / deploys / the app
+# rewrite every day. The repo is PUBLIC — security-posture*.json(l) lists
+# unguarded routes. Readers use the LIVE web dir (lib/runtime-paths, absolute
+# live paths), so the files stay on disk; they just leave git. Untracked from
+# the index with scripts/untrack-runtime-reports.sh (index only — never run a
+# plain `git rm` / merge that deletes them from the live checkout).
+# KEPT committed (inputs / curated): schema-migrations.json, version.json,
+# project-state.json + implementing-plan.md + architecture.md (CEO ledger the
+# orchestrator git-adds), ceo-current-plan.json, clevel-kpi-matrix.json,
+# kb-equity-methodologies.json, svi-exchange-tasks.json, validation-tracker.json,
+# claims-backfill.json, self-fix-playbook.json, _daily-report-template.md and
+# the hand-written audit / review .md files.
+content/reports/ai-free-models.json
+content/reports/ai-free-models-verified.json
+content/reports/ai-free-models-verify-history.jsonl
+content/reports/ai-model-strikes.json
+content/reports/ai-spend-daily.json
+content/reports/backup-health.jsonl
+content/reports/calibration-history.jsonl
+content/reports/calibration-latest.json
+content/reports/clevel-review-history.jsonl
+content/reports/cron-health.jsonl
+content/reports/cron-health.jsonl.bak.*
+content/reports/cron-incidents.jsonl
+content/reports/deploy-log.jsonl
+content/reports/disk-cleanup-history.jsonl
+content/reports/external-signals-history.jsonl
+content/reports/external-signals-latest.json
+content/reports/g30-*.json
+content/reports/ga4-daily.jsonl
+content/reports/ga4-event-audit.json
+content/reports/guardian-history.jsonl
+content/reports/human-review-minutes.jsonl
+content/reports/last-good-build.json
+content/reports/live-qa-history.jsonl
+content/reports/live-qa-latest.json
+content/reports/live-qa-latest-partial.json
+content/reports/migration-apply-log.jsonl
+content/reports/migration-audit.jsonl
+content/reports/milestone-report-state.json
+content/reports/ops-alert-dedup-state.json
+content/reports/orchestrator-history.jsonl
+content/reports/promo-sync.jsonl
+content/reports/release-retention*.json
+content/reports/release-retention*.jsonl
+content/reports/routine-heartbeat.jsonl
+content/reports/security-posture.json
+content/reports/security-posture-history.jsonl
+content/reports/svi-backtest-history.jsonl
+content/reports/svi-backtest-latest.json
+content/reports/svi-exchange-orchestrator.jsonl
+content/reports/traction-history.jsonl
+content/reports/traction-snapshot.json
+content/reports/uptime-guardian.jsonl
+content/reports/*.rotate-*.tmp
+# cron-written dated reports (C-level dailies / nightlies, nightly digest, milestone breakdowns)
+content/reports/*-daily-*.md
+content/reports/*-nightly-*.md
+content/reports/nightly-digest-*.md
+content/reports/milestone-M*-v*.md

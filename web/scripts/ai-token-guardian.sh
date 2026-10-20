@@ -57,8 +57,11 @@ if [ -f "$WEB_DIR/.env" ]; then
     if [ "$AI_OK" = "True" ]; then
       echo "$LOG_PREFIX AI health OK — provider: $AI_PROVIDER"
     else
-      echo "$LOG_PREFIX AI health FAILED — restarting container..."
-      docker restart deploy-blockid-production 2>/dev/null
+      # O1 (2026-10-20): the app has not run in docker since the G30 origin
+      # units (22/09) — `docker restart deploy-blockid-production` hit a
+      # container that no longer exists. Never restart g30-origin-* from here;
+      # provider failover + the error digest / ai_capacity watch own this.
+      echo "$LOG_PREFIX AI health FAILED (provider: $AI_PROVIDER) — no restart (G30 origin units); see /api/status ai.healthy_providers"
     fi
   fi
 fi
