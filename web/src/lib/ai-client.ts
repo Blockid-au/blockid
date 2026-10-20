@@ -2648,7 +2648,8 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   if (deepInfraOnly && balanceFlags.deepinfra_critical) {
     throw new AICapacityError("provider_budget", PROVIDER_BUDGET_RETRY_AFTER_SEC, { queued: 0, running: 0 });
   }
-  const gatewayResult = deepInfraOnly ? null : await callViaGateway(opts);
+  // The legacy gateway cannot attest which provider answers → skipped while DeepInfra is critical.
+  const gatewayResult = deepInfraOnly || balanceFlags.deepinfra_critical ? null : await callViaGateway(opts);
   if (gatewayResult) return gatewayResult;
 
   // Fallback: local provider chain (existing behavior)

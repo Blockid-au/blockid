@@ -58,16 +58,21 @@ export function effectiveBalanceFlags(raw: unknown, now: number = Date.now()): B
   };
 }
 
-let cache: { at: number; flags: BalanceFlags } | null = null;
+// The cache is timed with the monotonic clock and the wall clock is read only
+// when a flags file exists — the dispatcher's deadline logic (and its tests)
+// own Date.now(); a missing file must not consume a wall-clock read.
+let cache: { tick: number; raw: unknown } | null = null;
 
-/** The current flags (cached 60 s, fail-open). */
-export function readBalanceFlags(now: number = Date.now()): BalanceFlags {
-  if (cache && now - cache.at < CACHE_MS) return effectiveBalanceFlags(cache.flags, now);
-  let parsed: unknown = null;
-  try { parsed = JSON.parse(fs.readFileSync(balanceFlagsFile(), "utf-8")); } catch { parsed = null; }
-  const flags = effectiveBalanceFlags(parsed, now);
-  cache = { at: now, flags };
-  return flags;
+/** The current flags (file re-read at most every 60 s, fail-open). */
+export function readBalanceFlags(now?: number): BalanceFlags {
+  const tick = performance.now();
+  if (!cache || tick - cache.tick >= CACHE_MS) {
+    let raw: unknown = null;
+    try { raw = JSON.parse(fs.readFileSync(balanceFlagsFile(), "utf-8")); } catch { raw = null; }
+    cache = { tick, raw };
+  }
+  if (cache.raw === null) return NO_BALANCE_FLAGS;
+  return effectiveBalanceFlags(cache.raw, now ?? Date.now());
 }
 
 export function _resetBalanceFlagsCache(): void {
