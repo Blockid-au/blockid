@@ -34,6 +34,8 @@ const UNIT_INCLUDE = [
   "scripts/report/*.test.mjs",
   // G22-B: the org_id backfill (0433) over a fake client.
   "scripts/org/*.test.mjs",
+  // G35 P1: the Pricing v5 Stripe mint script over a mocked Stripe client.
+  "scripts/stripe/*.test.mjs",
   "../scripts/**/*.test.mjs",
 ];
 

@@ -64,7 +64,9 @@ describe("runAudit — dry run", () => {
     expect(res.dry_run).toBe(true);
     expect(res.counts.set).toBe(1);
     expect(res.counts.unset_legacy).toBe(9);
-    expect(res.counts.unset).toBe(Object.keys(CATALOGUE.prices).length - 1 - 9);
+    // G35 P1: the six Pricing v5 PAYG rows are not minted yet → pending, not failing.
+    expect(res.counts.unset_pending_mint).toBe(6);
+    expect(res.counts.unset).toBe(Object.keys(CATALOGUE.prices).length - 1 - 9 - 6);
     // Dry run is informational: never fails on unset vars.
     expect(res.rows.find((r) => r.env_var === "STRIPE_PRICE_FOUNDER_GROWTH").status).toBe("set");
     expect(res.rows.find((r) => r.env_var === "STRIPE_PRICE_FOUNDING50").status).toBe("unset_legacy");
@@ -135,5 +137,63 @@ describe("runAudit — live path with a fake Stripe", () => {
     // Every other non-legacy var is unset → counted, and fails the run too.
     expect(res.counts.unset).toBeGreaterThan(0);
     expect(res.drift.map((r) => r.env_var).sort()).toEqual(["STRIPE_PRICE_CREDITS_5", "STRIPE_PRICE_FOUNDER_GROWTH"]);
+  });
+});
+
+describe("runAudit — G35 P1 Pricing v5 rows (founder_mints)", () => {
+  const V5 = [
+    "STRIPE_PRICE_REPORT_SNAPSHOT",
+    "STRIPE_PRICE_REPORT_FULL",
+    "STRIPE_PRICE_REPORT_VERIFIED",
+    "STRIPE_PRICE_UPGRADE_SNAPSHOT_FULL",
+    "STRIPE_PRICE_UPGRADE_FULL_VERIFIED",
+    "STRIPE_PRICE_REPORT_FUNDING",
+  ];
+
+  function fullEnv({ skip = [] } = {}) {
+    const env = { STRIPE_SECRET_KEY: "sk_test_fake" };
+    const prices = {};
+    for (const [k, v] of Object.entries(CATALOGUE.prices)) {
+      if (v.legacy || skip.includes(k)) continue;
+      env[k] = `price_${k.toLowerCase()}`;
+      prices[env[k]] = {
+        unit_amount: v.amount_cents,
+        currency: "aud",
+        active: v.active,
+        type: v.interval === "one_off" ? "one_time" : "recurring",
+        recurring: v.interval === "one_off" ? null : { interval: v.interval },
+        tax_behavior: v.tax_behavior,
+      };
+    }
+    return { resolveEnv: (k) => env[k] ?? "", stripeFactory: () => ({ prices: { retrieve: async (id) => prices[id] } }), prices, env };
+  }
+
+  it("the catalogue carries exactly the six v5 rows as founder_mints, one-off, inclusive, at the v5 amounts", () => {
+    const pending = Object.entries(CATALOGUE.prices).filter(([, v]) => v.founder_mints).map(([k]) => k);
+    expect(pending.sort()).toEqual([...V5].sort());
+    expect(V5.map((k) => CATALOGUE.prices[k].amount_cents)).toEqual([1900, 4900, 14900, 3000, 10000, 1900]);
+    for (const k of V5) {
+      expect(CATALOGUE.prices[k].interval, k).toBe("one_off");
+      expect(CATALOGUE.prices[k].tax_behavior, k).toBe("inclusive");
+      expect(CATALOGUE.prices[k].pricing_version, k).toBe("v5");
+    }
+  });
+
+  it("unminted v5 rows are unset_pending_mint and do not fail an otherwise clean live audit", async () => {
+    const { resolveEnv, stripeFactory } = fullEnv({ skip: V5 });
+    const res = await runAudit({ dryRun: false, resolveEnv, stripeFactory });
+    expect(res.ok).toBe(true);
+    expect(res.counts.unset_pending_mint).toBe(6);
+    expect(res.counts.unset).toBe(0);
+  });
+
+  it("a minted v5 Price that drifts (e.g. tax_behavior exclusive, wrong amount) fails the run", async () => {
+    const { resolveEnv, stripeFactory, prices, env } = fullEnv();
+    prices[env.STRIPE_PRICE_REPORT_FULL] = { ...prices[env.STRIPE_PRICE_REPORT_FULL], unit_amount: 5900, tax_behavior: "exclusive" };
+    const res = await runAudit({ dryRun: false, resolveEnv, stripeFactory });
+    expect(res.ok).toBe(false);
+    const row = res.rows.find((r) => r.env_var === "STRIPE_PRICE_REPORT_FULL");
+    expect(row.status).toBe("drift");
+    expect(row.problems).toEqual(["amount 5900 ≠ 4900", "tax_behavior exclusive ≠ inclusive"]);
   });
 });

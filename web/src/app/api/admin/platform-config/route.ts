@@ -10,6 +10,7 @@ import {
   type PlatformConfig,
 } from "@/lib/platform-config";
 import { apiRoute } from "@/lib/audit/api-route";
+import { PAYG_CONFIG_KEYS, validatePaygConfig } from "@/lib/pricing/v5-payg";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,17 @@ async function PUT_handler(req: NextRequest) {
     if (typeof v === expectedType || expectedType === "object") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (validated as any)[key] = v;
+    }
+  }
+
+  // G35 P1 — Pricing v5 PAYG keys carry range + ordering rules (display
+  // prices Snapshot < Full < Verified, SLA 1–10 days, Verified cap 0–100).
+  // Validate the merged result so a partial patch cannot break the ladder.
+  if (PAYG_CONFIG_KEYS.some((k) => k in validated)) {
+    const current = await getPlatformConfig();
+    const errors = validatePaygConfig({ ...current, ...validated });
+    if (errors.length > 0) {
+      return NextResponse.json({ error: errors.join(" "), errors }, { status: 400 });
     }
   }
 

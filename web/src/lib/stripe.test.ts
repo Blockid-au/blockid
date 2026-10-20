@@ -66,6 +66,12 @@ const ENV_KEYS = [
   "STRIPE_PRICE_INDEX_API",
   "STRIPE_PRICE_INDEX_API_ANNUAL",
   "STRIPE_PRICE_INVESTOR_VC_ENT",
+  "STRIPE_PRICE_REPORT_SNAPSHOT",
+  "STRIPE_PRICE_REPORT_FULL",
+  "STRIPE_PRICE_REPORT_VERIFIED",
+  "STRIPE_PRICE_UPGRADE_SNAPSHOT_FULL",
+  "STRIPE_PRICE_UPGRADE_FULL_VERIFIED",
+  "STRIPE_PRICE_REPORT_FUNDING",
 ] as const;
 
 const savedEnv: Record<string, string | undefined> = {};
@@ -200,6 +206,13 @@ describe("STRIPE_PRICE_MAP", () => {
       "index_api_annual",
       "svi_api_team",
       "svi_api_institutional",
+      // G35 P1 Pricing v5 PAYG — keys equal the v5 SKU ids (lib/pricing/v5-payg.ts).
+      "report_snapshot",
+      "report_full",
+      "report_verified",
+      "upgrade_snapshot_full",
+      "upgrade_full_verified",
+      "report_funding",
     ] as const;
     const actualKeys = Object.keys(mod.STRIPE_PRICE_MAP).sort();
     expect(actualKeys).toEqual([...expectedKeys].sort());
@@ -242,6 +255,15 @@ describe("STRIPE_PRICE_MAP", () => {
     expect(mod.STRIPE_PRICE_MAP.index_api_annual).toBe("price_api_y");
     expect(mod.STRIPE_PRICE_MAP.svi_api_team).toBe("price_api_m");
     expect(mod.STRIPE_PRICE_MAP.svi_api_institutional).toBe("price_vc_ent");
+  });
+
+  it("G35 P1: each Pricing v5 PAYG key reads the env var the v5 catalogue names", async () => {
+    const { PAYG_SKU_LIST } = await import("@/lib/pricing/v5-payg");
+    for (const sku of PAYG_SKU_LIST) process.env[sku.envVar] = `price_${sku.id}`;
+    const mod = await loadStripeMod();
+    for (const sku of PAYG_SKU_LIST) {
+      expect(mod.STRIPE_PRICE_MAP[sku.id], sku.id).toBe(`price_${sku.id}`);
+    }
   });
 
   it("leaves each entry as undefined when its env var is not set", async () => {

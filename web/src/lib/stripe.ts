@@ -99,6 +99,18 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // the VC Enterprise row (custom, unlimited) — both plans.csv env vars.
   svi_api_team: process.env.STRIPE_PRICE_INDEX_API,
   svi_api_institutional: process.env.STRIPE_PRICE_INVESTOR_VC_ENT,
+  // Pricing v5 pay-as-you-go (G35 P1, docs/pricing-v5-plan.md §6.1–6.2).
+  // Keys = v5 SKU ids in lib/pricing/v5-payg.ts (the catalogue owns amounts,
+  // env names, upgrade map and legacy A$3 resolution — prefer its
+  // priceIdForSku()/skuForPriceId() in checkout + webhook code). All one-time,
+  // AUD, GST-inclusive. Minted by scripts/stripe/mint-payg-v5.mjs; unset until
+  // the founder mints — checkout stays behind platform_config.payg_enabled.
+  report_snapshot: process.env.STRIPE_PRICE_REPORT_SNAPSHOT,             // A$19
+  report_full: process.env.STRIPE_PRICE_REPORT_FULL,                     // A$49
+  report_verified: process.env.STRIPE_PRICE_REPORT_VERIFIED,             // A$149
+  upgrade_snapshot_full: process.env.STRIPE_PRICE_UPGRADE_SNAPSHOT_FULL, // A$30 (D28)
+  upgrade_full_verified: process.env.STRIPE_PRICE_UPGRADE_FULL_VERIFIED, // A$100 (D28)
+  report_funding: process.env.STRIPE_PRICE_REPORT_FUNDING,               // A$19 Money Finder (D25)
 };
 
 /**

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Save, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from "lucide-react";
 import type { PlatformConfig } from "@/lib/platform-config";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
+import { PAYG_SKUS, validatePaygConfig } from "@/lib/pricing/v5-payg";
 
 interface Props {
   initial: PlatformConfig;
@@ -16,7 +17,7 @@ type Field = {
   description: string;
   type: "number" | "text" | "boolean" | "date";
   unit?: string;
-  group: "founding" | "free" | "growth" | "promo" | "flags";
+  group: "founding" | "free" | "growth" | "promo" | "flags" | "payg";
 };
 
 const FIELDS: Field[] = [
@@ -37,6 +38,14 @@ const FIELDS: Field[] = [
   // Flags
   { key: "founding_plan_active",  label: "Founding Plan Active",    description: "Show founding plan on pricing + CTAs", type: "boolean", group: "flags" },
   { key: "waitlist_mode",         label: "Waitlist Mode",           description: "Replace checkout with waitlist form",  type: "boolean", group: "flags" },
+  // Pricing v5 pay-as-you-go (G35 P1, lib/pricing/v5-payg.ts). Display prices
+  // only — the charged amount is the Stripe Price (Stripe Sync flags drift).
+  { key: "payg_enabled",               label: "Pay-as-you-go enabled",     description: "Show the Snapshot / Full / Verified block and allow PAYG checkout. Keep OFF until the v5 Stripe Prices are minted and the env vars are set.", type: "boolean", group: "payg" },
+  { key: "payg_snapshot_cents",        label: "Snapshot display price",    description: `Cents, GST-inclusive. Stripe Price must match (${PAYG_SKUS.report_snapshot.envVar}). 1900 = A$19`, type: "number", unit: "¢", group: "payg" },
+  { key: "payg_full_cents",            label: "Full display price",        description: `Cents, GST-inclusive. Stripe Price must match (${PAYG_SKUS.report_full.envVar}). 4900 = A$49`, type: "number", unit: "¢", group: "payg" },
+  { key: "payg_verified_cents",        label: "Verified display price",    description: `Cents, GST-inclusive. Stripe Price must match (${PAYG_SKUS.report_verified.envVar}). 14900 = A$149`, type: "number", unit: "¢", group: "payg" },
+  { key: "verified_sla_business_days", label: "Verified SLA",              description: "Business days (Sydney, NSW holidays excluded) promised for a Verified review. 1–10.", type: "number", unit: "days", group: "payg" },
+  { key: "payg_verified_max_open",     label: "Verified review cap",       description: "Verified is hidden while this many orders are in review. 0 hides Verified.", type: "number", unit: "orders", group: "payg" },
 ];
 
 const GROUP_LABELS: Record<Field["group"], string> = {
@@ -45,6 +54,7 @@ const GROUP_LABELS: Record<Field["group"], string> = {
   growth: "Growth Plan",
   promo: "Promo & Early Bird",
   flags: "Feature Flags",
+  payg: "Pay-as-you-go reports (Pricing v5)",
 };
 
 export function PricingConfig({ initial, defaults }: Props) {
@@ -54,6 +64,7 @@ export function PricingConfig({ initial, defaults }: Props) {
   const [error, setError] = React.useState("");
 
   const isDirty = JSON.stringify(values) !== JSON.stringify(initial);
+  const paygErrors = validatePaygConfig(values);
 
   function setValue(key: keyof PlatformConfig, raw: string) {
     const defaultVal = defaults[key];
@@ -65,6 +76,10 @@ export function PricingConfig({ initial, defaults }: Props) {
   }
 
   async function handleSave() {
+    if (paygErrors.length > 0) {
+      setError(paygErrors.join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -90,7 +105,7 @@ export function PricingConfig({ initial, defaults }: Props) {
     setError("");
   }
 
-  const groups = (["founding", "free", "growth", "promo", "flags"] as const);
+  const groups = (["founding", "free", "growth", "promo", "flags", "payg"] as const);
 
   return (
     <div className="space-y-6">
@@ -154,6 +169,11 @@ export function PricingConfig({ initial, defaults }: Props) {
                 );
               })}
             </div>
+            {group === "payg" && paygErrors.length > 0 && (
+              <ul role="alert" className="mt-2 space-y-0.5 text-xs text-red-600">
+                {paygErrors.map((e) => <li key={e}>{e}</li>)}
+              </ul>
+            )}
           </section>
         );
       })}
@@ -166,6 +186,7 @@ export function PricingConfig({ initial, defaults }: Props) {
           <div>Growth: <span className="text-ink-900">A${(values.growth_price_monthly_cents / 100).toFixed(0)}/mo</span> or <span className="text-ink-900">A${(values.growth_price_yearly_cents / 100).toFixed(0)}/yr</span></div>
           <div>Promo: <span className="text-ink-900 font-semibold">{values.promo_code}</span> — {values.promo_label}</div>
           <div>Early bird until: <span className="text-ink-900">{values.early_bird_deadline}</span></div>
+          <div>PAYG: <span className={values.payg_enabled ? "text-emerald-600" : "text-ink-500"}>{values.payg_enabled ? "enabled" : "disabled"}</span> · Snapshot <span className="text-ink-900">{values.payg_snapshot_cents}¢</span> · Full <span className="text-ink-900">{values.payg_full_cents}¢</span> · Verified <span className="text-ink-900">{values.payg_verified_cents}¢</span> · SLA {values.verified_sla_business_days}d · cap {values.payg_verified_max_open}</div>
           <div>Flags: founding_active=<span className={values.founding_plan_active ? "text-emerald-600" : "text-bear"}>{String(values.founding_plan_active)}</span> · waitlist=<span className={values.waitlist_mode ? "text-warn" : "text-ink-500"}>{String(values.waitlist_mode)}</span></div>
         </div>
       </section>
@@ -175,7 +196,7 @@ export function PricingConfig({ initial, defaults }: Props) {
         <button
           type="button"
           onClick={() => void handleSave()}
-          disabled={saving || !isDirty}
+          disabled={saving || !isDirty || paygErrors.length > 0}
           className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
         >
           {saving ? (

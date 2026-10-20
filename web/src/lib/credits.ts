@@ -210,6 +210,14 @@ export const FEATURE_COSTS: Record<string, number> = {
   trust_report: 3.00,               // A$3 — full Trusted Business Report per startup entered
   trust_report_rescore: 1.00,       // A$1 — re-score a startup already held (svi_analysis path)
 
+  // ── Pricing v5 pay-as-you-go reports (G35 P1, D27) ──────────────────────────
+  // Credits that buy a PAYG tier instead of a card. Decoupled from the A$
+  // price (D27: no credit ↔ A$ conversion is ever shown); must equal
+  // `PAYG_SKUS.<sku>.creditCost` in lib/pricing/v5-payg.ts (pinned by its
+  // test). Verified is card-only — deliberately no key.
+  report_snapshot: 19,
+  report_full: 49,
+
   // ── Per-Criterion AI Analysis ───────────────────────────────────────
   criterion_ai_score: 0.25,         // Score one criterion with AI
   criterion_ai_suggest: 0.10,       // Get AI suggestions for one criterion

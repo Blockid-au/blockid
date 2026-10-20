@@ -51,6 +51,7 @@ export function StripeSyncClient({ initialAudit }: Props) {
           generatedAt: data.generatedAt,
           hasDrift: data.hasDrift,
           hasMissingIds: data.hasMissingIds,
+          hasDisplayDrift: data.hasDisplayDrift,
           stripeConfigured: data.stripeConfigured,
         });
       }
@@ -101,6 +102,11 @@ export function StripeSyncClient({ initialAudit }: Props) {
             {!audit.hasDrift && audit.hasMissingIds && "Some plans don't have a Stripe Price ID env var set. Customers cannot check out for these plans."}
             {!audit.hasDrift && !audit.hasMissingIds && "All in-app prices match Stripe. No action needed."}
           </p>
+          {audit.hasDisplayDrift && (
+            <p className="text-xs text-red-700 mt-1 font-semibold">
+              Pricing v5: a pay-as-you-go display price (Admin › System Config) differs from the Stripe Price — see the PAYG v5 rows below.
+            </p>
+          )}
           <p className="text-[11px] text-muted-foreground mt-1">Last checked: {new Date(audit.generatedAt).toLocaleString("en-AU")}</p>
         </div>
         <button
@@ -131,15 +137,26 @@ export function StripeSyncClient({ initialAudit }: Props) {
               const meta = STATUS_META[row.status];
               const Icon = meta.icon;
               const result = results[row.planId];
-              const needsCreate = row.status === "drift" || row.status === "cadence_drift" || row.status === "archived";
+              const isV5 = row.pricingVersion === "v5";
+              const needsCreate = !isV5 && (row.status === "drift" || row.status === "cadence_drift" || row.status === "archived");
               return (
                 <React.Fragment key={row.planId}>
                   <tr className="hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold">{row.label}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{row.planId}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">
+                        {row.planId}
+                        {isV5 && <span className="ml-1.5 rounded bg-blue-50 px-1 py-0.5 font-sans font-semibold text-blue-700">PAYG v5</span>}
+                      </p>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-mono font-bold">{fmtAud(row.expectedCents)}</td>
+                    <td className="px-4 py-3 text-right text-sm font-mono font-bold">
+                      {fmtAud(row.expectedCents)}
+                      {isV5 && row.displayCents != null && (
+                        <p className={cn("text-[10px] font-normal", row.displayDrift ? "text-red-600 font-bold" : "text-muted-foreground")}>
+                          display {fmtAud(row.displayCents)}{row.displayDrift ? " ≠ Stripe" : ""}
+                        </p>
+                      )}
+                    </td>
                     <td className={cn("px-4 py-3 text-right text-sm font-mono", row.status === "drift" ? "text-red-600 font-bold" : "")}>
                       {row.stripeUnitAmount != null ? `${row.stripeCurrency?.toUpperCase()} ${fmtAud(row.stripeUnitAmount)}` : "—"}
                     </td>
@@ -149,9 +166,9 @@ export function StripeSyncClient({ initialAudit }: Props) {
                       ) : <span className="italic">unset</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={cn("inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded", meta.bg, meta.color)}>
+                      <span className={cn("inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded", row.pendingMint ? "bg-muted/30 text-muted-foreground" : [meta.bg, meta.color])}>
                         <Icon className="h-3 w-3" />
-                        {meta.label}
+                        {row.pendingMint ? "Not minted (flag off)" : meta.label}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -164,6 +181,8 @@ export function StripeSyncClient({ initialAudit }: Props) {
                           {creating === row.planId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
                           Create new Price
                         </button>
+                      ) : isV5 && (row.status !== "match" || row.displayDrift) ? (
+                        <span className="text-[11px] text-amber-700">Mint script / config</span>
                       ) : row.status === "missing_price_id" ? (
                         <span className="text-[11px] text-amber-700">Set env var</span>
                       ) : null}

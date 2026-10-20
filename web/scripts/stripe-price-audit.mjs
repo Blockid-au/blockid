@@ -7,6 +7,10 @@
 // Stripe READ-ONLY and diff amount / currency / interval / active /
 // tax_behavior against the catalogue. Exits 1 on any drift or an unresolvable
 // non-legacy var so the weekly cron (crontab.production § G18-A) turns red.
+// A row marked `founder_mints: true` (G35 P1: the six Pricing v5 PAYG Prices)
+// that is still unset reports `unset_pending_mint` and does NOT fail the run —
+// the founder has not minted it yet and checkout is behind `payg_enabled`.
+// Once set it is audited like any other row; drop the flag after minting.
 //
 // Never prints the secret key or a price id — output names env vars only.
 //
@@ -89,12 +93,13 @@ export async function runAudit({ dryRun = DRY, resolveEnv = resolve, stripeFacto
       plan_id: expected.plan_id,
       expected: `${expected.amount_cents / 100} AUD ${expected.interval} ${expected.active ? "active" : "INACTIVE"} tax=${expected.tax_behavior}`,
       legacy: Boolean(expected.legacy),
+      pending_mint: Boolean(expected.founder_mints),
       set: Boolean(id),
       status: "unchecked",
       problems: [],
     };
     if (!id) {
-      row.status = expected.legacy ? "unset_legacy" : "unset";
+      row.status = expected.legacy ? "unset_legacy" : expected.founder_mints ? "unset_pending_mint" : "unset";
     } else if (dryRun) {
       row.status = "set";
     } else {
@@ -123,6 +128,7 @@ export async function runAudit({ dryRun = DRY, resolveEnv = resolve, stripeFacto
       drift: drift.length,
       unset: missing.length,
       unset_legacy: rows.filter((r) => r.status === "unset_legacy").length,
+      unset_pending_mint: rows.filter((r) => r.status === "unset_pending_mint").length,
       set: rows.filter((r) => r.status === "set").length,
     },
     drift,
@@ -140,7 +146,7 @@ if (isMain) {
     log(`[stripe-price-audit] ${DRY ? "DRY RUN — no network" : "live"} · catalogue audited ${result.audited_catalogue ?? "?"}`);
     for (const r of result.rows ?? []) {
       const flag = r.status === "match" ? "✓" : r.status === "set" ? "·" : r.status.startsWith("unset") ? "–" : "✗";
-      log(`  ${flag} ${r.env_var.padEnd(40)} ${r.expected}${r.legacy ? "  [legacy]" : ""}${r.problems.length ? `  → ${r.problems.join("; ")}` : r.status.startsWith("unset") ? "  (env var not set)" : ""}`);
+      log(`  ${flag} ${r.env_var.padEnd(40)} ${r.expected}${r.legacy ? "  [legacy]" : ""}${r.pending_mint ? "  [founder mints]" : ""}${r.problems.length ? `  → ${r.problems.join("; ")}` : r.status.startsWith("unset") ? "  (env var not set)" : ""}`);
     }
     if (result.reason) log(`  ! ${result.reason}`);
     log(`[stripe-price-audit] ${JSON.stringify(result.counts ?? {})}`);

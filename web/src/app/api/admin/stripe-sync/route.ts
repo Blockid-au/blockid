@@ -10,6 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createFreshStripePrice, runStripePricingAudit, RETIRED_STRIPE_PLAN_IDS } from "@/lib/stripe-pricing-audit";
 import { apiRoute } from "@/lib/audit/api-route";
+import { isPaygSkuId } from "@/lib/pricing/v5-payg";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,11 @@ async function POST_handler(request: NextRequest) {
   // drift but never re-minted — archive them in Stripe instead.
   if (RETIRED_STRIPE_PLAN_IDS.has(body.planId)) {
     return NextResponse.json({ ok: false, error: `${body.planId} is a retired SKU — archive it in Stripe, never mint a fresh price (docs/ops/pricing-truth.md).` }, { status: 409 });
+  }
+  // G35 P1: Pricing v5 PAYG Prices are minted only by
+  // scripts/stripe/mint-payg-v5.mjs (metadata.sku, tax_behavior inclusive).
+  if (isPaygSkuId(body.planId)) {
+    return NextResponse.json({ ok: false, error: `${body.planId} is a Pricing v5 SKU — mint it with node scripts/stripe/mint-payg-v5.mjs (test mode first), then set its env var.` }, { status: 409 });
   }
   const result = await createFreshStripePrice(body.planId, { productName: body.productName });
   if (!result.ok) {

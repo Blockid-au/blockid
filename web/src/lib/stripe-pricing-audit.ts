@@ -20,6 +20,7 @@ import { getStripe, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS } from "@/config/pricing/plans.generated";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { PAYG_SKUS, PAYG_SKU_LIST, displayPriceCents, isPaygSkuId, type PaygSkuId } from "@/lib/pricing/v5-payg";
 
 // `cadence_drift` (QA-3 P1-5, 2026-09-12): the amount and currency match but
 // the Stripe Price is recurring where the plan is one-off (or the interval
@@ -44,6 +45,14 @@ export interface PlanAuditRow {
   status: AuditStatus;
   remediation: string;             // human guidance
   cadence?: "one-off" | "monthly" | "yearly" | "credit-pack";
+  /** G35 P1: "v5" on the six Pricing v5 PAYG rows (lib/pricing/v5-payg.ts). */
+  pricingVersion?: "v5";
+  /** v5 only: the price pages SHOW (platform_config payg_*_cents), cents GST-inclusive. */
+  displayCents?: number;
+  /** v5 only: display price ≠ what Stripe charges (Stripe amount when fetched, else the catalogue). */
+  displayDrift?: boolean;
+  /** v5 only: Price not minted yet while `payg_enabled` is off — expected, not an incident. */
+  pendingMint?: boolean;
 }
 
 export interface AuditResult {
@@ -51,6 +60,8 @@ export interface AuditResult {
   generatedAt: string;
   hasDrift: boolean;
   hasMissingIds: boolean;
+  /** G35 P1: a v5 display price (platform_config) differs from the Stripe Price. */
+  hasDisplayDrift: boolean;
   stripeConfigured: boolean;
 }
 
@@ -72,6 +83,8 @@ interface PlanExpectation {
    * STRIPE_PRICE_STARTUP_PACKAGE).
    */
   envVar?: string;
+  /** G35 P1: the Pricing v5 PAYG SKU this row audits (display drift + mint-via-script). */
+  paygSku?: PaygSkuId;
 }
 
 const LEGACY_PLANS: PlanExpectation[] = [
@@ -127,11 +140,45 @@ function v2Plans(): PlanExpectation[] {
     }));
 }
 
-/** Full audit roster = legacy + auto-derived v2 (dedup by planId, legacy wins). */
+/**
+ * G35 P1 — the six Pricing v5 PAYG Prices. `staticCents` is the catalogue
+ * amount (what the Stripe Price must hold); the display price from
+ * platform_config is compared separately (`displayDrift`).
+ */
+function v5Plans(): PlanExpectation[] {
+  return PAYG_SKU_LIST.map<PlanExpectation>((s) => ({
+    planId: s.id,
+    label: `${s.label} — PAYG v5`,
+    staticCents: s.amountCents,
+    cadence: "one-off",
+    envVar: s.envVar,
+    paygSku: s.id,
+  }));
+}
+
+/** Full audit roster = legacy + auto-derived v2 + Pricing v5 PAYG (dedup by planId, earlier wins). */
 function allPlans(): PlanExpectation[] {
   const seen = new Set(LEGACY_PLANS.map((p) => p.planId));
   const v2 = v2Plans().filter((p) => !seen.has(p.planId));
-  return [...LEGACY_PLANS, ...v2];
+  for (const p of v2) seen.add(p.planId);
+  const v5 = v5Plans().filter((p) => !seen.has(p.planId));
+  return [...LEGACY_PLANS, ...v2, ...v5];
+}
+
+/** Annotate a v5 row with display-vs-Stripe drift and the pending-mint state. */
+function decoratePayg(row: PlanAuditRow, sku: PaygSkuId, cfg: Awaited<ReturnType<typeof getPlatformConfig>>): PlanAuditRow {
+  const displayCents = displayPriceCents(sku, cfg);
+  const chargedCents = row.stripeUnitAmount ?? row.expectedCents;
+  const displayDrift = displayCents !== chargedCents;
+  const pendingMint = row.status === "missing_price_id" && cfg.payg_enabled !== true;
+  let remediation = row.remediation;
+  if (row.status === "missing_price_id") {
+    remediation = `${pendingMint ? "Not minted yet (payg_enabled is off). " : "payg_enabled is ON but the Price is missing — PAYG checkout cannot work. "}Mint with \`node scripts/stripe/mint-payg-v5.mjs\` (test mode first; founder runs --mode live --confirm-live), then set ${PAYG_SKUS[sku].envVar}.`;
+  }
+  if (displayDrift) {
+    remediation += ` Display drift: pages show A$${displayCents / 100} (platform_config) but Stripe charges A$${chargedCents / 100}. Fix the display price in Admin › System Config, or mint a new Price with the mint script — never edit the Price.`;
+  }
+  return { ...row, pricingVersion: "v5", displayCents, displayDrift, pendingMint, remediation };
 }
 
 // ─── Cadence (one-off vs recurring) ──────────────────────────────────────────
@@ -287,12 +334,19 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
 
 export async function runStripePricingAudit(): Promise<AuditResult> {
   const cfg = await getPlatformConfig();
-  const rows = await Promise.all(allPlans().map((p) => auditPlan(p, cfg)));
+  const rows = await Promise.all(
+    allPlans().map(async (p) => {
+      const row = await auditPlan(p, cfg);
+      return p.paygSku ? decoratePayg(row, p.paygSku, cfg) : row;
+    }),
+  );
   return {
     rows,
     generatedAt: new Date().toISOString(),
     hasDrift: rows.some((r) => r.status === "drift" || r.status === "cadence_drift" || r.status === "archived"),
-    hasMissingIds: rows.some((r) => r.status === "missing_price_id"),
+    // An unminted v5 Price while payg_enabled is off is expected, not a missing id.
+    hasMissingIds: rows.some((r) => r.status === "missing_price_id" && !r.pendingMint),
+    hasDisplayDrift: rows.some((r) => r.displayDrift === true),
     stripeConfigured: rows.every((r) => r.status !== "stripe_not_configured"),
   };
 }
@@ -310,6 +364,11 @@ export interface CreatePriceResult {
 export const RETIRED_STRIPE_PLAN_IDS = new Set(["founding50", "growth", "growth_annual"]);
 
 export async function createFreshStripePrice(planId: string, opts: { productName?: string } = {}): Promise<CreatePriceResult> {
+  // G35 P1: v5 Products are keyed by metadata.sku and carry tax_behavior
+  // inclusive — only scripts/stripe/mint-payg-v5.mjs mints them.
+  if (isPaygSkuId(planId)) {
+    return { ok: false, error: `${planId} is a Pricing v5 SKU — mint it with node scripts/stripe/mint-payg-v5.mjs, not from this page.` };
+  }
   const plan = allPlans().find((p) => p.planId === planId);
   if (!plan) return { ok: false, error: `Unknown plan: ${planId}` };
 

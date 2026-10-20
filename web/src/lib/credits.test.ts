@@ -106,6 +106,12 @@ describe("FEATURE_COSTS", () => {
     expect(FEATURE_COSTS.listing_readiness_pdf).toBe(1);
   });
 
+  it("G35 P1 (D27): pins the Pricing v5 PAYG credit costs — Snapshot 19, Full 49, no Verified key (card-only)", () => {
+    expect(FEATURE_COSTS.report_snapshot).toBe(19);
+    expect(FEATURE_COSTS.report_full).toBe(49);
+    expect(FEATURE_COSTS.report_verified).toBeUndefined();
+  });
+
   it("keeps every 0-cost 'free' feature at exactly 0 (not undefined)", () => {
     // `canAfford` treats a missing key as `unknown_feature` and rejects the
     // call. A "free" feature dropped from the map would refuse to run.

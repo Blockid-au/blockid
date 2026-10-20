@@ -23,6 +23,13 @@ const mocks = vi.hoisted(() => ({
     founding50Price: 500,
     featuredEnabled: true,
     growthPriceMonthly: 9900,
+    // G35 P1 — Pricing v5 PAYG keys (validated by validatePaygConfig).
+    payg_enabled: false,
+    payg_snapshot_cents: 1900,
+    payg_full_cents: 4900,
+    payg_verified_cents: 14900,
+    verified_sla_business_days: 2,
+    payg_verified_max_open: 5,
   } as Record<string, unknown>,
 }));
 
@@ -163,5 +170,49 @@ describe("PUT /api/admin/platform-config", () => {
       expect.any(Object),
       ADMIN_USER.email,
     );
+  });
+});
+
+describe("PUT /api/admin/platform-config — G35 P1 Pricing v5 PAYG validation", () => {
+  const PAYG_CURRENT = {
+    ...CONFIG,
+    payg_enabled: false,
+    payg_snapshot_cents: 1900,
+    payg_full_cents: 4900,
+    payg_verified_cents: 14900,
+    verified_sla_business_days: 2,
+    payg_verified_max_open: 5,
+  };
+
+  beforeEach(() => {
+    mocks.getPlatformConfig.mockResolvedValue(PAYG_CURRENT);
+  });
+
+  it("saves a valid PAYG change (flag on + new display price)", async () => {
+    const res = await PUT(putReq({ payg_enabled: true, payg_full_cents: 5900 }));
+    expect(res.status).toBe(200);
+    const savedCfg = mocks.savePlatformConfig.mock.calls[0][0] as Record<string, unknown>;
+    expect(savedCfg).toEqual({ payg_enabled: true, payg_full_cents: 5900 });
+  });
+
+  it("400s when a display price breaks Snapshot < Full < Verified against the CURRENT config (partial patch)", async () => {
+    const res = await PUT(putReq({ payg_snapshot_cents: 4900 }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect(body.error).toMatch(/Snapshot < Full < Verified/);
+    expect(mocks.savePlatformConfig).not.toHaveBeenCalled();
+  });
+
+  it("400s on fractional cents, an out-of-range SLA and a negative Verified cap", async () => {
+    const res = await PUT(putReq({ payg_full_cents: 4900.5, verified_sla_business_days: 0, payg_verified_max_open: -1 }));
+    expect(res.status).toBe(400);
+    const body = await json(res);
+    expect((body.errors as string[]).length).toBe(3);
+    expect(mocks.savePlatformConfig).not.toHaveBeenCalled();
+  });
+
+  it("does not read the current config when the patch touches no PAYG key", async () => {
+    await PUT(putReq({ siteName: "X" }));
+    expect(mocks.getPlatformConfig).not.toHaveBeenCalled();
   });
 });

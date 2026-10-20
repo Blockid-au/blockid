@@ -1,4 +1,12 @@
 /**
+ * LEGACY (G35, 2026-10-20) — superseded by Pricing v5 pay-as-you-go,
+ * `lib/pricing/v5-payg.ts` (Snapshot A$19 / Full A$49 / Verified A$149,
+ * Money Finder A$19; founder decisions D25–D28). Kept intact while
+ * `platform_config.payg_enabled` is off so the A$3 paths keep selling until
+ * the P5 cut-over; after it these ids exist only so late webhooks resolve
+ * (`v5-payg.ts` `skuForPriceId` / `resolveSkuId` map them). Add nothing new
+ * here.
+ *
  * One-off report SKUs — the three A$3 GST-inclusive products sold outside a
  * subscription (Trusted Business Report, One-Click Investor Analysis,
  * Money Finder report). `STRIPE_PRICE_ONE_CLICK_REPORT` /
