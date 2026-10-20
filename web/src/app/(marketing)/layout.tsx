@@ -17,6 +17,8 @@
  */
 
 import type { ReactNode } from "react";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
+import { marketingProductJsonLd } from "@/lib/seo/marketing-product-jsonld";
 
 /**
  * B2 Task 8 — marketing-scope structured data.
@@ -26,7 +28,10 @@ import type { ReactNode } from "react";
  * in `@/components/seo/json-ld`). We add three marketing-only schemas here so
  * they only render for pages under `(marketing)`:
  *
- *   1. `Product` — the A$3 Trusted Business Report for guests (`/one-click-report`).
+ *   1. `Product` — the Trusted Business Report (`lib/seo/marketing-product-jsonld`).
+ *      Pricing v5 P5: a single legacy `Offer` while
+ *      `platform_config.payg_enabled` is off (unchanged), an `AggregateOffer`
+ *      over Snapshot / Full / Verified when it is on.
  *
  * S8-A (2026-09-11) removed the layout-scope `FAQPage` and the Home-only
  * `BreadcrumbList`: Google requires FAQPage content to be visible on the
@@ -35,46 +40,21 @@ import type { ReactNode } from "react";
  * one-crumb trail added nothing next to the per-page BreadcrumbList. Pages
  * with a visible FAQ emit `FAQJsonLd` themselves.
  */
-const SITE_URL = "https://blockid.au";
-
-const marketingProductJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Product",
-  name: "Trusted Business Report — Startup Value Index by BlockID",
-  // 2026-09-09: this described the A$3 guest report as an "Investor Trust
-  // Report" containing a "cap-table snapshot". The Trusted Business Report is the
-  // A$3 SKU (re-priced from A$5.50 on 2026-09-10) that has never taken a
-  // payment, and a guest checkout has no account and therefore no cap table
-  // to snapshot. Structured data is what
-  // Google reads, so a stale claim here outlives the page copy that carried
-  // it. This now lists what the report actually contains.
-  description:
-    "The full Trusted Business Report for Australian founders, from a pitch deck or a website URL. Startup Value Index score across 8 dimensions, an AUD valuation range with the methods behind it, a prioritised action list and a 90-day plan — emailed as a PDF, no account required.",
-  brand: { "@type": "Brand", name: "BlockID.au" },
-  url: `${SITE_URL}/one-click-report`,
-  image: `${SITE_URL}/opengraph-image`,
-  offers: {
-    "@type": "Offer",
-    price: "3.00",
-    priceCurrency: "AUD",
-    availability: "https://schema.org/InStock",
-    url: `${SITE_URL}/one-click-report`,
-    priceValidUntil: "2027-12-31",
-  },
-};
-
-export default function MarketingLayout({ children }: { children: ReactNode }) {
+export default async function MarketingLayout({ children }: { children: ReactNode }) {
   // S31-D: no `headers()` here any more — it made every marketing route
   // dynamic. JSON-LD blocks are `type="application/ld+json"` data blocks:
   // the HTML "prepare the script element" algorithm returns before the CSP
   // check for a non-JavaScript type, so they need no nonce (the Playwright
   // CSP audit in tests/e2e/smoke/public-hash-csp.spec.ts pins zero
-  // violations on the hashed pages).
+  // violations on the hashed pages). `getPaygView()` reads platform_config
+  // through its 60 s cache (no cookies / headers), never throws and falls
+  // back to the flag-OFF view, so the marketing routes stay static / ISR.
+  const payg = await getPaygView();
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(marketingProductJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(marketingProductJsonLd(payg)) }}
       />
       {children}
     </>
