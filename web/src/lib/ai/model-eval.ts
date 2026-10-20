@@ -46,8 +46,8 @@ export const SMOKE_CASES_PER_TASK = 3;
 export const DEFAULT_TICK_WALL_MS = 240_000;
 /** Stop starting new calls this close to the wall. */
 const WALL_MARGIN_MS = 5_000;
-/** Image tokens assumed when reserving a vision call. */
-const VISION_IMAGE_TOKENS = 1_600;
+/** Image tokens assumed when reserving a vision call (a 480×280 chart is well under this on every VL model). */
+const VISION_IMAGE_TOKENS = 3_000;
 const CHECKPOINT_EVERY = 10;
 
 export interface EvalWorkItem {
@@ -214,12 +214,21 @@ export function unitHash(s: string): number {
 
 // ── Cost ─────────────────────────────────────────────────────────────
 
-/** Worst-case USD for one call (prompt chars ÷ 3 tokens + max_tokens out). 0 for zero-priced providers. */
-export function worstCaseCallUsd(provider: string, model: string, promptChars: number, maxTokens: number, vision = false): number {
+/**
+ * Worst-case USD for one call: one input token per prompt BYTE (no BPE
+ * tokenizer emits more tokens than UTF-8 bytes — Vietnamese text is 2–3 bytes
+ * a letter) + the image allowance + max_tokens out (the provider caps the
+ * completion there). 0 for zero-priced providers.
+ */
+export function worstCaseCallUsd(provider: string, model: string, promptBytes: number, maxTokens: number, vision = false): number {
   const p = priceFor(provider, model);
   if (!p) return Number.POSITIVE_INFINITY; // unpriced paid model: never start it
-  const inTok = Math.ceil(promptChars / 3) + (vision ? VISION_IMAGE_TOKENS : 0);
+  const inTok = Math.ceil(promptBytes) + (vision ? VISION_IMAGE_TOKENS : 0);
   return (inTok / 1_000_000) * p.in + (maxTokens / 1_000_000) * p.out;
+}
+
+function promptBytes(req: ModelCallRequest): number {
+  return Buffer.byteLength(req.system) + Buffer.byteLength(req.user);
 }
 
 /** Actual USD from reported usage; estimate (chars ÷ 4) when the provider sent none. */
@@ -365,11 +374,12 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
         const c = idx.get(`${item.task}|${item.caseId}`);
         if (!c) continue;
         const p = TASK_PROFILES[item.task];
-        const chars = p.system.length + p.renderUser(c.input, c.lang).length;
-        worst += worstCaseCallUsd(item.provider, item.model, chars, p.maxTokens, p.vision);
+        const bytes = Buffer.byteLength(p.system) + Buffer.byteLength(p.renderUser(c.input, c.lang));
+        worst += worstCaseCallUsd(item.provider, item.model, bytes, p.maxTokens, p.vision);
         if (item.judge) {
           const j = judgeFor(item.family, deps.configured);
-          if (j) worst += worstCaseCallUsd(j.provider, j.model, chars + p.maxTokens * 4 + JUDGE_SYSTEM.length, 200);
+          // renderJudgeUser clips contract 1.5k + input 6k + answer 4k chars (≤ 3 bytes each).
+          if (j) worst += worstCaseCallUsd(j.provider, j.model, Buffer.byteLength(JUDGE_SYSTEM) + (1_500 + 6_000 + 4_000) * 3, 200);
         }
       }
       return { mode, run_id: state.run_id, period, status: "dry_run", processed: 0, remaining: state.pending.length, planned: state.planned, spent_usd: 0, cap_usd: cap, month_spent_usd: budget.spent_usd, finalized: false, worst_case_usd: Math.round(worst * 1e6) / 1e6, state: null };
@@ -471,7 +481,7 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
       done.add(item);
       return true;
     }
-    const worst = worstCaseCallUsd(item.provider, item.model, req.system.length + req.user.length, req.maxTokens, Boolean(req.imageBase64));
+    const worst = worstCaseCallUsd(item.provider, item.model, promptBytes(req), req.maxTokens, Boolean(req.imageBase64));
     if (!Number.isFinite(worst)) {
       // A paid model without a price row is never dialled (its spend could not be capped).
       run.skipped.push({ task: item.task, provider: item.provider, model: item.model, reason: "unpriced paid model" });
@@ -490,7 +500,7 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
       const judge = judgeFor(item.family, deps.configured);
       if (judge) {
         const jreq: ModelCallRequest = { provider: judge.provider, model: judge.model, system: JUDGE_SYSTEM, user: renderJudgeUser(item.task, c.input, r.res.text), maxTokens: 200, timeoutMs: 60_000 };
-        const jworst = worstCaseCallUsd(judge.provider, judge.model, jreq.system.length + jreq.user.length, jreq.maxTokens);
+        const jworst = worstCaseCallUsd(judge.provider, judge.model, promptBytes(jreq), jreq.maxTokens);
         const j = await callOnce(jreq, jworst);
         if (j) {
           run.judge_calls += 1;
