@@ -10,20 +10,24 @@ const EVIDENCE = [
   { id: "e2", label: "CRM", text: "118 paying customers as of 30 September 2026." },
 ];
 
-function cases(task: EvalTaskId, split: string, n: number): ModelEvalCase[] {
+function cases(task: EvalTaskId, split: string, n: number, padBytes = 0): ModelEvalCase[] {
+  const evidence = padBytes ? [...EVIDENCE, { id: "e3", label: "Notes", text: "x".repeat(padBytes) }] : EVIDENCE;
   return Array.from({ length: n }, (_, i) => {
     const lang = i % 2 === 0 ? "en" : "vi";
     const base = { id: `${task}-${split}-${i}`, lang, section: "s", expected: { must_keep: [], must_mention_any: [], must_not_mention: [], critical_claims: [] } } as ModelEvalCase;
     if (task === "classify") return { ...base, input: { text: "B2B software" }, expected: { ...base.expected, label: { sector: "saas", stage: "seed" } } };
-    return { ...base, input: { company: "Wattle", section: "traction", evidence: EVIDENCE }, expected: { ...base.expected, min_citations: 1 } };
+    return { ...base, input: { company: "Wattle", section: "traction", evidence }, expected: { ...base.expected, min_citations: 1 } };
   });
 }
 
-function fixtures(nDev = 6, nHeld = 8): (task: EvalTaskId, split: "dev" | "heldout") => ModelEvalFixture | null {
-  return (task, split) =>
-    task === "classify" || task === "report_chapter"
-      ? { task, split, version: "t", source: "synthetic test", cases: cases(task, split, split === "dev" ? nDev : nHeld) }
-      : null;
+function fixtures(nDev = 6, nHeld = 8, padBytes = 0): (task: EvalTaskId, split: "dev" | "heldout") => ModelEvalFixture | null {
+  const memo = new Map<string, ModelEvalFixture>();
+  return (task, split) => {
+    if (task !== "classify" && task !== "report_chapter") return null;
+    const k = `${task}/${split}`;
+    if (!memo.has(k)) memo.set(k, { task, split, version: "t", source: "synthetic test", cases: cases(task, split, split === "dev" ? nDev : nHeld, padBytes) });
+    return memo.get(k)!;
+  };
 }
 
 const ANSWERS: Record<string, unknown> = {
@@ -144,7 +148,8 @@ describe("runEvalTick", () => {
 
   it("the default per-run cap is US$1 and cannot be bypassed by a long run", async () => {
     // Every call billed at its maximum, many cases: the run must stop at the cap, not after it.
-    const { deps } = makeDeps({ usage: "worst", loadFixture: fixtures(6, 400) });
+    // ~50 KB of evidence per report case ≈ US$0.013 a call at worst: the cap binds after ~75 calls.
+    const { deps } = makeDeps({ usage: "worst", loadFixture: fixtures(6, 60, 50_000) });
     const r = await runEvalTick("full", deps);
     expect(r.status).toBe("budget_exhausted");
     expect(r.cap_usd).toBe(1);

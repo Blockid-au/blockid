@@ -2222,4 +2222,65 @@ describe("G30 BlockID report policy", () => {
       expect(again.providerBlockReason("openrouter")).toBe("balance_critical");
     });
   });
+
+  // G35 A2 (pricing v5 §7.4): the coordinator's ai-routing-policy.json. A
+  // missing / invalid / empty file must route EXACTLY as today.
+  describe("A2 routing policy", () => {
+    const QWEN = "Qwen/Qwen3-235B-A22B-Instruct-2507";
+    const policyPath = async () => (await import("@/lib/ai/routing-policy")).routingPolicyFile();
+    const paid = (active: Record<string, string[]> | null) => ({ active, approved_at: null, approved_by: null, approved_proposal_id: null, previous: null, proposal: null });
+    const ladders = (c: Awaited<ReturnType<typeof loadClient>>) => Object.fromEntries((["groq", "cerebras", "openrouter", "deepinfra"] as const).map((p) => [p, c.ladderFor(p)]));
+
+    it("no file, an unparsable file and a valid-but-empty policy all give identical ladders and identical scoped routing", async () => {
+      const a = await loadClient();
+      expect(fsMock.files.has(await policyPath())).toBe(false);
+      const baseline = ladders(a);
+      await a.callAI({ ...request, taskClass: "report" });
+      const first = calledModels(fetchMock)[0];
+      expect(first).toBe(a.DEEPINFRA_MODELS_BY_CLASS.report[0]);
+      for (const content of ["{ not json", JSON.stringify({ version: 9 }), JSON.stringify({ version: 1, updated_at: new Date().toISOString() })]) {
+        fetchMock.mockClear();
+        const c = await loadClient();
+        fsMock.files.set(await policyPath(), content);
+        expect(ladders(c)).toEqual(baseline);
+        await c.callAI({ ...request, taskClass: "report" });
+        expect(calledModels(fetchMock)[0]).toBe(first);
+      }
+    });
+
+    it("free section: promoted rung first, demoted rung skipped (Groq ladder)", async () => {
+      const c = await loadClient();
+      const before = c.ladderFor("groq");
+      fsMock.files.set(await policyPath(), JSON.stringify({ version: 1, updated_at: new Date().toISOString(), free: { updated_at: new Date().toISOString(), reasons: [], providers: { groq: { promoted: ["openai/gpt-oss-120b"], demoted: ["openai/gpt-oss-20b"] } } } }));
+      const fresh = await loadClient();
+      const after = fresh.ladderFor("groq");
+      expect(before).toContain("openai/gpt-oss-20b");
+      expect(after[0]).toBe("openai/gpt-oss-120b");
+      expect(after).not.toContain("openai/gpt-oss-20b");
+      expect(after.every((m) => before.includes(m))).toBe(true);
+    });
+
+    it("an APPROVED paid ladder reorders the scoped DeepInfra rungs; a proposal alone does not", async () => {
+      const c = await loadClient();
+      fsMock.files.set(await policyPath(), JSON.stringify({ version: 1, updated_at: new Date().toISOString(), paid: { ...paid(null), proposal: { id: "p", proposed_at: "x", ladders: { report: [QWEN] }, reasons: [], needs_admission: [], evidence_runs: [] } } }));
+      await c.callAI({ ...request, taskClass: "report" });
+      expect(calledModels(fetchMock)[0]).toBe(c.DEEPINFRA_MODELS_BY_CLASS.report[0]);
+      fetchMock.mockClear();
+      const d = await loadClient();
+      fsMock.files.set(await policyPath(), JSON.stringify({ version: 1, updated_at: new Date().toISOString(), paid: paid({ report: [QWEN] }) }));
+      await d.callAI({ ...request, taskClass: "report" });
+      expect(calledModels(fetchMock)[0]).toBe(QWEN);
+      onlyDeepInfra(fetchMock);
+    });
+
+    it("an approved ladder cannot add a non-admitted model to the report scope", async () => {
+      const c = await loadClient();
+      fsMock.files.set(await policyPath(), JSON.stringify({ version: 1, updated_at: new Date().toISOString(), paid: paid({ report: ["openai/gpt-oss-120b", "moonshotai/Kimi-K2.6"] }) }));
+      await c.callAI({ ...request, taskClass: "report" });
+      const called = calledModels(fetchMock);
+      expect(called[0]).toBe(c.DEEPINFRA_MODELS_BY_CLASS.report[0]);
+      expect(called).not.toContain("openai/gpt-oss-120b");
+      expect(called).not.toContain("moonshotai/Kimi-K2.6");
+    });
+  });
 });

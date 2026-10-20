@@ -154,8 +154,8 @@ export const DEFAULT_PACE_MS: Readonly<Record<string, number>> = Object.freeze({
  * day on an account under US$10 of credit).
  */
 export const DEFAULT_PROVIDER_CALL_CAPS: Readonly<Record<EvalMode, Readonly<Record<string, number>>>> = Object.freeze({
-  smoke: Object.freeze({ openrouter: 9, groq: 60, cerebras: 60, sambanova: 30 }),
-  full: Object.freeze({ openrouter: 40, groq: 400, cerebras: 300, sambanova: 150 }),
+  smoke: Object.freeze({ openrouter: 6, groq: 60, cerebras: 60, sambanova: 30 }),
+  full: Object.freeze({ openrouter: 24, groq: 400, cerebras: 300, sambanova: 150 }),
 });
 
 export interface TickOptions {
@@ -275,7 +275,9 @@ export function planRun(mode: EvalMode, deps: Pick<EvalDeps, "loadFixture" | "fr
   const freeLists = deps.freeLists();
   const candidates: Partial<Record<EvalTaskId, EvalCandidate[]>> = {};
   const skipped: EvalRunState["skipped"] = [];
-  const pending: EvalWorkItem[] = [];
+  // Items per task, grouped by case — interleaved below so a capped provider
+  // or a budget stop still covers every task evenly.
+  const perTask: EvalWorkItem[][][] = [];
   for (const task of EVAL_TASK_IDS) {
     const profile = TASK_PROFILES[task];
     const fx = deps.loadFixture(task, split);
@@ -294,13 +296,18 @@ export function planRun(mode: EvalMode, deps: Pick<EvalDeps, "loadFixture" | "fr
       return true;
     });
     candidates[task] = usable;
-    for (const c of cases) {
-      for (const cand of usable) {
-        const judge = mode === "full" && profile.judgeSampleRate > 0 && unitHash(`${c.id}|${candidateKey(cand)}`) < profile.judgeSampleRate;
-        pending.push({ task, caseId: c.id, provider: cand.provider, model: cand.model, family: cand.family, judge });
-      }
-    }
+    perTask.push(
+      cases.map((c) =>
+        usable.map((cand) => ({
+          task, caseId: c.id, provider: cand.provider, model: cand.model, family: cand.family,
+          judge: mode === "full" && profile.judgeSampleRate > 0 && unitHash(`${c.id}|${candidateKey(cand)}`) < profile.judgeSampleRate,
+        })),
+      ),
+    );
   }
+  const pending: EvalWorkItem[] = [];
+  const maxCases = Math.max(0, ...perTask.map((t) => t.length));
+  for (let i = 0; i < maxCases; i += 1) for (const t of perTask) if (t[i]) pending.push(...t[i]!);
   const iso = new Date(now).toISOString();
   return {
     version: 1,
