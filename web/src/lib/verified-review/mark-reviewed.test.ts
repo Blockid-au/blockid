@@ -86,14 +86,14 @@ describe("markReviewed — happy path", () => {
   it("Investor Pack rendered from the reviewed report WITHOUT credits, attached to the buyer e-mail", async () => {
     await markReviewed(db as never, { orderId: ORDER, reviewer }, deps);
     expect(deps.renderInvestorPack).toHaveBeenCalledTimes(1);
-    const data = (deps.renderInvestorPack.mock.calls[0] as unknown[])[0] as Record<string, any>;
+    const data = (deps.renderInvestorPack.mock.calls[0] as unknown[])[0] as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(data.reviewBadge).toBe("BlockID Reviewed · 22 Oct 2026 · Long Do");
     expect(data.svi.scoreSuffix).toBe("SVI");
     expect(data.evidenceCompleteness.rows.length).toBeGreaterThan(0);
     for (const f of Object.values(credits)) expect(f).not.toHaveBeenCalled();
 
     expect(deps.sendReviewedEmail).toHaveBeenCalledTimes(1);
-    const mail = (deps.sendReviewedEmail.mock.calls[0] as unknown[])[0] as Record<string, any>;
+    const mail = (deps.sendReviewedEmail.mock.calls[0] as unknown[])[0] as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(mail.to).toBe("buyer@example.test");
     expect(mail.input.reportUrl).toBe(`https://blockid.au/workspace/reports/business?order=${ORDER}`);
     expect(mail.input).toMatchObject({ startupName: "Acme Robotics", accepted: 1, reviewed: 2, name: "Jamie Buyer" });
