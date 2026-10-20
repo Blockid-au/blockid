@@ -1748,18 +1748,18 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     process.env.CEREBRAS_API_KEY = "cb-test";
     fsMock.files.set(STRIKES, JSON.stringify({
       "sambanova::DeepSeek-V3.2": dead(undefined, "payment_required"),
-      "cerebras::gemma-4-31b": dead(undefined, "model_archived"),
+      "cerebras::qwen-3.8-27b": dead(undefined, "model_archived"),
     }));
     const { providerBlockReason, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
     _resetDispatcherForTests();
     expect(providerBlockReason("sambanova", NOW)).toBe("unfunded");
-    expect(providerBlockReason("cerebras", NOW)).toBeNull(); // one archived rung of five = degraded, still dialled
+    expect(providerBlockReason("cerebras", NOW)).toBeNull(); // one archived rung of two = degraded, still dialled
     const snap = getProviderHealthSnapshot(NOW);
     expect(snap.providers.find((p) => p.name === "sambanova")).toEqual({ name: "sambanova", state: "blocked", cooldown_until: null, reason: "unfunded" });
     expect(snap.unfunded).toEqual(["sambanova"]);
     expect(snap.healthy_providers).toBe(1);
-    expect(snap.dead_rungs.sambanova).toMatchObject({ state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 9 });
-    expect(snap.dead_rungs.cerebras).toMatchObject({ state: "degraded", dead: ["gemma-4-31b"], total: 5 });
+    expect(snap.dead_rungs.sambanova).toMatchObject({ state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 6 });
+    expect(snap.dead_rungs.cerebras).toMatchObject({ state: "degraded", dead: ["qwen-3.8-27b"], total: 2 });
     // Only SambaNova configured + unfunded → nothing usable, no dial, the blocked error (not a 402 from the wire).
     delete process.env.CEREBRAS_API_KEY;
     const { callAI, _resetDispatcherForTests: reset2 } = await loadClient();

@@ -1295,11 +1295,12 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
 // llama-3.3-70b-versatile re-added — Groq's own docs list it as production-grade
 // (280 t/s, 131K ctx). Kept below qwen3.6 while cooldown/health prove it out again.
 const GROQ_DEFAULT_MODELS: string[] = [
-  "qwen/qwen3.6-27b",          // A-tier: Qwen3 27B, top of Aug 2026 discovery
-  "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality when available
-  "llama-3.3-70b-versatile",   // B-tier: 70B, 280 t/s — re-verified in Groq docs (Sep 2026)
-  "llama-3.1-8b-instant",      // C-tier: 8B, 560 t/s — most reliable in prod (76 ok)
-  "openai/gpt-oss-20b",        // C-tier: 20B, fast fallback
+  // W1 (2026-10-20): only ids that answered the 30-min health probe. Groq's
+  // llama-3.3-70b-versatile / llama-3.1-8b-instant now answer 404 (enterprise
+  // only) and mixtral / gemma2 are decommissioned — 1,700+ strikes each.
+  "qwen/qwen3.8-27b",          // A-tier: Qwen3.8 27B (443 healthy probes / 448)
+  "openai/gpt-oss-120b",       // A-tier: 117B MoE
+  "openai/gpt-oss-20b",        // B-tier: 20B, fast fallback (meets the 20B floor)
 ];
 
 async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
@@ -1359,11 +1360,12 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
 // llama-3.3-70b 404 model_not_found and gpt-oss-120b 402 payment_required —
 // the dead-rung table skips them for 24 h after each such answer.
 const CEREBRAS_DEFAULT_MODELS: string[] = [
-  "gemma-4-31b",             // B-tier: 1424 prod successes — most reliable on Cerebras
-  "gpt-oss-120b",            // A-tier: 117B MoE, high throughput when available (ok:506)
-  "qwen-3-32b",              // B-tier: Qwen 3 32B, 2000 t/s, Vietnamese-friendly (Sep 2026 add)
-  "llama-3.3-70b",           // B-tier: 70B, legacy compat
-  "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
+  // W1 (2026-10-20): the Cerebras catalogue (inference-docs.cerebras.ai
+  // models/overview) lists ONLY these two; gemma-4-31b / qwen-3-32b /
+  // llama-3.3-70b / llama3.1-8b answer 404. The account answered 402 on
+  // completions — founder item: Cerebras billing.
+  "gpt-oss-120b",            // A-tier: 117B MoE
+  "qwen-3.8-27b",            // A-tier: Qwen3.8 27B
 ];
 
 async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
@@ -1421,15 +1423,15 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
 // G29-A: on 2026-09-21 every rung answered 402 PAYMENT_METHOD_REQUIRED
 // (balance_units 0) or 404 model_not_found → the provider shows `unfunded`.
 const SAMBANOVA_DEFAULT_MODELS: string[] = [
-  "DeepSeek-R1",                    // S-tier: strongest free reasoning model on SambaNova
-  "Qwen3-235B-A22B-Instruct-2507",  // S-tier: 235B MoE, competes with Claude (Sep 2026 add)
-  "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
-  "DeepSeek-V3.1",                  // S-tier: previous DeepSeek V3 checkpoint
-  "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight on SambaNova
-  "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
+  // W1 (2026-10-20): the public catalogue (api.sambanova.ai/v1/models) —
+  // DeepSeek-R1 / Llama-3.1-405B / Qwen3-235B / DeepSeek-V3-0324 are gone.
+  // Every completion currently answers 401 (wrong key — founder item).
+  "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 checkpoint (32K ctx)
+  "DeepSeek-V3.1",                  // S-tier: 131K ctx
+  "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight
+  "MiniMax-M3",                     // A-tier
   "Meta-Llama-3.3-70B-Instruct",    // B-tier: Llama 3.3 70B, reliable general
-  "Meta-Llama-3.1-8B-Instruct",     // C-tier: Llama 3.1 8B, fast fallback
-  "DeepSeek-V3-0324",               // S-tier: legacy ID — may still be aliased on SambaNova
+  "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct
 ];
 
 async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {

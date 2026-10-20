@@ -1,8 +1,10 @@
 // S31-A — provider validity probes + the `ai_providers` signal on /api/status.
 //
 // One cheap call per CONFIGURED provider (a 1-token completion where that is
-// the only way to read rate-limit headers, otherwise the provider's models /
-// credits endpoint), at most once per provider per 15 minutes, cached in
+// the only way to read rate-limit headers; a 64-token completion that must
+// carry content where the provider's models list is public — Cerebras /
+// SambaNova, W1; otherwise an AUTHENTICATED account / credits endpoint —
+// DeepInfra /v1/me, OpenRouter /credits), at most once per provider per 15 minutes, cached in
 // content/reports/ai-provider-status.json. Verdicts:
 //
 //   valid            key accepted; `headroom` carries what the provider told us
@@ -26,6 +28,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { openRouterMinCreditUsd } from "./spend-guard";
 import { parseRateLimitHeaders, markAnthropicKeyInvalid, noteAnthropicHeadroom, isAnthropicApiKeyConfigured, ANTHROPIC_NOT_CONFIGURED_DETAIL } from "./anthropic-tier";
+import { answeredWithContent } from "./health-check";
 
 export type ProviderStatusKind = "valid" | "invalid_key" | "unreachable" | "quota_exceeded" | "low_credit" | "not_configured";
 
@@ -138,6 +141,34 @@ function classifyHttp(status: number, body: string): ProviderStatusKind {
   return "valid";
 }
 
+/** W1: the completion probes' output budget — room for a short answer (a
+ *  reasoning model spends a few tokens on its trace first; 4 tokens read as
+ *  empty in G30 D-A6), still a trivial spend. */
+export const PROBE_COMPLETION_MAX_TOKENS = 64;
+
+/** Probe model per completion-probed provider (env `<PROVIDER>_PROBE_MODEL` overrides).
+ *  Must be in the provider's live catalogue (W1 2026-10-20: Cerebras lists only
+ *  gpt-oss-120b + qwen-3.8-27b; SambaNova DeepSeek-V3.1/V3.2, Llama-3.3-70B,
+ *  MiniMax-M3, gemma-4-31B-it, gpt-oss-120b). */
+export const DEFAULT_PROBE_MODEL = { cerebras: "qwen-3.8-27b", sambanova: "Meta-Llama-3.3-70B-Instruct" } as const;
+
+/** A completion probe is `valid` only when the key is accepted AND the answer
+ *  carries text; 200 with an empty / unparseable body, or a 400/404 for the
+ *  probe model, is `unreachable` (never "valid"). */
+function completionVerdict(status: number, body: string): ProviderStatusKind {
+  const verdict = classifyHttp(status, body);
+  if (verdict !== "valid") return verdict;
+  if (status !== 200) return "unreachable";
+  return answeredWithContent(body) ? "valid" : "unreachable";
+}
+
+function completionDetail(status: number, body: string, model: string): string | undefined {
+  const verdict = completionVerdict(status, body);
+  if (verdict === "valid") return undefined;
+  if (status === 200) return `probe ${model}: 200 with empty completion content`;
+  return `probe ${model}: ${head(body)}`;
+}
+
 function head(body: string): string {
   try {
     const j = JSON.parse(body) as { error?: { message?: string; type?: string } | string; message?: string };
@@ -245,21 +276,38 @@ export async function probeProvider(provider: ProbeProvider, secret: string, dep
         });
       }
       case "cerebras":
-      case "sambanova":
-      case "deepinfra": {
-        const url = provider === "cerebras"
-          ? "https://api.cerebras.ai/v1/models"
-          : provider === "sambanova"
-            ? "https://api.sambanova.ai/v1/models"
-            : "https://api.deepinfra.com/v1/openai/models";
-        const res = await timedFetch(fetchImpl, url, { method: "GET", headers: { authorization: `Bearer ${secret}` } }, timeoutMs);
+      case "sambanova": {
+        // W1 (pricing v5 §7.2 #2): `/v1/models` is NOT proof of a usable key —
+        // SambaNova serves it to anyone (200 with no key at all) while every
+        // real call answered 401, and Cerebras listed models while completions
+        // answered 402. Probe with a tiny real completion and require content
+        // (G30 rule "health probe requires content").
+        const url = provider === "cerebras" ? "https://api.cerebras.ai/v1/chat/completions" : "https://api.sambanova.ai/v1/chat/completions";
+        const model = provider === "cerebras"
+          ? env.CEREBRAS_PROBE_MODEL || DEFAULT_PROBE_MODEL.cerebras
+          : env.SAMBANOVA_PROBE_MODEL || DEFAULT_PROBE_MODEL.sambanova;
+        const res = await timedFetch(fetchImpl, url, {
+          method: "POST",
+          headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+          body: JSON.stringify({ model, max_tokens: PROBE_COMPLETION_MAX_TOKENS, messages: [{ role: "user", content: "Reply with just: ok" }] }),
+        }, timeoutMs);
         const body = await res.text();
-        const status = classifyHttp(res.status, body);
+        return base(completionVerdict(res.status, body), { http_status: res.status, detail: completionDetail(res.status, body, model) });
+      }
+      case "deepinfra": {
+        // W1: DeepInfra's `/v1/openai/models` is public too (200 without a
+        // key). `/v1/me` is authenticated and spends no tokens — a paid
+        // completion every 15 min is not needed to prove the key.
+        const res = await timedFetch(fetchImpl, "https://api.deepinfra.com/v1/me", { method: "GET", headers: { authorization: `Bearer ${secret}` } }, timeoutMs);
+        const body = await res.text();
+        const http = classifyHttp(res.status, body);
+        const status: ProviderStatusKind = res.status === 200 ? "valid" : http === "valid" ? "unreachable" : http;
         return base(status, { http_status: res.status, detail: status === "valid" ? undefined : head(body) });
       }
       case "gemini": {
         // S32-C — the models endpoint answers 200 for a valid key (no token
         // spend). Key travels in the x-goog-api-key header, never the URL.
+        // (W1: a second, unreachable `case "gemini"` below this one was removed.)
         const res = await timedFetch(fetchImpl, "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1", {
           method: "GET",
           headers: { "x-goog-api-key": secret },
@@ -267,17 +315,6 @@ export async function probeProvider(provider: ProbeProvider, secret: string, dep
         const body = await res.text();
         const status = res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(body) ? "invalid_key" : classifyHttp(res.status, body);
         return base(status, { http_status: res.status, detail: status === "valid" ? "quality-cost tier (report classes)" : head(body) });
-      }
-      case "gemini": {
-        // S32-C — the models list answers with the key in a HEADER (never
-        // the URL, so it cannot land in a log line). `valid` when it answers.
-        const res = await timedFetch(fetchImpl, "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1", {
-          method: "GET",
-          headers: { "x-goog-api-key": secret },
-        }, timeoutMs);
-        const body = await res.text();
-        const status = res.status === 400 && /api key not valid|api_key_invalid/i.test(body) ? "invalid_key" : classifyHttp(res.status, body);
-        return base(status, { http_status: res.status, detail: status === "valid" ? undefined : head(body) });
       }
       case "ollama": {
         const res = await timedFetch(fetchImpl, `${secret.replace(/\/$/, "")}/api/tags`, { method: "GET" }, timeoutMs);
