@@ -303,11 +303,61 @@ def allocate(data, web=None, prebuilt=False, candidate_sha=None):
     raise ValueError('No free reserved candidate port')
 
 
+def recorded_process_gone(entry):
+    """True when the entry's recorded process provably no longer exists.
+
+    After a host reboot every recorded PID is gone or belongs to another
+    process (start ticks restart from zero). Unreadable procfs is NOT proof.
+    """
+    try:
+        Path(f'/proc/{entry["pid"]}').stat()
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+    return _pid_proven_reused(entry)
+
+
+def rebind(data, web, port, pid):
+    """L1-4 boot path: re-attach a cold-started origin to its retained entry.
+
+    Same port, same immutable release, same SHA/schema digest; only the
+    process identity (pid, startTicks) changes. Refused while the recorded
+    process may still be alive, so a running origin can never be replaced
+    in state by a second copy. The new process must pass the full
+    verify_entry identity check (cwd, listener ownership, /api/status SHA and
+    schema) before anything is written. Active/previous references to the
+    same port are updated in place, so they remain members of retained.
+    """
+    targets = [e for e in data['retained'] if e['port'] == port]
+    if len(targets) != 1:
+        raise ValueError('Rebind requires exactly one retained origin at the port')
+    old = targets[0]
+    if type(pid) is not int or pid <= 1:
+        raise ValueError('Rebind requires the new origin PID')
+    if not recorded_process_gone(old):
+        raise ValueError('Recorded origin process may still be alive; refusing rebind')
+    if any(e['pid'] == pid and e is not old for e in data['retained']):
+        raise ValueError('New PID already belongs to another retained origin')
+    info = proxy.process_info(pid)
+    if not info:
+        raise ValueError('New origin process is not alive')
+    fresh = {**old, 'pid': pid, 'startTicks': info['start']}
+    validate_entry(fresh, web)
+    fresh = verify_entry(fresh, web)
+    data['retained'] = [fresh if e is old else e for e in data['retained']]
+    for key in ('active', 'previous'):
+        if data.get(key) and data[key]['port'] == port:
+            data[key] = fresh
+    data.setdefault('rebinds', {})[str(port)] = {'fromPid': old['pid'], 'toPid': pid, 'at': int(time.time())}
+    return data
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--web', type=Path, required=True)
     command = parser.add_mutually_exclusive_group(required=True)
-    for name in ('port', 'snapshot', 'verify-active', 'verify-port', 'rollback-target', 'gates-passed', 'mark-good', 'quarantine', 'init', 'allocate', 'register', 'begin', 'activate', 'stable'):
+    for name in ('port', 'snapshot', 'verify-active', 'verify-port', 'rollback-target', 'gates-passed', 'mark-good', 'quarantine', 'init', 'allocate', 'register', 'begin', 'activate', 'stable', 'rebind'):
         command.add_argument('--' + name, action='store_true')
     parser.add_argument('--prebuilt', action='store_true', help='Allocate without compiler reserve only for validated existing build')
     parser.add_argument('--lock-fd', type=int)
@@ -423,6 +473,8 @@ def main():
                 data['phase'] = 'stable'
             elif args.stable:
                 verify_entry(data['active'], web); data['phase'] = 'stable'
+            elif args.rebind:
+                data = rebind(data, web, args.listen_port, args.pid)
         write_state(web, data)
         if args.mark_good:
             entry = data['active']

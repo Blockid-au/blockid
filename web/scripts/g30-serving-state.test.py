@@ -175,6 +175,67 @@ class ServingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             m.allocate(self.data, self.web)
 
+    # L1-4 boot path: --rebind re-attaches a cold-started origin after reboot.
+    def rebind_fixture(self):
+        self.data['retained'] = [self.entries[0], self.entries[1]]
+        self.data['active'] = self.entries[1]; self.data['previous'] = self.entries[0]
+        self.data['verifiedGood'] = [4001, 4100]
+        m.write_state(self.web, self.data)
+
+    def test_rebind_updates_active_and_retained_identity_after_reboot(self):
+        self.rebind_fixture()
+        with patch.object(m, 'recorded_process_gone', return_value=True), patch.object(m.proxy, 'process_info', return_value={'start': '777'}):
+            result, out, err = self.command('--rebind', '--listen-port', '4100', '--pid', '5000', '--lock-fd', '200')
+        self.assertEqual(result, 0, err)
+        data = m.read_state(self.web)
+        self.assertEqual((data['active']['pid'], data['active']['startTicks']), (5000, '777'))
+        self.assertIn(data['active'], data['retained'])
+        self.assertEqual(data['previous'], self.entries[0])  # other entries untouched
+        self.assertEqual(data['active']['releasePath'], self.entries[1]['releasePath'])
+        self.assertEqual(data['active']['sha'], self.entries[1]['sha'])
+        self.assertEqual(data['rebinds']['4100']['fromPid'], 101)
+        self.assertEqual(data['verifiedGood'], [4001, 4100])
+
+    def test_rebind_refused_while_recorded_process_may_live(self):
+        self.rebind_fixture()
+        before = m.state_path(self.web).read_text()
+        with patch.object(m, 'recorded_process_gone', return_value=False), patch.object(m.proxy, 'process_info', return_value={'start': '777'}):
+            self.assertEqual(self.command('--rebind', '--listen-port', '4100', '--pid', '5000', '--lock-fd', '200')[0], 1)
+        self.assertEqual(m.state_path(self.web).read_text(), before)
+
+    def test_rebind_rejects_unknown_port_pid_collision_dead_new_process_and_failed_identity(self):
+        self.rebind_fixture()
+        before = m.state_path(self.web).read_text()
+        cases = [
+            (('--listen-port', '4150', '--pid', '5000'), {'start': '1'}, None),
+            (('--listen-port', '4100', '--pid', '100'), {'start': '1'}, None),  # PID of 4001 entry
+            (('--listen-port', '4100', '--pid', '5000'), None, None),
+            (('--listen-port', '4100', '--pid', '5000'), {'start': '1'}, ValueError('identity')),
+        ]
+        for args, info, verify_error in cases:
+            out, err = io.StringIO(), io.StringIO()
+            verify = (lambda entry, web=None: (_ for _ in ()).throw(verify_error)) if verify_error else (lambda entry, web=None: entry)
+            with patch.object(sys, 'argv', ['helper', '--web', str(self.web), '--rebind', *args, '--lock-fd', '200']), \
+                 patch.object(m.proxy, 'require_lock'), patch.object(m, 'verify_entry', side_effect=verify), \
+                 patch.object(m, 'recorded_process_gone', return_value=True), patch.object(m.proxy, 'process_info', return_value=info), \
+                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                self.assertEqual(m.main(), 1, args)
+            self.assertEqual(m.state_path(self.web).read_text(), before, args)
+
+    def test_rebind_requires_lock(self):
+        self.rebind_fixture()
+        out, err = io.StringIO(), io.StringIO()
+        with patch.object(sys, 'argv', ['helper', '--web', str(self.web), '--rebind', '--listen-port', '4100', '--pid', '5000']), \
+             patch.object(m, 'recorded_process_gone', return_value=True), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(m.main(), 1)
+
+    def test_recorded_process_gone_requires_proof(self):
+        self.assertTrue(m.recorded_process_gone({'pid': 999999999, 'startTicks': '1'}))
+        me = m.proxy.process_info(m.os.getpid())
+        self.assertFalse(m.recorded_process_gone({'pid': m.os.getpid(), 'startTicks': me['start']}))
+        self.assertTrue(m.recorded_process_gone({'pid': m.os.getpid(), 'startTicks': str(int(me['start']) + 1)}))
+
+
 class PidReuseProofTest(unittest.TestCase):
     # 2026-09-25: a dead quarantined origin's PID reused as a thread id kept
     # the capacity slot forever. Only procfs-proven reuse releases it.
