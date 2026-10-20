@@ -27,8 +27,12 @@ async function emailFallback(text: string): Promise<boolean> {
   emailFallbackWindow.push(now);
   try {
     const { sendOpsAlertEmail } = await import("@/lib/ops-alert-email");
+    const { isOpsAlertText } = await import("../../scripts/lib/ops-alert-dedup.mjs");
     const subject = `[blockid ops] ${text.split("\n")[0].replace(/[*_`]/g, "").slice(0, 120)}`;
-    return await sendOpsAlertEmail({ to, subject, text: `${text}\n\n— sent by e-mail because Telegram is unavailable (token 401 — see docs/runbooks/secret-rotation-log.md)` });
+    // O1 / L1-12: ops alerts are deduped per (kind, level, UTC day) — P2
+    // repeats go to the daily digest; business notifications (new lead,
+    // purchase, equity request) are never held.
+    return await sendOpsAlertEmail({ to, subject, text: `${text}\n\n— sent by e-mail because Telegram is unavailable (token 401 — see docs/runbooks/secret-rotation-log.md)`, dedup: isOpsAlertText(text) });
   } catch (err) {
     console.error("[telegram] e-mail fallback failed:", err instanceof Error ? err.message : String(err));
     return false;

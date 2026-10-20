@@ -262,11 +262,17 @@ describe("sendTelegram — e-mail fallback (G15 review 2026-09-18: bot token 401
       expect(args.to).toBe("ops@example.com");
       expect(args.subject).toBe("[blockid ops] Cron Failed: x");
       expect(args.text).toContain("Telegram is unavailable");
+      // O1 / L1-12: an ops alert asks for the per-day dedup …
+      expect((args as unknown as { dedup?: boolean }).dedup).toBe(true);
       // Telegram is now disabled for the process → straight to e-mail, no fetch.
       const calls = (globalThis.fetch as unknown as { mock?: { calls: unknown[] } }).mock?.calls.length ?? 0;
       await expect(sendTelegram("second")).resolves.toBe(true);
       expect(((globalThis.fetch as unknown as { mock?: { calls: unknown[] } }).mock?.calls.length ?? 0)).toBe(calls);
       expect(sendEmail).toHaveBeenCalledTimes(2);
+      // … a business notification never does (a 2nd lead the same day must arrive).
+      await expect(sendTelegram("🎯 New lead: Jane (jane@example.com)\nfrom /pricing")).resolves.toBe(true);
+      const lead = (sendEmail.mock.calls[2] as unknown as [{ dedup?: boolean }])[0];
+      expect(lead.dedup).toBe(false);
     } finally {
       delete process.env.TELEGRAM_EMAIL_FALLBACK_TEST;
       delete process.env.ADMIN_EMAIL;
