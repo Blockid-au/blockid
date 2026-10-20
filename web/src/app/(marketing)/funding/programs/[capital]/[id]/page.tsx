@@ -1,7 +1,8 @@
 /**
  * /funding/programs/[capital]/[id] — one program: at a glance, who it is
  * for, what you get, how to apply, timing, FAQ and related funding, plus
- * "Add to my plan for A$3" into /funding (T0242). A row requested under the
+ * "Add to my plan for <Money Finder price>" into /funding (T0242; price from
+ * the payg_enabled view, G35 P5 / D25). A row requested under the
  * wrong capital redirects nowhere — it 404s, so the canonical URL is the
  * only one that indexes. T0241.
  *
@@ -37,6 +38,7 @@ import {
 } from "@/lib/funding/directory";
 import { enrichProgram } from "@/lib/funding/enrich";
 import { FUNDING_CRUMBS, PROGRAM_GUIDES, programDescription, programPath, programTitle } from "@/lib/funding/seo";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -70,7 +72,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
   const p = await getProgram(id, ISR_READ);
   if (!capital || !p || p.capital !== capital) notFound();
 
-  const [programs, grants] = await Promise.all([listPrograms({ capital, ...ISR_READ }), listGrants(ISR_READ)]);
+  const [programs, grants, view] = await Promise.all([listPrograms({ capital, ...ISR_READ }), listGrants(ISR_READ), getPaygView()]);
   const e = enrichProgram(p, { programs, grants });
 
   const capitalPath = `/funding/programs/${capitalSlug(capital)}`;
@@ -113,7 +115,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
                 href={planHref}
                 className="inline-flex h-10 items-center gap-2 rounded-full bg-action px-5 text-on-action hover:bg-action-hover"
               >
-                Add to my plan for A$3
+                {`Add to my plan for ${view.funding}`}
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             )}
@@ -128,7 +130,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
             </a>
           </div>
           <p className="mt-3 text-xs text-secondary">
-            Apply only through the program&rsquo;s own site. The A$3 plan places this program on a twelve-month timeline
+            Apply only through the program&rsquo;s own site. The {view.funding} plan places this program on a twelve-month timeline
             with the grants and other programs that fit your stage.
           </p>
         </header>
@@ -193,7 +195,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
               </p>
               <p>
                 <Link href="/funding/report/demo" className="text-action underline-offset-2 hover:underline">
-                  See a sample A$3 report
+                  {`See a sample ${view.funding} report`}
                 </Link>
               </p>
             </nav>

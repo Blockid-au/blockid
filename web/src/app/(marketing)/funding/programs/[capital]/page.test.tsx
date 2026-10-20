@@ -16,6 +16,13 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+// G35 P5 (D25): payg_enabled view, both states (null → flag OFF, today's site).
+const payg = vi.hoisted(() => ({ view: null as import("@/lib/pricing/payg-copy").PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
+
 function program(over: Partial<AuProgram>): AuProgram {
   return {
     id: "p",
@@ -247,6 +254,30 @@ describe("/funding/programs/[capital]", () => {
   });
 });
 
+describe("/funding/programs — payg_enabled ON (G35 P5, D25)", () => {
+  it("the capital footnote and the program CTA / note / sample link quote the v5 price", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    payg.view = PAYG_ON_VIEW;
+    try {
+      const cap = (await toHtml(await CapitalProgramsPage({ params: Promise.resolve({ capital: "sydney" }) }))).replace(/<!-- -->/g, "");
+      expect(cap).toContain("see a sample A$19 report");
+      expect(cap).not.toContain("sample A$3 report");
+      const html = (await toHtml(await ProgramDetailPage({ params: Promise.resolve({ capital: "sydney", id: "syd-startmate" }) }))).replace(/<!-- -->/g, "");
+      expect(html).toContain("Add to my plan for A$19");
+      expect(html).toContain("The A$19 plan places this program");
+      expect(html).toContain("See a sample A$19 report");
+      expect(html).not.toMatch(/A\$3(?![\d,])/);
+    } finally {
+      payg.view = null;
+    }
+  });
+
+  it("flag OFF keeps today's capital footnote", async () => {
+    const cap = await toHtml(await CapitalProgramsPage({ params: Promise.resolve({ capital: "sydney" }) }));
+    expect(cap).toContain("see a sample A$3 report");
+  });
+});
+
 describe("/funding/programs/[capital]/[id]", () => {
   it("renders benefits, terms, eligibility, official link and the A$3 plan CTA", async () => {
     const html = await toHtml(await ProgramDetailPage({ params: Promise.resolve({ capital: "sydney", id: "syd-startmate" }) }));
@@ -258,6 +289,7 @@ describe("/funding/programs/[capital]/[id]", () => {
     expect(html).toContain("AU/NZ");
     expect(html).toContain('href="https://example.com/apply" rel="nofollow noopener noreferrer" target="_blank"');
     expect(html).toContain("Add to my plan for A$3");
+    expect(html).toContain("See a sample A$3 report");
     expect(html).toContain('href="/funding?program=syd-startmate"');
     expect(html).toContain('"@type":"Service"');
     expect(html).toContain('"@type":"Event"');

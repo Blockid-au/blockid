@@ -2,6 +2,7 @@ import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -21,6 +22,14 @@ vi.mock("@/lib/funding/data", () => ({
   ]),
   listPrograms: vi.fn(async () => [{ id: "p1", name: "Plus Eight", status: "open", last_verified_at: "2026-09-10" }]),
 }));
+
+// G35 P5 (D25): the page reads the payg_enabled view server-side; the tests
+// drive both states (null → flag OFF, today's site).
+const payg = vi.hoisted(() => ({ view: null as import("@/lib/pricing/payg-copy").PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
 
 async function html(): Promise<string> {
   const { default: Page } = await import("./page");
@@ -43,7 +52,7 @@ describe("/funding landing (T0242)", () => {
   });
 
   it("S8-A: ≤ 60 title via the brand template, 140–160 description, hreflang pair, OG image; BreadcrumbList validates; one H1", async () => {
-    const { metadata } = await import("./page");
+    const metadata = await (await import("./page")).generateMetadata();
     expect(String(metadata.title)).toBe("Find startup funding in Australia in 60 seconds");
     expect(`${String(metadata.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
     expect(String(metadata.description).length).toBeGreaterThanOrEqual(140);
@@ -97,11 +106,35 @@ describe("/funding landing (T0242)", () => {
   });
 
   it("carries the §5a positioning, the price ladder and the §5f disclaimer", async () => {
-    const out = await html();
+    const out = (await html()).replace(/<!-- -->/g, "");
     expect(out).toContain("The list is free. The eligibility check, ranking and 12-month plan are A$3.");
+    expect(out).toContain("A$3 · or 3 credits");
+    expect(out).toContain("the free score, then the full Trusted Business Report for A$3.");
+    expect(out).toContain("Evaluate any Australian startup for A$3, or track a portfolio from A$79 a month");
+    expect(out).toContain("Tell us three things and we match them to you — the list is free, the analysis is A$3.");
     expect(out).toContain("A$29/mo");
     expect(out).toContain("Founder Radar");
     expect(out).toContain('data-surface="funding_directory"');
     expect(out).toContain("Last verified");
+  });
+});
+
+describe("/funding landing — payg_enabled ON (G35 P5, D25)", () => {
+  it("renders the Money Finder at the v5 catalogue price and the TBR 'from' the Snapshot price", async () => {
+    payg.view = PAYG_ON_VIEW;
+    try {
+      const out = (await html()).replace(/<!-- -->/g, "");
+      expect(out).toContain("The list is free. The eligibility check, ranking and 12-month plan are A$19.");
+      expect(out).toContain("A$19 · or 19 credits");
+      expect(out).toContain("Tell us three things and we match them to you. Free scan · A$19 full.");
+      expect(out).toContain(`the free score, then a Trusted Business Report from ${PAYG_ON_VIEW.snapshot}.`);
+      expect(out).toContain(`Evaluate any Australian startup from ${PAYG_ON_VIEW.snapshot}, or track a portfolio from A$79 a month`);
+      expect(out).not.toMatch(/A\$3(?![\d,])|3 credits/);
+      const metadata = await (await import("./page")).generateMetadata();
+      expect(String(metadata.description).length).toBeLessThanOrEqual(160);
+      expect(String(metadata.description)).not.toMatch(/A\$3(?![\d,])/);
+    } finally {
+      payg.view = null;
+    }
   });
 });

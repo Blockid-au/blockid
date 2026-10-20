@@ -16,6 +16,13 @@ const notFoundSpy = vi.fn(() => {
 });
 vi.mock("next/navigation", () => ({ notFound: () => notFoundSpy() }));
 
+// G35 P5 (D25): payg_enabled view, both states (null → flag OFF, today's site).
+const payg = vi.hoisted(() => ({ view: null as import("@/lib/pricing/payg-copy").PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
+
 const esic: AuGrant = {
   id: "esic",
   name: "Early Stage Innovation Company (ESIC) investor tax incentives",
@@ -176,6 +183,22 @@ describe("/funding/grants/[id] — rendered", () => {
     expect(html).toContain('href="https://www.ato.gov.au/esic" rel="nofollow noopener noreferrer" target="_blank"');
     expect(html).toContain('href="/funding?grant=esic"');
     expect(html).toContain("Check my eligibility for A$3");
+    expect(html.replace(/<!-- -->/g, "")).toContain("the A$3 check is BlockID");
+    expect(html).toContain("See a sample A$3 report");
+  });
+
+  it("payg_enabled ON (G35 P5, D25): the CTA, the note and the sample link quote the v5 price", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    payg.view = PAYG_ON_VIEW;
+    try {
+      const html = (await render("esic")).replace(/<!-- -->/g, "");
+      expect(html).toContain("Check my eligibility for A$19");
+      expect(html).toContain("the A$19 check is BlockID");
+      expect(html).toContain("See a sample A$19 report");
+      expect(html).not.toMatch(/A\$3(?![\d,])/);
+    } finally {
+      payg.view = null;
+    }
   });
 
   it("emits GovernmentService + BreadcrumbList JSON-LD and the funding disclaimer", async () => {

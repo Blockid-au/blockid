@@ -23,6 +23,14 @@ import {
   type GrantFilters,
 } from "./directory";
 import { fitDescription, fitTitle, fitTitleKeepTail, SITE_URL, TITLE_MAX } from "@/lib/seo/page-meta";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
+
+/**
+ * The Money Finder price the priced descriptions quote (G35 P5, D25): legacy
+ * when payg_enabled is OFF (the default — today's site), the v5 catalogue
+ * when ON. Pages read the view server-side (`getPaygView`) and pass it in.
+ */
+type SeoPriceView = Pick<PaygView, "funding">;
 
 // ─── Keyword map (one primary keyword per page type) ─────────────────────────
 
@@ -214,7 +222,10 @@ export const GRANTS_DESCRIPTION = fitDescription([
 ]);
 
 /** Title / H1 / description for the state-only filter of /funding/grants. */
-export function grantsStateSeo(state: AuState): { title: string; h1: string; description: string } {
+export function grantsStateSeo(
+  state: AuState,
+  view: SeoPriceView = PAYG_OFF_VIEW,
+): { title: string; h1: string; description: string } {
   const name = stateSeoName(state);
   if (state === "national") {
     return {
@@ -223,7 +234,7 @@ export function grantsStateSeo(state: AuState): { title: string; h1: string; des
       description: fitDescription([
         "Every federal grant, tax offset, voucher and startup loan an Australian startup can apply for from any state — one free list",
         "Official links, A$ ranges, closing dates and stage tags",
-        "The analysis of your own eligibility is A$3",
+        `The analysis of your own eligibility is ${view.funding}`,
       ]),
     };
   }
@@ -234,7 +245,7 @@ export function grantsStateSeo(state: AuState): { title: string; h1: string; des
     description: fitDescription([
       `Every ${full} startup grant, voucher and loan, plus the federal schemes ${name} companies can apply for — one free list`,
       "Official links, A$ ranges, closing dates and stage tags",
-      "The eligibility analysis for your startup is A$3",
+      `The eligibility analysis for your startup is ${view.funding}`,
     ]),
   };
 }
@@ -361,16 +372,27 @@ export function stateForCapital(capital: Capital): AuState {
 // ─── Landing + demo ──────────────────────────────────────────────────────────
 
 export const LANDING_TITLE = fitTitle("Find startup funding in Australia in 60 seconds");
-export const LANDING_DESCRIPTION = fitDescription([
-  "Every open Australian startup grant and every accelerator, incubator and founder program in the eight capitals — free to browse, with official links",
-  "Three questions match you; the ranked report with a 12-month plan is A$3",
-]);
+export function landingDescription(view: SeoPriceView = PAYG_OFF_VIEW): string {
+  return fitDescription([
+    "Every open Australian startup grant and every accelerator, incubator and founder program in the eight capitals — free to browse, with official links",
+    `Three questions match you; the ranked report with a 12-month plan is ${view.funding}`,
+  ]);
+}
+/** Flag-OFF landing description (today's site). */
+export const LANDING_DESCRIPTION = landingDescription();
 
-export const DEMO_TITLE_CORE = fitTitle("Sample startup funding report — what A$3 buys");
-export const DEMO_DESCRIPTION_TEXT = fitDescription([
-  "A full sample Money Finder report: ranked grants with eligibility checklists and A$ estimates, matched accelerators, and a 12-month plan for an NSW agtech startup at MVP",
-  "Build yours from three answers for A$3",
-]);
+export function demoTitleCore(view: SeoPriceView = PAYG_OFF_VIEW): string {
+  return fitTitle(`Sample startup funding report — what ${view.funding} buys`);
+}
+export function demoDescriptionText(view: SeoPriceView = PAYG_OFF_VIEW): string {
+  return fitDescription([
+    "A full sample Money Finder report: ranked grants with eligibility checklists and A$ estimates, matched accelerators, and a 12-month plan for an NSW agtech startup at MVP",
+    `Build yours from three answers for ${view.funding}`,
+  ]);
+}
+/** Flag-OFF demo title / description (today's site). */
+export const DEMO_TITLE_CORE = demoTitleCore();
+export const DEMO_DESCRIPTION_TEXT = demoDescriptionText();
 
 /** Absolute URL helper shared by the JSON-LD builders. */
 export function absoluteUrl(path: string): string {

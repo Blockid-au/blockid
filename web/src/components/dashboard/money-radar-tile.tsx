@@ -5,7 +5,8 @@
  *
  * Five states from `getMoneyRadarTileData()`:
  *   no_profile      counts for {industry} in {state}       → Match me
- *   free_previewed  top-3 names, amounts/deadlines locked  → Unlock A$3 · Start trial
+ *   free_previewed  top-3 names, amounts/deadlines locked  → Unlock <price> · Start trial
+ *                   (price from the payg_enabled `view` prop — G35 P5, D25)
  *   buyer           top-3 with A$ + deadline chips         → Start 7-day Radar trial
  *   subscriber      next 3 deadlines, new matches, step    → Open Money Radar · Draft application
  *   nothing_due     next public event                      → Add to calendar (ICS)
@@ -23,6 +24,7 @@ import { DEADLINE_LABELS, DEADLINE_TONE } from "@/lib/funding/deadline-status";
 import { formatAudCompact } from "@/lib/funding/directory";
 import { fundingCopy, nextDeadlineLine } from "@/lib/funding/copy";
 import { founderRadarSignupHref } from "@/lib/funding/radar-upsell";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import { tileHeadline, type MoneyRadarTileData, type TileDeadline, type TileTopMatch } from "@/lib/funding/tile-data";
 
 export const MONEY_RADAR_TILE_FROM = "tile";
@@ -40,6 +42,8 @@ export interface MoneyRadarTileProps {
    */
   creditNote?: string | null;
   className?: string;
+  /** G35 P5: payg_enabled view (server-read `getPaygView()`). Default = flag OFF. */
+  view?: PaygView;
 }
 
 export const TILE_HREFS = {
@@ -52,9 +56,9 @@ export const TILE_HREFS = {
   alerts: "/workspace/funding?tab=alerts",
 } as const;
 
-export function MoneyRadarTile({ data, compact = false, messages = null, creditNote = null, className = "" }: MoneyRadarTileProps) {
+export function MoneyRadarTile({ data, compact = false, messages = null, creditNote = null, className = "", view = PAYG_OFF_VIEW }: MoneyRadarTileProps) {
   const c = (group: Parameters<typeof fundingCopy>[0], key: string, tokens: Record<string, string | number> = {}) =>
-    fundingCopy(group, key, tokens, messages);
+    fundingCopy(group, key, tokens, messages, view);
   const headline = tileHeadline(data, messages);
   const nextDeadline = data.next_deadlines[0] ?? null;
   const pad = compact ? "p-4 sm:p-5" : "p-5 sm:p-6";

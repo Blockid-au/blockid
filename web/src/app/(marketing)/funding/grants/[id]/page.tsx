@@ -2,7 +2,8 @@
  * /funding/grants/[id] — one grant, every field (T0241). Eligibility gates
  * from the `eligibility` jsonb become a requirements checklist; evidence,
  * how-to-apply and the official link are free; "Check my eligibility for
- * A$3" is the only paid door (/funding, T0242).
+ * <Money Finder price>" is the only paid door (/funding, T0242; price from
+ * the payg_enabled view, G35 P5 / D25).
  *
  * S9-B: at a glance, who it is for, what you get, how to apply (evidence +
  * the first three official application prompts), timing, FAQ and related
@@ -36,6 +37,7 @@ import {
 } from "@/lib/funding/directory";
 import { enrichGrant } from "@/lib/funding/enrich";
 import { FUNDING_CRUMBS, grantDescription, grantPath, grantTitle, guidesForGrant } from "@/lib/funding/seo";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -68,7 +70,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
   const g = await getGrant(id, ISR_READ);
   if (!g || g.exclude_from_matching) notFound();
 
-  const [grants, programs] = await Promise.all([listGrants(ISR_READ), listPrograms(ISR_READ)]);
+  const [grants, programs, view] = await Promise.all([listGrants(ISR_READ), listPrograms(ISR_READ), getPaygView()]);
   const e = enrichGrant(g, { grants, programs });
 
   const eligibleHref = `/funding?grant=${encodeURIComponent(g.id)}`;
@@ -104,7 +106,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
               href={eligibleHref}
               className="inline-flex h-10 items-center gap-2 rounded-full bg-action px-5 text-on-action hover:bg-action-hover"
             >
-              Check my eligibility for A$3
+              {`Check my eligibility for ${view.funding}`}
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
             <a
@@ -118,7 +120,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
             </a>
           </div>
           <p className="mt-3 text-xs text-secondary">
-            Apply only on the official portal. The list is free; the A$3 check is BlockID&rsquo;s analysis of your own startup
+            Apply only on the official portal. The list is free; the {view.funding} check is BlockID&rsquo;s analysis of your own startup
             against these gates.
           </p>
         </header>
@@ -202,7 +204,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
               </p>
               <p>
                 <Link href="/funding/report/demo" className="text-action underline-offset-2 hover:underline">
-                  See a sample A$3 report
+                  {`See a sample ${view.funding} report`}
                 </Link>
               </p>
             </nav>

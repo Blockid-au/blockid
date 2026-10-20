@@ -4,7 +4,7 @@
 // `paid`, generates and emails in one go. When the generation throws the row
 // sits at `failed` with a "being prepared" email already out; when the
 // process dies mid-way it sits at `paid` / `generating`. Nothing regenerated
-// those — the buyer paid A$3 for a page that says "contact support".
+// those — the buyer paid for a page that says "contact support".
 //
 // This sweep (every 30 min from /api/cron/funding-report-retry) picks rows
 // that carry a PAID marker — `meta.paid_at`, or `stripe_session_id` +

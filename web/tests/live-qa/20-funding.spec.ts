@@ -6,11 +6,27 @@
  * grants / programs directories render, `/workspace/funding` on the QA
  * project, and the paid report contract (402 insufficient_credits vs the
  * plan-included path, which is the only one the suite ever generates on).
+ *
+ * G35 P5 (D25): the Money Finder price follows platform_config.payg_enabled —
+ * OFF = A$3 / 3 credits (legacy), ON = A$19 / 19 credits. The suite accepts
+ * either state but demands the price and the credits agree with each other,
+ * and carries the credit cost it saw to the paid-report contract test.
  */
 import { test, expect } from "./fixtures";
 import { anonRequest, evidence, get, post } from "./lib/api";
 import { env } from "./lib/env";
 import { setScratch } from "./lib/run-state";
+
+/** payg_enabled OFF (legacy) / ON (D25) Money Finder price ↔ credits pairs. */
+const MONEY_FINDER_PRICES = [
+  { price: "A$3", credits: 3 },
+  { price: "A$19", credits: 19 },
+] as const;
+
+/** The pair whose price appears in `text` (word-bounded; "A$3,000" never matches "A$3"). */
+function moneyFinderPriceIn(text: string): (typeof MONEY_FINDER_PRICES)[number] | null {
+  return [...MONEY_FINDER_PRICES].reverse().find((p) => new RegExp(`${p.price.replace("$", "\\$")}(?![\\d,.])`).test(text)) ?? null;
+}
 
 const INTAKE = {
   description: "AI-assisted valuation and data-room tooling for Australian pre-seed founders (SaaS).",
@@ -34,7 +50,7 @@ interface Preview {
 }
 
 test.describe("Money Finder — public intake and directories", () => {
-  test("/funding: three-question intake → free preview renders matches, A$3 rail shows the price before any spend", async ({ page, visit, guard, credits }, testInfo) => {
+  test("/funding: three-question intake → free preview renders matches, the Money Finder rail shows the price before any spend", async ({ page, visit, guard, credits }, testInfo) => {
     const g = guard(page, { allowRequest: [{ method: "GET", pathRe: /^\/api\/svi\/phase-progress$/, status: 429 }] });
     const before = await credits.snapshot();
     await visit("/funding");
@@ -65,10 +81,12 @@ test.describe("Money Finder — public intake and directories", () => {
     const rail = await paywall.getAttribute("data-rail");
     const railText = await paywall.innerText();
     await evidence(testInfo, "paywall rail", { rail, text: railText.slice(0, 600) });
-    expect(railText).toMatch(/A\$3/);
+    const mf = moneyFinderPriceIn(railText);
+    expect(mf, "the rail shows the Money Finder price (A$3 legacy or A$19 v5)").not.toBeNull();
+    setScratch("funding.reportCredits", mf!.credits);
     if (rail === "credits") {
-      await expect(paywall.locator("[data-rail-form=credits]")).toContainText(/3 credits/);
-      await expect(paywall.getByRole("button", { name: /Generate for 3 credits/ })).toBeVisible();
+      await expect(paywall.locator("[data-rail-form=credits]")).toContainText(new RegExp(`\\b${mf!.credits} credits`));
+      await expect(paywall.getByRole("button", { name: new RegExp(`Generate for ${mf!.credits} credits`) })).toBeVisible();
     } else if (rail === "plan") {
       await expect(paywall.getByRole("button", { name: /Generate my report/ })).toBeVisible();
     }
@@ -98,7 +116,7 @@ test.describe("Money Finder — public intake and directories", () => {
     }
   });
 
-  test("A$3 guest checkout is previewed, not created: 400 on an invalid email; a Stripe-hosted URL only under LIVE_QA_SPEND_OK", async ({ qa }, testInfo) => {
+  test("Guest Money Finder checkout is previewed, not created: 400 on an invalid email; a Stripe-hosted URL only under LIVE_QA_SPEND_OK", async ({ qa }, testInfo) => {
     const anon = await anonRequest(qa.baseURL);
     try {
       const invalid = await post(anon, "/api/funding/checkout", { ...INTAKE, email: "not-an-email" });
@@ -174,7 +192,11 @@ test.describe("Money Finder — founder workspace and paid report contract", () 
       await expect(page.locator("[data-no-report]")).toContainText(/No report for this startup yet/);
     } else {
       const hint = page.locator("[data-paywall-hint]");
-      await expect(hint).toContainText(/A\$3/);
+      const hintText = await hint.innerText();
+      const mf = moneyFinderPriceIn(hintText);
+      expect(mf, "the hint shows the Money Finder price (A$3 legacy or A$19 v5)").not.toBeNull();
+      expect(hintText).toContain(`(${mf!.credits} credits)`);
+      setScratch("funding.reportCredits", mf!.credits);
       await expect(hint).toContainText(/Starter A\$29\/mo/);
     }
     await expect(page.locator("form[data-funding-intake]")).toBeVisible();
@@ -189,9 +211,11 @@ test.describe("Money Finder — founder workspace and paid report contract", () 
 
     const before = await credits.snapshot();
     const included = qa.scratch["funding.planIncluded"] === true;
-    if (!included && before >= 3 && !env.spendOk) {
-      testInfo.annotations.push({ type: "not-exercised", description: `report generation would spend 3 of the ${before} welcome credits (LIVE_QA_SPEND_OK unset) and the balance is not short enough for the 402 path` });
-      test.skip(true, "Free plan with ≥ 3 credits — neither the 402 nor the included path can be asserted without spending");
+    // Credit cost the paywall / hint showed earlier in this run (3 legacy, 19 with payg_enabled).
+    const cost = Number(qa.scratch["funding.reportCredits"] ?? 3);
+    if (!included && before >= cost && !env.spendOk) {
+      testInfo.annotations.push({ type: "not-exercised", description: `report generation would spend ${cost} of the ${before} welcome credits (LIVE_QA_SPEND_OK unset) and the balance is not short enough for the 402 path` });
+      test.skip(true, `Free plan with ≥ ${cost} credits — neither the 402 nor the included path can be asserted without spending`);
     }
     const r = await post<{ ok: boolean; error?: string; creditsRequired?: number; balance?: number; reportId?: string; url?: string; paidVia?: string; creditsCharged?: number; creditNote?: string }>(
       api,
@@ -205,10 +229,10 @@ test.describe("Money Finder — founder workspace and paid report contract", () 
       { timeoutMs: 150_000 },
     );
     await evidence(testInfo, "POST /api/funding/report", { status: r.status, body: { ...r.body, summary: undefined } });
-    if (!included && before < 3) {
+    if (!included && before < cost) {
       expect(r.status).toBe(402);
       expect(r.body.error).toBe("insufficient_credits");
-      expect(r.body.creditsRequired).toBe(3);
+      expect(r.body.creditsRequired).toBe(cost);
       expect(typeof r.body.balance).toBe("number");
       await credits.assertUnchanged(before, "funding report 402");
       return;

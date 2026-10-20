@@ -17,6 +17,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // ../investors/page.test.tsx.
 
 vi.mock("server-only", () => ({}));
+
+// G35 P5 (D25): payg_enabled view, both states (null → flag OFF, today's site).
+const payg = vi.hoisted(() => ({ view: null as import("@/lib/pricing/payg-copy").PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
 }));
@@ -164,6 +171,7 @@ beforeEach(() => {
   growthMock.mockReset().mockResolvedValue(false);
   refreshMock.mockReset().mockResolvedValue(null);
   latestDraftMock.mockReset().mockResolvedValue(null);
+  payg.view = null;
 });
 
 // The first test pays the cold transform of the whole workspace import graph
@@ -182,6 +190,8 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(out).toContain('data-plan-included="0"');
     expect(out).toContain("data-paywall-hint");
     expect(out).toContain("<strong>A$3</strong>");
+    expect(out).toContain("(3 credits) per run");
+    expect(out).toContain("The preview is free — the full report is A$3 (3 credits) or included in Starter.");
     expect(out).toContain("Starter A$29/mo");
     expect(out).not.toContain("data-funding-workspace");
     expect(out).toContain("data-funding-intake");
@@ -192,6 +202,18 @@ describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
     expect(out).toContain("2 grants and 1 programs are open");
     expect(latestReportMock).not.toHaveBeenCalled();
     expect(out).toContain('data-surface="funding_directory"');
+  });
+
+  it("free founder with payg_enabled ON (G35 P5, D25): hint + intake line quote A$19 / 19 credits", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    payg.view = PAYG_ON_VIEW;
+    canMock.mockResolvedValue(false);
+    const out = await html();
+    expect(out).toContain("<strong>A$19</strong>");
+    expect(out).toContain("(19 credits) per run");
+    expect(out).toContain("The preview is free — the full report is A$19 (19 credits) or included in Starter.");
+    expect(out).not.toContain("<strong>A$3</strong>");
+    expect(out).not.toContain("(3 credits)");
   });
 
   it("paid founder: seven tabs with the latest report on Grants, plus the intake to re-run", async () => {

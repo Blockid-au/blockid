@@ -16,7 +16,7 @@
 //                least one matched deadline inside 30 days
 //   nothing_due  money_radar but no deadline inside 30 days → next public
 //                event for the founder's capital (never blank)
-//   buyer        a ready `funding_reports` row (A$3 / credits / plan-included)
+//   buyer        a ready `funding_reports` row (one-off / credits / plan-included)
 //   free_previewed  no report, but the profile (project_grant_profiles or the
 //                intake prefill) is enough to run the free matcher server-side
 //   no_profile   nothing known → live counts for {industry} in {state}
@@ -387,7 +387,7 @@ export function buildMoneyRadarTileData(src: MoneyRadarTileSources): MoneyRadarT
     };
   }
 
-  // 3. A$3 / credits / plan-included report on file.
+  // 3. One-off / credits / plan-included report on file.
   if (src.report) {
     const deadlines = collectDeadlines(src);
     return {

@@ -1,6 +1,6 @@
 // Server-side lifecycle of a `funding_reports` row (T0242, plan §4a / §4e).
 //
-//   createPendingGuestReport()      guest A$3 — row BEFORE Stripe (pending_payment)
+//   createPendingGuestReport()      guest one-off — row BEFORE Stripe (pending_payment)
 //   handleFundingReportCompleted()  Stripe webhook branch: paid → generate → email
 //   generateAndStoreFundingReport() shared generator (guest + signed-in)
 //   getFundingReport()              raw row by id (service role)
@@ -374,9 +374,9 @@ export async function getFundingReport(id: string): Promise<FundingReportRow | n
 }
 
 /**
- * How many Money Finder reports this user has PAID for — A$3 one-off or
- * 3 credits; plan-included runs (`paid_via = 'plan'`) are not a spend. Drives
- * the "You've spent A$9 on 3 reports" Radar upsell (T0247). Fails to 0.
+ * How many Money Finder reports this user has PAID for — card one-off or
+ * credits; plan-included runs (`paid_via = 'plan'`) are not a spend. Drives
+ * the 3rd-purchase Radar upsell (T0247). Fails to 0.
  */
 export async function countPaidFundingReports(userId: string): Promise<number> {
   const supabase = getSupabaseAdmin();

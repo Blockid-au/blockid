@@ -73,15 +73,18 @@ import {
   stateSeoName,
 } from "@/lib/funding/seo";
 import { pageMetadata } from "@/lib/seo/page-meta";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const PATH = "/funding/grants";
 
 export const EMPTY_GRANT_FILTERS: GrantFilters = { state: null, type: null, stage: null, status: null };
 
-export function grantsMetadata(filters: GrantFilters): Metadata {
+/** `view` (G35 P5, D25): payg_enabled view for the priced state descriptions — default flag OFF. */
+export function grantsMetadata(filters: GrantFilters, view: PaygView = PAYG_OFF_VIEW): Metadata {
   const state = stateOnlyFilter(filters);
   if (state) {
-    const seo = grantsStateSeo(state);
+    const seo = grantsStateSeo(state, view);
     return pageMetadata({ title: seo.title, description: seo.description, path: grantsStatePath(state) });
   }
   return pageMetadata({ title: GRANTS_TITLE, description: GRANTS_DESCRIPTION, path: PATH });
@@ -96,7 +99,7 @@ export async function GrantsDirectory({ filters, throwOnUnavailable = false }: {
   const stateOnly = stateOnlyFilter(filters);
   const stateSeo = stateOnly ? grantsStateSeo(stateOnly) : null;
   const pagePath = stateOnly ? grantsStatePath(stateOnly) : PATH;
-  const all = await listGrants({ excludeNonMatching: true, throwOnUnavailable });
+  const [all, view] = await Promise.all([listGrants({ excludeNonMatching: true, throwOnUnavailable }), getPaygView()]);
   const stats = grantStats(all);
   const rows = applyGrantFilters(all, filters);
   const filterState = (AU_STATES as readonly string[]).includes(filters.state ?? "") ? (filters.state as AuState) : null;
@@ -266,7 +269,7 @@ export async function GrantsDirectory({ filters, throwOnUnavailable = false }: {
 
       <FundingGuides guides={GRANT_GUIDES} heading="Read before you apply" />
 
-      <FundingFaq items={directoryFaq("grants")} />
+      <FundingFaq items={directoryFaq("grants", null, view)} />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

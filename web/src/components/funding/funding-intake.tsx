@@ -7,7 +7,8 @@
  *   what are you building · state · stage   →  POST /api/funding/preview
  *   + "improve my match" drawer (industry, founder groups, A$ figures)
  *   → free preview (counts, top-3 with a why, "up to A$X", locked details)
- *   → paywall card (FundingPaywall: guest A$3 · 3 credits · included in plan)
+ *   → paywall card (FundingPaywall: guest card · credits · included in plan;
+ *     price from the payg_enabled `view` prop — G35 P5, D25)
  *
  * Prefill: `?intent=`, `?grant=<name>`, `?program=<name>`, `?state=`,
  * `?stage=` are read from `window.location` after hydration so the server
@@ -36,7 +37,8 @@ import {
 } from "@/lib/funding/intake";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 import { formatAudCompact } from "@/lib/funding/directory";
-import { FUNDING_COPY, fill } from "@/lib/funding/copy";
+import { FUNDING_COPY, fill, fundingCopyFor } from "@/lib/funding/copy";
+import { PAYG_OFF_VIEW, creditsLabel, type PaygView } from "@/lib/pricing/payg-copy";
 import type { FounderStage } from "@/lib/agents/grant-advisor-rules";
 import { FundingPaywall, type PaywallRail } from "./funding-paywall";
 
@@ -58,6 +60,11 @@ export interface FundingIntakeProps {
    * lands the founder in the first question — native `autoFocus`, no state.
    */
   autoFocus?: boolean;
+  /**
+   * G35 P5: the payg_enabled view, read server-side by the page
+   * (`getPaygView()`). Default = flag OFF (today's prices).
+   */
+  view?: PaygView;
 }
 
 export interface FormState {
@@ -138,7 +145,15 @@ export function prefillFromSearch(search: string): Partial<FormState> {
   return out;
 }
 
-export function FundingIntake({ openGrantCount, openProgramCount, initial, projectId, variant = "public", autoFocus = false }: FundingIntakeProps) {
+export function FundingIntake({
+  openGrantCount,
+  openProgramCount,
+  initial,
+  projectId,
+  variant = "public",
+  autoFocus = false,
+  view = PAYG_OFF_VIEW,
+}: FundingIntakeProps) {
   const [form, setForm] = React.useState<FormState>(() => initialForm(initial));
   const [drawer, setDrawer] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -229,7 +244,9 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
             ? initial && (initial.description || initial.state || initial.stage)
               ? "We prefilled what we know about this startup — check it and run the match."
               : "Tell us three things and we match them to this startup."
-            : "Tell us three things and we match them to you — the list is free, the analysis is A$3."}
+            : view.enabled
+              ? `Tell us three things and we match them to you. ${fundingCopyFor(view).pricing.scanLine}.`
+              : `Tell us three things and we match them to you — the list is free, the analysis is ${view.funding}.`}
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-5" noValidate data-funding-intake>
@@ -441,7 +458,9 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
               {loading ? "Matching…" : preview ? "Update my preview" : "Show my matches — free"}
             </button>
             <span className="text-xs text-tertiary">
-              {variant === "workspace" ? "The preview is free — the full report is A$3 (3 credits) or included in Starter." : "No signup. Nothing is stored until you buy a report."}
+              {variant === "workspace"
+                ? `The preview is free — the full report is ${view.funding} (${creditsLabel(view.fundingCredits)}) or included in Starter.`
+                : "No signup. Nothing is stored until you buy a report."}
             </span>
           </div>
         </form>
@@ -450,7 +469,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
       {preview && submitted ? (
         <div ref={previewRef} className="mt-8 scroll-mt-24">
           <FundingPreviewCard preview={preview} intake={submitted} headingRef={previewHeadingRef} />
-          <FundingPaywall intake={submitted} preview={preview} rail={rail} />
+          <FundingPaywall intake={submitted} preview={preview} rail={rail} view={view} />
         </div>
       ) : null}
     </section>

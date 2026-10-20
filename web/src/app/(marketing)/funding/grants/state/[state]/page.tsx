@@ -15,6 +15,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { grantsStateParams } from "@/lib/funding/grants-route";
 import { AU_STATES } from "@/lib/funding/seed-map";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { EMPTY_GRANT_FILTERS, GrantsDirectory, grantsMetadata } from "../../grants-directory";
 
 export const revalidate = 3600;
@@ -42,7 +43,7 @@ function stateOf(raw: string): string | null {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const state = stateOf((await params).state);
-  return grantsMetadata({ ...EMPTY_GRANT_FILTERS, state });
+  return grantsMetadata({ ...EMPTY_GRANT_FILTERS, state }, await getPaygView());
 }
 
 export default async function GrantsStatePage({ params }: { params: Params }) {

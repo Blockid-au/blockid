@@ -2,18 +2,27 @@
 // helper, the D-3 strings verbatim, the speakability rule (≤ 2 sentences),
 // the G11-9 number guard (no "PhD", no "A$5.50", no "A$99") and EN ⇄ VI
 // parity for every `funding.copy.*` key (same tokens, non-empty, ≤ 2
-// sentences in VI too).
+// sentences in VI too). G35 P5 (D25): the Money Finder price is a token,
+// resolved per payg_enabled view — flag OFF = today's strings, flag ON =
+// the v5 catalogue (A$19 / 19 credits).
 
 import { describe, expect, it } from "vitest";
 import en from "@/lib/i18n/messages/en.json";
 import vi from "@/lib/i18n/messages/vi.json";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
+import { PAYG_SKUS } from "@/lib/pricing/v5-payg";
+import { FUNDING_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { RADAR_UPSELL_TAIL } from "./radar-upsell";
 import {
   FUNDING_COPY,
   FUNDING_COPY_I18N_PREFIX,
+  FUNDING_COPY_TEMPLATES,
   fill,
   flattenFundingCopy,
   fundingCopy,
+  fundingCopyFor,
+  fundingPriceTokens,
+  fundingSeedPairs,
   nextDeadlineLine,
   tokensOf,
   weekdayOf,
@@ -70,7 +79,7 @@ describe("D-3 strings (verbatim)", () => {
     );
   });
 
-  it("A$3 → subscribe upsell shares the T0247 tail (no duplicate)", () => {
+  it("report → subscribe upsell shares the T0247 tail (no duplicate)", () => {
     expect(FUNDING_COPY.upsell.tail).toBe(RADAR_UPSELL_TAIL);
     expect(`${fill(FUNDING_COPY.upsell.snapshot, { next_program: "MVP Ventures", d: 12, k: 3 })} ${FUNDING_COPY.upsell.tail}`).toBe(
       "This report is a snapshot. MVP Ventures closes in 12 days and 3 programs on your list open new rounds this quarter. Founder Radar watches them for you: alerts, monthly re-match, weekly next step — A$29/mo, first 7 days free.",
@@ -127,13 +136,83 @@ describe("speakability + number guards", () => {
     }
   });
 
-  it("never says PhD, A$5.50 or A$99 (G11-9: Free / A$3 / A$29 only)", () => {
+  it("never says PhD, A$5.50 or A$99 (G11-9: Free / report / A$29 only) — in either flag state", () => {
+    for (const [view, price] of [
+      [PAYG_OFF_VIEW, "A$3"],
+      [PAYG_ON_VIEW, "A$19"],
+    ] as const) {
+      const text = Object.values(flattenFundingCopy(view)).join("\n");
+      expect(text).not.toMatch(/PhD/);
+      expect(text).not.toContain("5.50");
+      expect(text).not.toMatch(/A\$99/);
+      expect(text).toContain(price);
+      expect(text).toContain("A$29");
+      expect(text).not.toMatch(/\{funding(Price|Credits)\}/);
+    }
+  });
+
+  it("no template types a Money Finder price — only the {fundingPrice} / {fundingCredits} tokens", () => {
     const text = Object.values(flat).join("\n");
-    expect(text).not.toMatch(/PhD/);
-    expect(text).not.toContain("5.50");
-    expect(text).not.toMatch(/A\$99/);
-    expect(text).toContain("A$3");
-    expect(text).toContain("A$29");
+    expect(text).not.toMatch(/A\$(3|19)\b/);
+    expect(text).toContain("{fundingPrice}");
+    expect(text).toContain("{fundingCredits}");
+  });
+});
+
+describe("payg_enabled views (G35 P5, D25)", () => {
+  it("flag OFF is today's site: legacy v3 SKU price + credits", () => {
+    expect(fundingPriceTokens()).toEqual({ fundingPrice: "A$3", fundingCredits: 3 });
+    expect(PAYG_OFF_VIEW.fundingCents).toBe(FUNDING_REPORT_3AUD.unit_amount_incl_gst_cents);
+    expect(FUNDING_COPY).toBe(fundingCopyFor(PAYG_OFF_VIEW));
+    expect(FUNDING_COPY.cta.unlockReport).toBe("Unlock full report A$3");
+    expect(FUNDING_COPY.pricing.reportPrice).toBe("A$3 · or 3 credits");
+    expect(FUNDING_COPY.faq.reportA).toBe(
+      "For A$3: your ranked grants and programs, an eligibility checklist per match, an A$ estimate and a 12-month application timeline.",
+    );
+  });
+
+  it("flag ON is D25: report_funding catalogue price + credits, 'Free scan · A$19 full'", () => {
+    expect(PAYG_ON_VIEW.fundingCents).toBe(PAYG_SKUS.report_funding.amountCents);
+    expect(PAYG_ON_VIEW.fundingCredits).toBe(PAYG_SKUS.report_funding.creditCost);
+    const on = fundingCopyFor(PAYG_ON_VIEW);
+    expect(on.cta.unlockReport).toBe("Unlock full report A$19");
+    expect(on.hero.subPrice).toBe("The list is free. The eligibility check, ranking and 12-month plan are A$19.");
+    expect(on.paywall.card).toBe(
+      "Unlock the full ranked list, eligibility checklist, A$ estimate and 12-month timeline — A$19, or free with Founder Radar (7-day trial).",
+    );
+    expect(on.pricing.reportPrice).toBe("A$19 · or 19 credits");
+    expect(on.pricing.scanLine).toBe("Free scan · A$19 full");
+    expect(on.faq.grantsFreeA).toContain("A$19 buys the eligibility analysis");
+    expect(on.faq.reportA.startsWith("For A$19:")).toBe(true);
+    // Unpriced strings are identical in both states.
+    expect(on.hero.h1).toBe(FUNDING_COPY.hero.h1);
+    expect(fundingCopyFor(PAYG_ON_VIEW)).toBe(on);
+  });
+
+  it("fundingCopy() fills the price from the view (EN + VI), explicit tokens win", () => {
+    expect(fundingCopy("pricing", "reportPrice")).toBe("A$3 · or 3 credits");
+    expect(fundingCopy("pricing", "reportPrice", {}, null, PAYG_ON_VIEW)).toBe("A$19 · or 19 credits");
+    expect(fundingCopy("pricing", "reportPrice", {}, VI)).toBe("A$3 · hoặc 3 credit");
+    expect(fundingCopy("pricing", "reportPrice", {}, VI, PAYG_ON_VIEW)).toBe("A$19 · hoặc 19 credit");
+    expect(fundingCopy("cta", "unlockReport", { fundingPrice: "X" }, null, PAYG_ON_VIEW)).toBe("Unlock full report X");
+  });
+
+  it("fundingSeedPairs() seeds the EN → VI pair for both flag states, nothing for unpriced strings", () => {
+    const k = "funding.copy.cta.unlockReport";
+    expect(fundingSeedPairs(EN[k]!, VI[k]!)).toEqual([
+      ["Unlock full report A$3", "Mở khóa báo cáo đầy đủ A$3"],
+      ["Unlock full report A$19", "Mở khóa báo cáo đầy đủ A$19"],
+    ]);
+    expect(fundingSeedPairs(EN["funding.copy.cta.needMoney"]!, VI["funding.copy.cta.needMoney"]!)).toEqual([]);
+  });
+
+  it("meta.funding.description carries the price token in both catalogues", () => {
+    expect(EN["meta.funding.description"]).toContain("{fundingPrice}");
+    expect(tokensOf(VI["meta.funding.description"]!)).toEqual(tokensOf(EN["meta.funding.description"]!));
+  });
+
+  it("the templates object is what the catalogues mirror", () => {
+    expect(FUNDING_COPY_TEMPLATES.pricing.reportPrice).toBe("{fundingPrice} · or {fundingCredits} credits");
   });
 });
 

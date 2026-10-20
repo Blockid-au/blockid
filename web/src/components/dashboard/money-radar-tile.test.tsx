@@ -9,6 +9,7 @@ import vi from "@/lib/i18n/messages/vi.json";
 import { DEADLINE_TONE } from "@/lib/funding/deadline-status";
 import type { MoneyRadarTileData } from "@/lib/funding/tile-data";
 import { MoneyRadarTile, TILE_HREFS } from "./money-radar-tile";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 async function html(data: MoneyRadarTileData, props: Partial<Parameters<typeof MoneyRadarTile>[0]> = {}): Promise<string> {
   const stream = await renderToReadableStream(<MoneyRadarTile data={data} {...props} />);
@@ -103,6 +104,15 @@ describe("MoneyRadarTile — five states (D-2)", () => {
     expect(out).toContain(`href="${TILE_HREFS.workspace}"`);
     expect(out).toContain("Start Founder Radar trial");
     expect(out).toContain('href="/signup?plan=founder_starter&amp;trial=1&amp;from=tile"');
+  });
+
+  it("free_previewed with payg_enabled ON (G35 P5, D25): Unlock full report A$19 (EN + VI)", async () => {
+    const out = await html(base({ state: "free_previewed", top3: TOP3, next_deadlines: DEADLINES.slice(1) }), { view: PAYG_ON_VIEW });
+    expect(out).toContain("Unlock full report A$19");
+    expect(out).not.toContain("Unlock full report A$3");
+    const outVi = await html(base({ state: "free_previewed", top3: TOP3 }), { view: PAYG_ON_VIEW, messages: vi as Record<string, string> });
+    expect(outVi).toContain("Mở khóa báo cáo đầy đủ A$19");
+    expect(outVi).not.toContain("{fundingPrice}");
   });
 
   it("buyer: A$ + deadline chips on the top-3, 'Deadlines move — get alerts', 7-day trial + report link", async () => {

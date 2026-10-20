@@ -42,7 +42,7 @@
 //
 // T0246 enqueues `radar_t30/t14/t3` drips from rows where
 // `last_notified ? 'pending_email'` (partial index in migration 0318) and
-// removes the key once claimed. In-app buyers (A$3, no plan) never get
+// removes the key once claimed. In-app buyers (one-off, no plan) never get
 // `pending_email`, so the drip worker cannot email them by accident;
 // `canSendEmail(email, "money_radar")` still gates the actual send.
 //
@@ -66,7 +66,7 @@
 //            — ≥ 14 days after touch 1, still empty
 //   never a third. The drip rows ARE the counter (`listRadarSetupTouches`,
 //   any status), so no new table; `canSendEmail(email,"money_radar")` is
-//   respected before any enqueue. In-app-only buyers (A$3) are not Radar
+//   respected before any enqueue. In-app-only buyers (one-off) are not Radar
 //   subscribers and are not nudged.
 //
 // Everything with side effects goes through `RadarStore`; tests pass a fake.
@@ -767,7 +767,7 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
         }
       }
 
-      // A$3 / credit buyers in the last 90 days → in-app only.
+      // One-off / credit buyers in the last 90 days → in-app only.
       const { data: reports } = await db
         .from("funding_reports")
         .select("user_id")

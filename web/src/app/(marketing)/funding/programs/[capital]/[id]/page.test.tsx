@@ -16,6 +16,13 @@ const notFoundSpy = vi.fn(() => {
 });
 vi.mock("next/navigation", () => ({ notFound: () => notFoundSpy() }));
 
+// G35 P5 (D25): payg_enabled view, both states (null → flag OFF, today's site).
+const payg = vi.hoisted(() => ({ view: null as import("@/lib/pricing/payg-copy").PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
+
 function program(over: Partial<AuProgram>): AuProgram {
   return {
     id: "p",

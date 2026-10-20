@@ -14,6 +14,7 @@
 import type { Locale } from "./locales";
 import { DEFAULT_LOCALE } from "./locales";
 import { fillEntityTokens } from "@/lib/site/legal-entity";
+import { fundingSeedPairs } from "@/lib/funding/copy";
 import en from "./messages/en.json";
 import vi from "./messages/vi.json";
 
@@ -42,6 +43,9 @@ export function buildSeedCatalog(target: Locale): Record<string, string> {
     if (enVal === targetVal) continue;
     // Entity tokens are filled before the DOM walker sees the text (G21 P0-A).
     out[fillEntityTokens(enVal)] = fillEntityTokens(targetVal);
+    // G35 P5 (D25): Money Finder price tokens are filled at render from the
+    // payg_enabled view, so seed the sentence as rendered in BOTH flag states.
+    for (const [enFilled, targetFilled] of fundingSeedPairs(enVal, targetVal)) out[enFilled] = targetFilled;
   }
   return out;
 }
