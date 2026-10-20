@@ -4,6 +4,7 @@ import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { AdminDashboardClient } from "./admin-dashboard-client";
 import { loadReportKpis, type ReportKpiDb } from "@/lib/admin/report-kpis";
+import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
 
 export const metadata: Metadata = {
   title: "Admin — BlockID.au",
@@ -49,6 +50,8 @@ export default async function AdminPage() {
   }
   // S-R5 §E.5: report KPIs (7-day snapshots, spend ledger, comparables cache) — degrades to nulls.
   const reportKpis = await loadReportKpis(supabase as unknown as ReportKpiDb | null).catch(() => null);
+  // G35 P5: the PAYG tile follows the one Pricing v5 switch.
+  const paygEnabled = await isPaygEnabled().catch(() => false);
 
   return (
     <AdminDashboardClient
@@ -60,6 +63,7 @@ export default async function AdminPage() {
       sviAccounts={sviAccounts}
       recentAnalyses={recentAnalyses}
       reportKpis={reportKpis}
+      paygEnabled={paygEnabled}
     />
   );
 }

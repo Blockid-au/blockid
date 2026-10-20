@@ -72,6 +72,19 @@ describe("loadReportKpis", () => {
     setComparablesForTests(null);
   });
 
+  // G35 P5: PAYG KPIs ride the same tile payload; a failing loader degrades to null.
+  it("carries the PAYG KPIs from the injected loader and null when it fails", async () => {
+    setComparablesForTests([]);
+    const { computePaygKpis } = await import("./payg-kpis");
+    const payg = computePaygKpis({ orders: [], now: NOW });
+    const k = await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => null, loadPayg: async () => payg });
+    expect(k.payg).toEqual(payg);
+    const failed = await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => null, loadPayg: async () => { throw new Error("no 0474"); } });
+    expect(failed.payg).toBeNull();
+    expect((await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => null })).payg).toBeNull();
+    setComparablesForTests(null);
+  });
+
   it("G19-S45: reads the 30-day tbr_clarity:% answers through .like() and folds them into kpis.clarity", async () => {
     setComparablesForTests([]);
     const likes: Array<[string, string]> = [];
