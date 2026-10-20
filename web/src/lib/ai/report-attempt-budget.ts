@@ -14,14 +14,23 @@ export const currentReportSpendScope = () => context.getStore();
 export function withReportSpendScope<T>(scope: string, run: () => T): T { return context.run(scope, run); }
 export const REPORT_MAX_MICRO_USD = 500_000;
 export const REPORT_PRICE_POLICY = "deepinfra-standard-2026-09-23";
-// Official /MODEL/api pages, observed 2026-09-23. No priority tier or cache-retention purchase.
+// Official /MODEL/api pages, observed 2026-09-23, re-observed unchanged 2026-10-20. No priority tier or cache-retention purchase.
 const PRICES: Record<string, { input: number; output: number; context: number }> = {
   "deepseek-ai/DeepSeek-V3.2": { input: 260, output: 380, context: 163840 },
   "Qwen/Qwen3-235B-A22B-Instruct-2507": { input: 90, output: 550, context: 262144 },
   "deepseek-ai/DeepSeek-V4-Flash": { input: 90, output: 180, context: 1048576 },
   "Qwen/Qwen3-VL-235B-A22B-Instruct": { input: 200, output: 880, context: 262144 },
 };
-const EXPIRES = Date.parse("2026-10-23T00:00:00Z");
+// Price-policy expiry: reserve() refuses EVERY report call at/after this instant
+// (fail closed on stale prices). Prices re-observed on the official DeepInfra
+// pages 2026-10-20 — all four unchanged (V3.2 0.26/0.38, Qwen3-235B-2507
+// 0.09/0.55, V4-Flash 0.09/0.18, Qwen3-VL-235B 0.20/0.88 USD per 1M); founder
+// approval W0 2026-10-20 extended it +30 days (was 2026-10-23). The policy id
+// above is deliberately unchanged: ledgerSchema pins it, so a new id would
+// invalidate in-flight ledgers. Re-verify prices and extend again before this
+// passes — /api/cron/ai-health-check alerts ops once a day inside 7 days.
+export const REPORT_PRICE_POLICY_EXPIRES_AT = "2026-11-22T00:00:00Z";
+const EXPIRES = Date.parse(REPORT_PRICE_POLICY_EXPIRES_AT);
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 // G33-T06: `input` = certified input-token ceiling for the attempt (the request's
