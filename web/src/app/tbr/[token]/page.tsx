@@ -13,7 +13,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
-import { loadAssessmentContext } from "@/lib/svi/assessment-context";
+import { assessmentCardOptionsFromContext, loadAssessmentContext } from "@/lib/svi/assessment-context";
+import { projectPersistedForTier, projectReportForTier, tierForStoredDocument } from "@/lib/report-v2/tier-projection";
 import { readSviBacktestHeadline } from "@/lib/backtest/latest";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
@@ -212,11 +213,17 @@ export default async function TbrSharePage({
   const loaded = await loadReportV2ByShareToken(token);
   const result = (await fetchByToken(token)) ?? revisionOnlyResult(loaded);
   if (!result) notFound();
-  const initialReportV2 = loaded?.report ?? null;
+  const storedReportV2 = loaded?.report ?? null;
   // G34 F02/S3: the previous same-project revision → the scorecard trend (same method only).
   const trendBaseline = await loadTrendBaseline(token, getSupabaseAdmin());
   // G21 P1: benchmark for the Assessment Card, published only under the n-rule.
-  const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null, initialReportV2?.cover.sector ?? null);
+  const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, storedReportV2?.cover.stage ?? null, storedReportV2?.cover.sector ?? null);
+  // G35 Pricing v5 P2 (plan §6.5): a share link serves the document at the
+  // tier it was generated for — a free document's locked chapter bodies are
+  // removed HERE, so they are not in the page's RSC payload either.
+  const shareTier = storedReportV2 ? tierForStoredDocument(storedReportV2) : "full";
+  const initialReportV2 = storedReportV2 ? projectReportForTier(storedReportV2, shareTier, { assessment: assessmentCardOptionsFromContext(assessmentContext) }) : null;
+  const initialData = projectPersistedForTier(result.persisted, shareTier);
   // G34 BT6 (RQ21): the published SVI backtest headline for the page-1 calibration line.
   const calibration = await readSviBacktestHeadline();
   // G34 BT3 (spec §3): "Viewing rev N · Latest rev M" — the latest link only for the project owner.
@@ -227,7 +234,7 @@ export default async function TbrSharePage({
     <div className="min-h-screen bg-surface text-primary">
       <BusinessReportClient
         projectId={result.row.project_id ?? "shared"}
-        initialData={result.persisted}
+        initialData={initialData}
         initialReportV2={initialReportV2}
         shareToken={token}
         pdfMode={pdfMode}

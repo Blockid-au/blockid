@@ -82,7 +82,9 @@ import {
   toReportView,
   type ReportExportFormat,
 } from "@/lib/paywall/report-delivery";
-import { readAssembledReportJson } from "@/lib/report-v2/storage";
+import { readAssembledReportJson, readAssembledReportPaygTier } from "@/lib/report-v2/storage";
+import { resolveOrderTier } from "@/lib/report-v2/order-tier";
+import { projectReportForTier, type ReportAccessTier } from "@/lib/report-v2/tier-projection";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
@@ -266,7 +268,30 @@ export async function GET(
 
   // G19-S45: the ReportV2 document behind the order (null for pre-v2 rows
   // or when migration 0395 is not applied — the storage helper degrades).
-  const reportV2 = await readAssembledReportJson(supabase, reportId).catch(() => null);
+  const storedV2 = await readAssembledReportJson(supabase, reportId).catch(() => null);
+
+  // G35 Pricing v5 P2 (plan §6.5): the order's tier decides the cut — the
+  // SKU it bought (legacy A$3 / credits = full) raised by the stored
+  // report's payg_tier (an upgrade re-projects, never regenerates). JSON,
+  // PDF and DOCX all serialise the projected document.
+  // `product_sku` stays out of ORDER_SELECT_COLUMNS (the view whitelist);
+  // it is read here, owner-scoped, only to derive the tier.
+  const [paygTier, skuRow] = await Promise.all([
+    readAssembledReportPaygTier(supabase, reportId).catch(() => null),
+    readOrderSku(supabase, orderId, user.id),
+  ]);
+  if (skuRow === undefined) {
+    console.error("[blockid:reports/order] order tier lookup failed", { orderId });
+    return json({ ok: false, reason: "Lookup failed" }, 500);
+  }
+  const tier = resolveOrderTier({ product_sku: skuRow }, paygTier);
+  const reportV2 = storedV2 ? projectReportForTier(storedV2, tier) : null;
+  if (!reportV2 && (tier === "snapshot" || tier === "free")) {
+    // A Snapshot has no legacy markdown rendering: never fall back to the
+    // full-markdown view / exports for it.
+    console.error("[blockid:reports/order] snapshot order without a ReportV2 document", { orderId });
+    return json({ ok: false, status, reason: "report_unavailable", message: "Your report could not be located. Support has been notified — please contact us and we will regenerate or refund it.", order }, 404);
+  }
 
   // ── 5. Serve ─────────────────────────────────────────────────────────
   if (format === "json") {
@@ -277,13 +302,35 @@ export async function GET(
         reason: disposition.reason,
         message: disposition.message,
         order,
-        report: toReportView(report, reportRow, reportV2),
+        tier,
+        report: projectReportViewForTier(toReportView(report, reportRow, reportV2), tier),
       },
       200,
     );
   }
 
   return renderExport(format, report, reportRow, user, supabase, reportV2);
+}
+
+/** The order's SKU (owner-scoped). `undefined` = the read failed — the caller answers 500 rather than guess a tier. */
+async function readOrderSku(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>, orderId: string, userId: string): Promise<string | null | undefined> {
+  try {
+    const { data, error } = await supabase.from("report_orders").select("product_sku").eq("id", orderId).eq("user_id", userId).maybeSingle();
+    if (error) return undefined;
+    const sku = (data as { product_sku?: unknown } | null)?.product_sku;
+    return typeof sku === "string" ? sku : null;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Below Full, the legacy markdown body (`markdown` + section `content`) is
+ * the whole report — drop it; the projected ReportV2 is the deliverable.
+ */
+function projectReportViewForTier<T extends { markdown: string; sections: Array<{ content: string }> }>(view: T, tier: ReportAccessTier): T {
+  if (tier === "full" || tier === "verified") return view;
+  return { ...view, markdown: "", sections: view.sections.map((s) => ({ ...s, content: "" })) };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

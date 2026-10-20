@@ -333,6 +333,7 @@ describe("status → HTTP", () => {
     SHARED: 200,
     PAID: 202,
     GENERATING: 202,
+    IN_REVIEW: 202,
     CHECKOUT_INITIATED: 402,
     PAYMENT_PENDING: 402,
     NOT_PURCHASED: 402,
@@ -608,6 +609,75 @@ describe("exports", () => {
 // PII / secret scan — mirrors lib/business-id/public-profile.test.ts
 // ─────────────────────────────────────────────────────────────────────────
 
+describe("tier projection (G35 Pricing v5 P2)", () => {
+  function plantedV2() {
+    const r = demoReportV2();
+    const svm = r.dimensions.find((d) => d.dim === "svm")!;
+    svm.criteria = svm.criteria.map((c) => ({ ...c, verdict: "LOCKED-BODY-svm-criterion" }));
+    if (r.valuation.status !== "unavailable") r.valuation = { ...r.valuation, narrative: "LOCKED-BODY-valuation" };
+    return r;
+  }
+
+  it("a legacy A$3 / credits order is served the full stored document", async () => {
+    seedOrder();
+    seedReport({ report_json: plantedV2() });
+    const res = await call();
+    const raw = await res.text();
+    const body = JSON.parse(raw) as { tier: string; report: { reportV2: { projection?: unknown } } };
+    expect(body.tier).toBe("full");
+    expect(body.report.reportV2.projection).toBeUndefined();
+    expect(raw).toContain("LOCKED-BODY-svm-criterion");
+  });
+
+  it("a Snapshot order gets the snapshot cut: no chapter / valuation body, no legacy markdown", async () => {
+    seedOrder({ product_sku: "report_snapshot" });
+    seedReport({ report_json: plantedV2() });
+    const res = await call();
+    expect(res.status).toBe(200);
+    const raw = await res.text();
+    expect(raw).not.toContain("LOCKED-BODY");
+    expect(raw).not.toContain("TAM is A$4.2b");
+    const body = JSON.parse(raw) as { tier: string; report: { markdown: string; reportV2: { projection: { tier: string; upgrade: { sku: string } } } } };
+    expect(body.tier).toBe("snapshot");
+    expect(body.report.markdown).toBe("");
+    expect(body.report.reportV2.projection.tier).toBe("snapshot");
+    expect(body.report.reportV2.projection.upgrade.sku).toBe("upgrade_snapshot_full");
+  });
+
+  it("after an upgrade (payg_tier raised to full) the SAME stored report is served in full — no regeneration", async () => {
+    seedOrder({ product_sku: "report_snapshot" });
+    const stored = plantedV2();
+    seedReport({ report_json: stored, payg_tier: "full" });
+    const res = await call();
+    const raw = await res.text();
+    const body = JSON.parse(raw) as { tier: string; report: { reportV2: { reportId: string } } };
+    expect(body.tier).toBe("full");
+    expect(body.report.reportV2.reportId).toBe(stored.reportId);
+    expect(raw).toContain("LOCKED-BODY-svm-criterion");
+  });
+
+  it("a Snapshot order exports the projected document (PDF and DOCX)", async () => {
+    seedOrder({ product_sku: "report_snapshot" });
+    seedReport({ report_json: plantedV2() });
+    await call(ORDER_ID, "?format=pdf");
+    await call(ORDER_ID, "?format=docx");
+    const pdfDoc = renderTbrPdfMock.mock.calls.at(-1)![0] as { projection?: { tier: string } };
+    const docxDoc = generateTbrDocxMock.mock.calls.at(-1)![0] as { projection?: { tier: string } };
+    expect(pdfDoc.projection?.tier).toBe("snapshot");
+    expect(docxDoc.projection?.tier).toBe("snapshot");
+    expect(JSON.stringify(pdfDoc)).not.toContain("LOCKED-BODY");
+    expect(JSON.stringify(docxDoc)).not.toContain("LOCKED-BODY");
+  });
+
+  it("a Snapshot order without a ReportV2 never falls back to the full legacy markdown", async () => {
+    seedOrder({ product_sku: "report_snapshot" });
+    seedReport();
+    const res = await call();
+    expect(res.status).toBe(404);
+    expect(await res.text()).not.toContain("TAM is A$4.2b");
+  });
+});
+
 describe("payload whitelist", () => {
   const ORDER_KEYS = [
     "orderId",
@@ -655,7 +725,8 @@ describe("payload whitelist", () => {
     };
 
     expect(Object.keys(body).sort()).toEqual(
-      ["ok", "status", "reason", "message", "order", "report"].sort(),
+      // G35 Pricing v5 P2: `tier` = the access tier the report was projected at.
+      ["ok", "status", "reason", "message", "order", "tier", "report"].sort(),
     );
     expect(Object.keys(body.order).sort()).toEqual(ORDER_KEYS);
     expect(Object.keys(body.report).sort()).toEqual(REPORT_KEYS);

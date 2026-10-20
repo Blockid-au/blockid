@@ -41,6 +41,21 @@ vi.mock("@/lib/projects", () => ({
   findSVIAccountWithFallback: (...args: unknown[]) => findSVIAccountMock(...args),
 }));
 
+// G35 Pricing v5 P2: the caller's tier is resolved server-side; the stored
+// ReportV2 read is stubbed per test (null = adapter path, as before).
+const resolveTierMock = vi.fn<(...args: unknown[]) => Promise<"free" | "snapshot" | "full" | "verified">>();
+vi.mock("@/lib/report-v2/tier-access", () => ({
+  resolveFounderReportTier: (...args: unknown[]) => resolveTierMock(...args),
+}));
+const readStoredV2Mock = vi.fn<(...args: unknown[]) => Promise<unknown>>();
+vi.mock("@/lib/report-v2/storage", () => ({
+  readSnapshotReportV2: (...args: unknown[]) => readStoredV2Mock(...args),
+}));
+vi.mock("@/lib/svi/assessment-context", () => ({
+  loadAssessmentContext: async () => ({ unverifiedMaterialClaims: null, benchmark: null, evidenceConfidence: null }),
+  assessmentCardOptionsFromContext: (ctx: Record<string, unknown>) => ctx,
+}));
+
 class FakeAccessError extends Error {
   code: string;
   constructor(code: string) {
@@ -175,6 +190,10 @@ beforeEach(() => {
   findSVIAccountMock.mockReset();
   getCurrentUserMock.mockResolvedValue(USER_A);
   getSupabaseAdminMock.mockReturnValue(makeSupabase());
+  resolveTierMock.mockReset();
+  resolveTierMock.mockResolvedValue("full");
+  readStoredV2Mock.mockReset();
+  readStoredV2Mock.mockResolvedValue(null);
 });
 
 describe("GET /api/svi/report/[projectId] — tenancy", () => {
@@ -304,5 +323,46 @@ describe("GET /api/svi/report/[projectId] — tenancy", () => {
     expect(findSVIAccountMock).toHaveBeenCalledWith(USER_A.email, P_A, "id, project_id", {
       callerEmail: member.email,
     });
+  });
+});
+
+describe("GET /api/svi/report/[projectId] — server-side tier projection (G35 Pricing v5 P2)", () => {
+  async function storedFree() {
+    const { freeFixtureReportV2 } = await import("@/lib/report-v2/fixtures");
+    const r = freeFixtureReportV2();
+    // a body only the full report may carry
+    const cgh = r.dimensions.find((d) => d.dim === "cgh")!;
+    cgh.criteria = cgh.criteria.map((c) => ({ ...c, verdict: "LOCKED-BODY-cgh-criterion" }));
+    cgh.strengths = ["LOCKED-BODY-cgh-strength"];
+    return r;
+  }
+
+  beforeEach(() => {
+    getProjectScopeMock.mockResolvedValue({ projectId: P_A, dataEmail: USER_A.email, role: "owner", isOwner: true });
+    findSVIAccountMock.mockResolvedValue({ id: "acct-a", project_id: P_A });
+  });
+
+  it("a free caller gets the free cut — no locked chapter body in the JSON", async () => {
+    readStoredV2Mock.mockResolvedValue(await storedFree());
+    resolveTierMock.mockResolvedValue("free");
+    const res = await call("default");
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain("LOCKED-BODY");
+    const body = JSON.parse(text) as { tier: string; reportV2: { projection: { tier: string; lockedDims: string[] } } };
+    expect(body.tier).toBe("free");
+    expect(body.reportV2.projection.tier).toBe("free");
+    expect(body.reportV2.projection.lockedDims.sort()).toEqual(["cgh", "iri", "lco", "svm"]);
+    expect(resolveTierMock).toHaveBeenCalledWith(expect.anything(), { userId: USER_A.id, plan: undefined, projectId: P_A });
+  });
+
+  it("an entitled caller (plan-included / paid Full) gets the stored document untouched", async () => {
+    readStoredV2Mock.mockResolvedValue(await storedFree());
+    resolveTierMock.mockResolvedValue("full");
+    const res = await call("default");
+    const body = (await res.json()) as { tier: string; reportV2: Record<string, unknown> };
+    expect(body.tier).toBe("full");
+    expect(body.reportV2.projection).toBeUndefined();
+    expect(JSON.stringify(body.reportV2)).toContain("LOCKED-BODY-cgh-criterion");
   });
 });

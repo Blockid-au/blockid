@@ -52,6 +52,7 @@ import { CANONICAL_STAGE_LABELS, sviStageToCanonical } from "@/lib/journey-vocab
 import { coverVerificationFor, resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
 import { isReportV2, type CoverVerification, type ReportV2 } from "@/lib/report-v2/schema";
 import { readEvaluationReportV2 } from "@/lib/report-v2/storage";
+import { projectReportForTier } from "@/lib/report-v2/tier-projection";
 import { buildDashboardV4 } from "@/lib/report-v2/dashboard-v4";
 import { buildEvaluatorTriage, type EvaluatorTriage } from "./triage-verdict";
 import { DIMENSION_OWNERS, DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
@@ -801,6 +802,12 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       isReportV2,
     );
   }
+  // G35 Pricing v5 P2 (plan §6.5): evaluator reads are served at the Full
+  // tier — the evaluator's own paid / quota evaluation_reports document, or
+  // the evaluator plan's included view of the founder's latest document
+  // (subscriptions include Full, plan §2). Explicit so a future evaluator
+  // tier has one place to change.
+  if (report) report = projectReportForTier(report, "full");
 
   const svi = latest ? num(latest.svi_total) : null;
   const olderSvi = older ? num(older.svi_total) : null;

@@ -604,6 +604,30 @@ export interface ReportV2 {
    * documents only; absent on older rows (never backfilled, never recomputed).
    */
   methodMeta?: ReportMethodMeta;
+  /**
+   * G35 Pricing v5 (P2): set ONLY on a server-side tier projection
+   * (`lib/report-v2/tier-projection.ts`) — which access tier this payload was
+   * cut for and which sections had their bodies removed. Never stored.
+   */
+  projection?: ReportProjection;
+}
+
+/** G35 Pricing v5: the access tiers a stored report can be served at (`free` = no purchase). */
+export type ReportAccessTier = "free" | "snapshot" | "full" | "verified";
+
+/** G35 Pricing v5: what a tier projection removed (metadata the client renders locked cards from). */
+export interface ReportProjection {
+  tier: ReportAccessTier;
+  /** Section ids (`tier-projection.ts` PROJECTION_SECTION_IDS) whose bodies were removed server-side. */
+  lockedSections: string[];
+  /** Dimension chapters served as metadata-only cards. */
+  lockedDims: DimKey[];
+  /** Upgrade CTA marker — the next tier and the SKU that buys it (null at the top of the ladder). */
+  upgrade: { to: "full" | "verified"; sku: "report_full" | "upgrade_snapshot_full" | "upgrade_full_verified" } | null;
+  /** Snapshot: the weighted evidence confidence (0–100) the Assessment Card computed before the cut. */
+  evidenceConfidence?: number;
+  /** Snapshot: the top 3 strengths / risks (plain lines from the investment view). */
+  highlights?: { strengths: string[]; risks: string[] };
 }
 
 /**
@@ -1112,6 +1136,16 @@ export const reportV2Schema = z.object({
   pageBudget: z.object({ free: z.literal(FREE_PAGE_BUDGET), renderedPages: z.number().optional() }),
   investmentView: investmentViewSchema.optional(),
   methodMeta: reportMethodMeta.optional(),
+  projection: z
+    .object({
+      tier: z.enum(["free", "snapshot", "full", "verified"]),
+      lockedSections: z.array(z.string()),
+      lockedDims: z.array(dimKey),
+      upgrade: z.object({ to: z.enum(["full", "verified"]), sku: z.enum(["report_full", "upgrade_snapshot_full", "upgrade_full_verified"]) }).nullable(),
+      evidenceConfidence: z.number().min(0).max(100).optional(),
+      highlights: z.object({ strengths: z.array(z.string()).max(3), risks: z.array(z.string()).max(3) }).optional(),
+    })
+    .optional(),
 });
 
 export class ReportV2ValidationError extends Error {
