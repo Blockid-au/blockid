@@ -16,10 +16,31 @@ import {
   TRIAL_COPY,
   TRIAL_DAYS,
   TRIAL_WARNING_HOURS_BEFORE,
+  evaluatorTrialHeadlines,
   evaluatorTrialIncludedLine,
   evaluatorTrialLine,
   formatAud,
 } from "./trial-copy";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW, paygView } from "@/lib/pricing/payg-copy";
+
+// Pricing v5 P5 — the evaluator signup headline follows payg_enabled.
+describe("evaluatorTrialHeadlines(view) — Pricing v5 P5", () => {
+  it("flag OFF returns the approved pre-v5 headline + subheadline unchanged", () => {
+    expect(evaluatorTrialHeadlines(PAYG_OFF_VIEW)).toEqual({
+      headline: EVALUATOR_TRIAL_COPY.headline,
+      subheadline: EVALUATOR_TRIAL_COPY.subheadline,
+    });
+    expect(evaluatorTrialHeadlines(PAYG_OFF_VIEW).subheadline).toContain("from A$3 a report");
+  });
+
+  it("flag ON prices the single report from the Snapshot display price", () => {
+    const on = evaluatorTrialHeadlines(PAYG_ON_VIEW);
+    expect(on.headline).toBe("Evaluate any Australian startup from A$19. Track it from A$79 a month.");
+    expect(on.subheadline).toContain("from A$19 a report.");
+    expect(`${on.headline} ${on.subheadline}`).not.toMatch(/A\$3(?![\d,.])/);
+    expect(evaluatorTrialHeadlines(paygView({ payg_enabled: true, payg_snapshot_cents: 2400 })).headline).toContain("from A$24.");
+  });
+});
 
 describe("evaluatorTrialIncludedLine (release QA-2 F10 / S7-C)", () => {
   it("states the 1-report trial allowance then the plan's monthly quota", () => {

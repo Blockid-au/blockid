@@ -26,7 +26,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
 import { parseBillingInterval } from "@/lib/plans/billing-interval";
 import { getPlansCached } from "@/lib/plans-db";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, evaluatorTrialLine, formatAud } from "@/lib/plans/trial-copy";
+import { TRIAL_COPY, evaluatorTrialHeadlines, evaluatorTrialLine, formatAud } from "@/lib/plans/trial-copy";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import {
   accountTypeOptionsForSegment,
   evaluatorPlanLabel,
@@ -109,8 +110,11 @@ export default async function SignupPage({
   const review = checkoutReviewStrings(await getMessages("en"), "en");
   const sellerLine = `${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`;
 
-  const headline = isEvaluator ? EVALUATOR_TRIAL_COPY.headline : TRIAL_COPY.headline;
-  const subheadline = isEvaluator ? EVALUATOR_TRIAL_COPY.subheadline : TRIAL_COPY.subheadline;
+  // Pricing v5 P5: the evaluator headline names the single-report price, so
+  // it follows platform_config.payg_enabled (OFF = EVALUATOR_TRIAL_COPY).
+  const evaluatorCopy = isEvaluator ? evaluatorTrialHeadlines(await getPaygView()) : null;
+  const headline = evaluatorCopy ? evaluatorCopy.headline : TRIAL_COPY.headline;
+  const subheadline = evaluatorCopy ? evaluatorCopy.subheadline : TRIAL_COPY.subheadline;
 
   return (
     <main className="flex min-h-svh items-start justify-center bg-surface-sunken px-5 py-12 text-primary">
