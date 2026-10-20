@@ -185,7 +185,10 @@ describe("levels, burn and free tiers", () => {
 
   it("free tiers: 402 probe → critical, mostly-429 health → warn, nothing recent → unknown", () => {
     const fresh = new Date(NOW - 60_000).toISOString();
-    expect(readFreeTierStatus("cerebras", { configured: true, probe: { status: "quota_exceeded", http_status: 402, checked_at: fresh }, health: [], now: NOW }).level).toBe("critical");
+    const cb = readFreeTierStatus("cerebras", { configured: true, probe: { status: "quota_exceeded", http_status: 402, checked_at: fresh }, health: [], now: NOW });
+    expect(cb.level).toBe("critical");
+    expect(cb.alert_suppressed).toMatch(/unfunded/); // G35: unfunded free tier → admin card only, no daily e-mail
+    expect(readFreeTierStatus("sambanova", { configured: true, probe: { status: "invalid_key", http_status: 401, checked_at: fresh }, health: [], now: NOW }).alert_suppressed).toBeUndefined();
     expect(readFreeTierStatus("groq", { configured: true, probe: { status: "valid", checked_at: fresh }, health: [{ provider: "groq", http_status: 429, checked_at: fresh }, { provider: "groq", http_status: 429, checked_at: fresh }, { provider: "groq", http_status: 200, checked_at: fresh }], now: NOW }).level).toBe("warn");
     expect(readFreeTierStatus("sambanova", { configured: true, probe: null, health: [], now: NOW }).level).toBe("unknown");
     expect(readFreeTierStatus("sambanova", { configured: false, probe: null, health: [], now: NOW }).level).toBe("unknown");

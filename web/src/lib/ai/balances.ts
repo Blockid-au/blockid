@@ -331,7 +331,14 @@ export function readFreeTierStatus(provider: "groq" | "cerebras" | "sambanova", 
     else if (limited * 2 >= recent.length && level === "ok") { level = "warn"; reasons.push(`${limited}/${recent.length} recent health checks 429`); }
   }
   if (!probeFresh && recent.length === 0) return { ...base, configured: true, level: "unknown", reasons: ["no probe / health data in the last 2 h"] };
-  return { ...base, configured: true, level, reasons, details: { recent_checks: recent.length, http_401_402: authOrPay, http_429: limited, probe_status: probe?.status ?? null } };
+  // A free tier we never pay for (no burn) that answers 402 is simply unfunded:
+  // the dispatcher already skips it, the admin card shows it — no daily e-mail.
+  // A rejected key (401/403) still alerts: that is a configuration fault.
+  const unfunded = level !== "ok" && !reasons.some((r) => r.startsWith("key rejected")) && (probe?.status === "quota_exceeded" || authOrPay > 0);
+  return {
+    ...base, configured: true, level, reasons, details: { recent_checks: recent.length, http_401_402: authOrPay, http_429: limited, probe_status: probe?.status ?? null },
+    ...(unfunded ? { alert_suppressed: "free tier unfunded (402 / quota) — skipped by routing, shown on /admin/ai-health" } : {}),
+  };
 }
 
 // ── Runner ────────────────────────────────────────────────────────────
