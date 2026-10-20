@@ -92,3 +92,4 @@ web/content/reports/report-pipeline-health.jsonl
 # Local browser captures and generated review/export artifacts
 .playwright-cli/
 output/
+__pycache__/
