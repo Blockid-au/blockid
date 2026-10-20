@@ -34,6 +34,31 @@ import {
 import { generateTrustReportForOrder } from "@/lib/paywall/report-generator";
 import { refundFailedOrder } from "@/lib/paywall/report-refund";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import type { SettledOrder } from "@/lib/paywall/report-order-worker";
+
+/** G35 Pricing v5 (D29): Verified SLA days from platform_config (default 2). */
+async function verifiedSlaBusinessDays(): Promise<number> {
+  const { readPaygConfig } = await import("@/lib/pricing/payg-flag");
+  return (await readPaygConfig()).verified_sla_business_days;
+}
+
+/**
+ * G35 Pricing v5 (gap G4): a v5 order reached READY / IN_REVIEW → the
+ * report-delivery e-mail (T-class, still sent while marketing is paused).
+ * Legacy orders never reach this hook.
+ */
+async function onSettled(order: SettledOrder): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  const [{ notifyPaygOrderSettled }, emails] = await Promise.all([
+    import("@/lib/pricing/payg-fulfilment"),
+    import("@/lib/email/report-order-emails"),
+  ]);
+  await notifyPaygOrderSettled(supabase, order, {
+    email: { ready: emails.sendReportOrderReady, inReview: emails.sendReportOrderInReview },
+    slaBusinessDays: verifiedSlaBusinessDays,
+  });
+}
 
 export const dynamic = "force-dynamic";
 // Background generation may take up to REPORT_ORDER_DEADLINE_MS (7 min) + grace.
@@ -120,6 +145,8 @@ async function handle(request: Request): Promise<Response> {
         // library stays free of the heavy orchestrator import chain.
         generateReport: generateTrustReportForOrder,
         refundOrder,
+        verifiedSlaBusinessDays,
+        onSettled,
       });
     } catch (err) {
       console.error(

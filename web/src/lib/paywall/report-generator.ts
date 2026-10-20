@@ -65,6 +65,19 @@ import type { GenerateInput, GenerateResult } from "./report-order-worker";
 import { insertCompletedAssembledReport } from "@/lib/report-v2/storage";
 import { commitFinalReport } from "@/lib/report-v2/commit-final-report";
 import { withMethodMeta } from "@/lib/report-v2/method-meta";
+import { PAYG_SKUS, isPaygSkuId, type PaygTier } from "@/lib/pricing/v5-payg";
+
+/**
+ * G35 Pricing v5: the PAYG tier a report order was bought at, from its SKU
+ * (`report_snapshot` / `report_full` / `report_verified`). `null` for the
+ * legacy A$3 / credits SKUs (and anything unknown) — those orders keep their
+ * pre-v5 behaviour byte for byte (no `payg_tier` column is written).
+ */
+export function paygTierForOrderSku(sku: unknown): PaygTier | null {
+  if (!isPaygSkuId(sku)) return null;
+  const s = PAYG_SKUS[sku];
+  return s.kind === "report" ? s.tier : null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Narrow Supabase surface
@@ -275,7 +288,7 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
   // ── 1. Order → user ──────────────────────────────────────────────────
   const { data: order, error: orderErr } = await supabase
     .from("report_orders")
-    .select("id, user_id, business_id, status, credits_used, metadata")
+    .select("id, user_id, business_id, status, credits_used, metadata, product_sku")
     .eq("id", input.orderId)
     .maybeSingle();
 
@@ -346,8 +359,11 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
   const criteriaData = buildCriteriaData(criteriaRows ?? []);
   const sviAnalysis = buildSVIAnalysis(account, latestAnalysis);
 
+  // G35 Pricing v5: every tier runs the SAME (Full) pipeline once — the tier
+  // only decides the read-time projection, so an upgrade never re-runs AI.
   const tier = tierForOrderMetadata(order.metadata);
   const locale = localeForOrderMetadata(order.metadata);
+  const paygTier = paygTierForOrderSku(order.product_sku);
 
   // ── 4. Orchestrate ───────────────────────────────────────────────────
   // agentId scoped to this paid order → each order's report gets its own
@@ -446,6 +462,9 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
       full_markdown: report.markdown,
       status: "complete",
       credits_cost: Number(order.credits_used ?? 0),
+      // v5 orders only (pending-authority/0474 column; a v5 SKU cannot exist
+      // without it) — a legacy order's row is unchanged.
+      ...(paygTier ? { payg_tier: paygTier } : {}),
     }, finalDocument);
 
   if (!stored) return fail(true, "assembled_report_persistence_unconfirmed");
@@ -498,7 +517,7 @@ async function generateTrustReportForOrderScoped(input: GenerateInput, deps: Gen
     }
   }
 
-  return { ok: true, reportId: storedReportId };
+  return paygTier ? { ok: true, reportId: storedReportId, paygTier } : { ok: true, reportId: storedReportId };
 }
 
 function errMessage(err: unknown): string {

@@ -37,12 +37,17 @@ export async function resolveFounderReportTier(db: SupabaseClient | null, input:
   try {
     const { data, error } = await db
       .from("report_orders")
-      .select("product_sku, status")
+      .select("product_sku, status, report_id")
       .eq("business_id", input.projectId)
       .eq("user_id", input.userId)
-      .in("status", [...ENTITLING_ORDER_STATUSES]);
+      .in("status", [...ENTITLING_ORDER_STATUSES, "REFUNDED"]);
     if (error || !Array.isArray(data)) return "free";
-    const bought = maxTier(data.map((row) => tierForOrderSku((row as { product_sku?: unknown }).product_sku)), "free");
+    // G35 G5: a refund AFTER delivery keeps the report readable at its tier;
+    // a REFUNDED order with no report (failed generation) entitles nothing.
+    const rows = (data as Array<{ product_sku?: unknown; status?: unknown; report_id?: unknown }>).filter(
+      (row) => row.status !== "REFUNDED" || (typeof row.report_id === "string" && row.report_id.length > 0),
+    );
+    const bought = maxTier(rows.map((row) => tierForOrderSku(row.product_sku)), "free");
     return bought === "snapshot" ? "free" : bought;
   } catch {
     return "free";

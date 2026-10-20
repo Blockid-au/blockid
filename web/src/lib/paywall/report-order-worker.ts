@@ -59,6 +59,8 @@ import { trackOriginWork } from "@/lib/ops/origin-activity";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { nextState, type ReportOrderState } from "./report-order-state";
+import { verifiedSlaDueAt } from "@/lib/time/au-business-days";
+import type { PaygTier } from "@/lib/pricing/v5-payg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -86,8 +88,27 @@ export interface GenerateInput {
 }
 
 export type GenerateResult =
-  | { ok: true; reportId: string }
+  | {
+      ok: true;
+      reportId: string;
+      /**
+       * G35 Pricing v5: the PAYG tier the stored report was written for
+       * (`assembled_reports.payg_tier`). Absent / null = a legacy order —
+       * the worker behaves exactly as before. `verified` parks the order
+       * IN_REVIEW with `sla_due_at` instead of READY (plan §6.4.3).
+       */
+      paygTier?: PaygTier | null;
+    }
   | { ok: false; transient: boolean; reason: string };
+
+/** G35 Pricing v5: a v5 order reached READY / IN_REVIEW (report-delivery e-mails). */
+export interface SettledOrder {
+  orderId: string;
+  reportId: string;
+  status: "READY" | "IN_REVIEW";
+  paygTier: PaygTier;
+  slaDueAt: Date | null;
+}
 
 export type RefundHook = (input: {
   orderId: string;
@@ -133,6 +154,20 @@ export interface WorkerDeps {
 
   /** Claim-token minter (tests). Defaults to `randomUUID`. */
   newClaimToken?: () => string;
+
+  /**
+   * G35 Pricing v5 (D29): Verified SLA in Sydney business days. Only read
+   * for a `verified` result; default 2.
+   */
+  verifiedSlaBusinessDays?: () => Promise<number>;
+
+  /**
+   * G35 Pricing v5: called once a v5 order (result.paygTier set) has been
+   * moved to READY / IN_REVIEW — the cron route sends the ready / in-review
+   * e-mail. Never awaited into the outcome: a failure is logged only.
+   * Legacy orders never call it.
+   */
+  onSettled?: (order: SettledOrder) => Promise<void>;
 }
 
 export interface ProcessOutcome {
@@ -331,13 +366,37 @@ async function processNextQueuedOrderTracked(deps: WorkerDeps): Promise<ProcessO
       error_reason: null,
     });
     if (!owned) return staleOutcome(row, "done");
-    await advanceOrderStatus(supabase, row.order_id, "GENERATING", {
-      transition: "generation_succeeded",
-      patch: {
-        report_id: result.reportId,
-        generated_at: now().toISOString(),
-      },
-    });
+    const paygTier = result.paygTier ?? null;
+    if (paygTier === "verified") {
+      // Verified: the Full report is written; the human review is next.
+      let days = 2;
+      try {
+        days = (await deps.verifiedSlaBusinessDays?.()) ?? 2;
+      } catch {
+        days = 2;
+      }
+      const slaDueAt = verifiedSlaDueAt(now(), days);
+      await advanceOrderStatus(supabase, row.order_id, "GENERATING", {
+        transition: "review_queued",
+        patch: {
+          report_id: result.reportId,
+          generated_at: now().toISOString(),
+          sla_due_at: slaDueAt.toISOString(),
+        },
+      });
+      notifySettled(deps, { orderId: row.order_id, reportId: result.reportId, status: "IN_REVIEW", paygTier, slaDueAt });
+    } else {
+      await advanceOrderStatus(supabase, row.order_id, "GENERATING", {
+        transition: "generation_succeeded",
+        patch: {
+          report_id: result.reportId,
+          generated_at: now().toISOString(),
+          // v5 orders only (0474 column) — a legacy order's patch is unchanged.
+          ...(paygTier ? { delivered_at: now().toISOString() } : {}),
+        },
+      });
+      if (paygTier) notifySettled(deps, { orderId: row.order_id, reportId: result.reportId, status: "READY", paygTier, slaDueAt: null });
+    }
     return {
       processed: true,
       orderId: row.order_id,
@@ -387,6 +446,17 @@ async function processNextQueuedOrderTracked(deps: WorkerDeps): Promise<ProcessO
     status: "requeued",
     reason: result.reason,
   };
+}
+
+function notifySettled(deps: WorkerDeps, order: SettledOrder): void {
+  if (!deps.onSettled) return;
+  try {
+    void deps.onSettled(order).catch((err: unknown) => {
+      console.warn("[blockid:report-order-worker] onSettled failed", { orderId: order.orderId, error: errMessage(err) });
+    });
+  } catch (err) {
+    console.warn("[blockid:report-order-worker] onSettled threw", { orderId: order.orderId, error: errMessage(err) });
+  }
 }
 
 function staleOutcome(row: QueueRow, wanted: string): ProcessOutcome {
@@ -668,6 +738,7 @@ async function advanceOrderStatus(
     transition:
       | "generation_succeeded"
       | "generation_failed"
+      | "review_queued"
       | "queue_picked";
     patch: Record<string, unknown>;
   },

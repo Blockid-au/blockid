@@ -32,6 +32,14 @@
  *   PAID                 → GENERATING        (queue worker picked the order)
  *                        → REFUNDED          (support-side refund before
  *                          generation started)
+ *                        → READY             (Pricing v5 D28 upgrade
+ *                          Snapshot → Full: the existing report is
+ *                          re-projected, nothing is generated —
+ *                          `upgrade_applied`)
+ *                        → IN_REVIEW         (Pricing v5 D28 upgrade
+ *                          Full → Verified: the Full report already
+ *                          exists, only the human review is pending —
+ *                          `upgrade_review_queued`)
  *
  *   GENERATING           → READY             (orchestrator returned the
  *                          assembled report and report_id landed)
@@ -53,6 +61,7 @@
  *                          after delivery — plan §1.5 G5 / §6.4.5)
  *
  *   SHARED               → EXPIRED           (same 90-day policy)
+ *                        → REFUNDED          (Pricing v5: same as READY)
  *
  *   FAILED               → REFUNDED          (auto-refund cron issued the
  *                          Stripe refund / credit reversal)
@@ -109,6 +118,8 @@ export const REPORT_ORDER_TRANSITIONS = [
   "generation_failed",
   "review_queued",
   "review_completed",
+  "upgrade_applied",
+  "upgrade_review_queued",
   "share_link_minted",
   "expiry_reached",
   "refund_issued",
@@ -148,6 +159,9 @@ const TRANSITIONS: TransitionMap = {
   PAID: {
     queue_picked: "GENERATING",
     refund_issued: "REFUNDED",
+    // Pricing v5 D28: an upgrade order lifts an existing report — no generation.
+    upgrade_applied: "READY",
+    upgrade_review_queued: "IN_REVIEW",
   },
   GENERATING: {
     generation_succeeded: "READY",
@@ -167,6 +181,8 @@ const TRANSITIONS: TransitionMap = {
   },
   SHARED: {
     expiry_reached: "EXPIRED",
+    // Pricing v5 (G5): a shared report is a delivered one — same refund rule as READY.
+    refund_issued: "REFUNDED",
   },
   FAILED: {
     refund_issued: "REFUNDED",

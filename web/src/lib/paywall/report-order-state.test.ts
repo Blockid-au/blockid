@@ -70,6 +70,8 @@ describe("report-order-state — enum shape", () => {
         "generation_failed",
         "review_queued",
         "review_completed",
+        "upgrade_applied",
+        "upgrade_review_queued",
         "share_link_minted",
         "expiry_reached",
         "refund_issued",
@@ -104,6 +106,9 @@ describe("report-order-state — nextState (valid transitions)", () => {
     // PAID
     ["PAID", "queue_picked", "GENERATING"],
     ["PAID", "refund_issued", "REFUNDED"],
+    // Pricing v5 D28 upgrades — the report already exists
+    ["PAID", "upgrade_applied", "READY"],
+    ["PAID", "upgrade_review_queued", "IN_REVIEW"],
     // GENERATING
     ["GENERATING", "generation_succeeded", "READY"],
     ["GENERATING", "generation_failed", "FAILED"],
@@ -117,6 +122,7 @@ describe("report-order-state — nextState (valid transitions)", () => {
     ["READY", "refund_issued", "REFUNDED"],
     // SHARED
     ["SHARED", "expiry_reached", "EXPIRED"],
+    ["SHARED", "refund_issued", "REFUNDED"],
     // FAILED
     ["FAILED", "refund_issued", "REFUNDED"],
   ];
@@ -156,6 +162,9 @@ describe("report-order-state — nextState (illegal transitions)", () => {
     ["READY", "review_completed"],
     ["IN_REVIEW", "share_link_minted"],
     ["IN_REVIEW", "queue_picked"],
+    // An upgrade applies only to a freshly PAID upgrade order
+    ["GENERATING", "upgrade_applied"],
+    ["READY", "upgrade_review_queued"],
   ];
 
   it.each(illegalCases)(
@@ -196,7 +205,7 @@ describe("report-order-state — terminal predicates", () => {
 
   it("legalTransitions() lists exactly the outgoing transitions", () => {
     expect(legalTransitions("PAID").sort()).toEqual(
-      ["queue_picked", "refund_issued"].sort(),
+      ["queue_picked", "refund_issued", "upgrade_applied", "upgrade_review_queued"].sort(),
     );
     expect(legalTransitions("EXPIRED")).toEqual([]);
     expect(legalTransitions("REFUNDED")).toEqual([]);
