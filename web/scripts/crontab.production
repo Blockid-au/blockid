@@ -153,14 +153,27 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # are no-ops. A finished run writes content/reports/ai-model-scorecard.json(l)
 # + ai-routing-policy.json: free ladders auto promote/demote, the paid report
 # ladder only gets a PROPOSAL (admin Approve / Rollback on /admin/ai-health).
-#   Nightly smoke (3 dev prompts / task): 18:53 UTC (04:53 AEST, quiet hours)
-#   + continuation ticks 19:13 / 19:33 — odd minutes, off every */2 /5 /10 /15
-#   /20 /30 tick and the :07/:17/:23/:37 jobs.
-#   Weekly full (held-out + judge sample): Sun 05:00 UTC, continuation every
-#   10 min until 07:50 (a full run is ~1,000 calls; one HTTP tick cannot hold it).
-53 18 * * * bash $RUN model-eval --timeout 290
-13,33 19 * * * bash $RUN model-eval --timeout 290
-0,10,20,30,40,50 5-7 * * 0 bash $RUN 'model-eval?mode=full' --timeout 290
+#   Windows (A2 review P1-2) — both outside Australian business hours, so a
+#   Groq burst never competes with daytime production traffic; per-run free
+#   caps (groq 250 full / 60 smoke) are env-tunable:
+#   MODEL_EVAL_CALL_CAPS_FULL / _SMOKE = "groq=200,openrouter=10".
+#   Weekly full (held-out + judge sample, ~950 calls, ~85 min of DeepInfra time
+#   on two lanes + Groq pacing): Saturday 15:00–18:55 UTC (Sun 01:00–04:55 AEST,
+#   02:00–05:55 AEDT) every 5 min — one ISO week, so every tick continues the
+#   same run (cron-runner's lock skips a tick while the previous one still
+#   works: ~48 ticks × 240 s ≈ 190 min of work for ~85–100 min needed).
+#   19:30 Sat closes a still-unfinished run as `incomplete` and coordinates it
+#   (partial evidence: no promotion / eval demotion) — never silently dropped.
+#   Nightly smoke (3 dev prompts / task, ~66 DeepInfra + ~45 Groq calls, about
+#   6–8 min of work): Sun–Fri 18:53 UTC (04:53 AEST / 05:53 AEDT) + continuation
+#   ticks 19:03 / 19:13 / 19:33 / 19:43 / 19:53 (≈ 24 min of work available) and
+#   20:13 finalize. Odd minutes off the :07/:17/:23/:37 jobs. Saturday has no
+#   smoke — the full run covers it.
+53 18 * * 0-5 bash $RUN model-eval --timeout 290
+3,13,33,43,53 19 * * 0-5 bash $RUN model-eval --timeout 290
+13 20 * * 0-5 bash $RUN 'model-eval?finalize=1' --timeout 120
+*/5 15-18 * * 6 bash $RUN 'model-eval?mode=full' --timeout 290
+30 19 * * 6 bash $RUN 'model-eval?mode=full&finalize=1' --timeout 120
 
 # Weekly Sunday 04:00 UTC: crawl OpenRouter/Groq/SambaNova/Cerebras catalogues,
 # rank by (context length, known-good family, prior-check latency), write top-10

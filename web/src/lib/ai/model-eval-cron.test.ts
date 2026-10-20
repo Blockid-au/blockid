@@ -10,6 +10,9 @@ import { parseRoutingPolicy } from "./routing-policy";
 import { isEvalCallable } from "./task-profiles";
 
 vi.mock("server-only", () => ({}));
+// P2-3 wiring goes to the shared paid-spend ledger — NEVER the live file from a test.
+const spend = vi.hoisted(() => ({ record: vi.fn(), capReached: vi.fn(() => false) }));
+vi.mock("./spend-guard", () => ({ recordPaidSpend: (p: string, usd: number) => spend.record(p, usd), isDailyCapReached: () => spend.capReached() }));
 
 let dir = "";
 const saved = process.env.BLOCKID_WEB_DIR;
@@ -66,6 +69,9 @@ describe("runModelEvalCron", () => {
     expect(existsSync(reports("ai-model-scorecard.jsonl"))).toBe(false); // smoke: no trend rows
     const hist = readFileSync(reports("model-eval-history.jsonl"), "utf-8").trim().split("\n");
     expect(JSON.parse(hist[0]!)).toMatchObject({ run_id: r.run_id, mode: "smoke", status: "done" });
+    // P2-3: every paid eval call is in the shared paid-spend ledger, tagged as eval; free calls are not.
+    expect(spend.record).toHaveBeenCalled();
+    expect(spend.record.mock.calls.every(([p, usd]) => p === "deepinfra:eval" && usd > 0)).toBe(true);
     const budget = JSON.parse(readFileSync(reports("model-eval-budget.json"), "utf-8"));
     expect(budget.spent_usd).toBeGreaterThan(0);
     expect(budget.spent_usd).toBeLessThan(1);
@@ -92,5 +98,21 @@ describe("runModelEvalCron", () => {
     expect(r).toMatchObject({ status: "noop", coordinated: true });
     expect(call.mock.calls.length).toBe(n);
     expect(existsSync(reports("ai-model-scorecard.json"))).toBe(true);
+  });
+
+  it("P2-1: a corrupt policy file is kept, ops are alerted, and the coordinator writes nothing", async () => {
+    const { runModelEvalCron } = await import("./model-eval-cron");
+    const policyFile = reports("ai-routing-policy.json");
+    const corrupt = '{"version":1,"paid":{"active":{"report":["deepseek-ai/DeepSeek-V3.2"]}'; // truncated write
+    writeFileSync(policyFile, corrupt);
+    rmSync(reports("ai-model-scorecard.json"), { force: true });
+    const alert = vi.fn(async () => {});
+    const r = await runModelEvalCron({ mode: "smoke", restart: true }, { ...overrides(), alert });
+    // The day's run was done, so restart plans and runs a new one; its coordination must refuse.
+    expect(r.coordinated).toBe(false);
+    expect(r.coordination_error).toMatch(/invalid/);
+    expect(alert).toHaveBeenCalledWith(expect.stringMatching(/invalid/));
+    expect(readFileSync(policyFile, "utf-8")).toBe(corrupt);
+    expect(existsSync(reports("ai-model-scorecard.json"))).toBe(false);
   });
 });

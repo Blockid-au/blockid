@@ -66,7 +66,13 @@ export interface EvalResultRow {
   score: CaseScore;
 }
 
-export type EvalRunStatus = "running" | "done" | "budget_exhausted" | "monthly_budget_exhausted";
+/**
+ * `incomplete`: the run was closed before every item ran (its window ended, a
+ * new period began, or ?finalize=1) — it is still coordinated, as partial
+ * evidence (no promotion / eval-based demotion), never silently dropped.
+ * `daily_cap_reached`: the shared paid-spend daily cap (spend-guard) is hit.
+ */
+export type EvalRunStatus = "running" | "done" | "budget_exhausted" | "monthly_budget_exhausted" | "daily_cap_reached" | "incomplete";
 
 export interface EvalRunState {
   version: 1;
@@ -143,6 +149,10 @@ export interface EvalDeps {
   sleep?: (ms: number) => Promise<void>;
   /** Max calls per provider per run — protects the production free-tier daily quota. */
   providerCallCaps?: Partial<Record<string, number>>;
+  /** P2-3: record each PAID call's USD in the shared paid-spend ledger (spend-guard recordPaidSpend), tagged as eval. */
+  recordSpend?: (provider: string, usd: number) => void;
+  /** P2-3: the shared daily paid cap is reached — no paid call starts. */
+  dailyCapReached?: () => boolean;
 }
 
 /** Free-tier pacing (requests/minute limits of the free plans). */
@@ -155,12 +165,28 @@ export const DEFAULT_PACE_MS: Readonly<Record<string, number>> = Object.freeze({
  */
 export const DEFAULT_PROVIDER_CALL_CAPS: Readonly<Record<EvalMode, Readonly<Record<string, number>>>> = Object.freeze({
   smoke: Object.freeze({ openrouter: 6, groq: 60, cerebras: 60, sambanova: 30 }),
-  full: Object.freeze({ openrouter: 24, groq: 400, cerebras: 300, sambanova: 150 }),
+  full: Object.freeze({ openrouter: 24, groq: 250, cerebras: 250, sambanova: 120 }),
 });
+
+/**
+ * Per-run call caps, overridable per mode by env (MODEL_EVAL_CALL_CAPS_FULL /
+ * MODEL_EVAL_CALL_CAPS_SMOKE = "groq=200,openrouter=10"). Unknown / invalid
+ * entries are ignored; a cap is a non-negative integer. Pure.
+ */
+export function parseCallCaps(raw: string | undefined, defaults: Readonly<Record<string, number>>): Record<string, number> {
+  const out: Record<string, number> = { ...defaults };
+  for (const part of (raw ?? "").split(",")) {
+    const m = part.trim().match(/^([a-z0-9_-]+)\s*=\s*(\d{1,6})$/i);
+    if (m) out[m[1]!.toLowerCase()] = Number(m[2]);
+  }
+  return out;
+}
 
 export interface TickOptions {
   restart?: boolean;
   dryRun?: boolean;
+  /** Close a running run as `incomplete` (end of its window) without calling any model. */
+  finalize?: boolean;
 }
 
 export interface TickResult {
@@ -369,6 +395,20 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
 
   let state = deps.readState(mode);
   const samePeriod = state?.period === period;
+  // P1-2: a run still `running` is never discarded. When its period is over, a
+  // restart is asked for, or its window ends (?finalize=1), it is closed as
+  // `incomplete` and handed to the coordinator THIS tick; the next tick plans anew.
+  if (state && state.status === "running" && (!samePeriod || opts.restart || opts.finalize) && !opts.dryRun) {
+    const nowIso = new Date(startedAt).toISOString();
+    state.status = "incomplete";
+    state.finished_at = nowIso;
+    state.updated_at = nowIso;
+    deps.writeState(mode, state);
+    return { mode, run_id: state.run_id, period, status: "incomplete", processed: 0, remaining: state.pending.length, planned: state.planned, spent_usd: state.spent_usd, cap_usd: state.cap_usd, month_spent_usd: budget.spent_usd, finalized: true, state };
+  }
+  if (opts.finalize) {
+    return { mode, run_id: state?.run_id ?? null, period, status: "noop", processed: 0, remaining: state?.pending.length ?? 0, planned: state?.planned ?? 0, spent_usd: state?.spent_usd ?? 0, cap_usd: state?.cap_usd ?? cap, month_spent_usd: budget.spent_usd, finalized: false, state };
+  }
   if (state && samePeriod && state.status !== "running" && !opts.restart) {
     return { mode, run_id: state.run_id, period, status: "noop", processed: 0, remaining: state.pending.length, planned: state.planned, spent_usd: state.spent_usd, cap_usd: state.cap_usd, month_spent_usd: budget.spent_usd, finalized: false, state };
   }
@@ -413,6 +453,10 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
   /** Reserve worst-case spend; false (and sets `stop`) when it could cross a cap. */
   const reserve = (usd: number): boolean => {
     if (!Number.isFinite(usd)) return false;
+    if (usd > 0 && deps.dailyCapReached?.()) {
+      stop = stop ?? "daily_cap_reached";
+      return false;
+    }
     if (run.spent_usd + reserved + usd > run.cap_usd + 1e-12) {
       stop = stop ?? "budget_exhausted";
       return false;
@@ -471,6 +515,13 @@ export async function runEvalTick(mode: EvalMode, deps: EvalDeps, opts: TickOpti
     const cost = res.ok || res.inputTokens !== undefined ? actualCallUsd(req.provider, req.model, req, res) : res.latencyMs > 0 ? worst : 0;
     run.spent_usd = Math.round((run.spent_usd + cost) * 1e8) / 1e8;
     budget.spent_usd = Math.round((budget.spent_usd + cost) * 1e8) / 1e8;
+    if (cost > 0) {
+      try {
+        deps.recordSpend?.(req.provider, cost);
+      } catch {
+        /* the ledger is best effort; the run cap + monthly budget still bind */
+      }
+    }
     return { res, cost };
   };
 

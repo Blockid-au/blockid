@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isoWeek, periodFor, planRun, runEvalTick, smokeCases, unitHash, worstCaseCallUsd, type EvalBudgetLedger, type EvalDeps, type EvalRunState, type ModelCallRequest, type ModelCallResponse } from "./model-eval";
+import { DEFAULT_PROVIDER_CALL_CAPS, isoWeek, parseCallCaps, periodFor, planRun, runEvalTick, smokeCases, unitHash, worstCaseCallUsd, type EvalBudgetLedger, type EvalDeps, type EvalRunState, type ModelCallRequest, type ModelCallResponse } from "./model-eval";
 import type { ModelEvalCase, ModelEvalFixture } from "./model-eval-scoring";
 import { familyOf, isEvalCallable, judgeFor, type EvalTaskId } from "./task-profiles";
 
@@ -248,5 +248,48 @@ describe("runEvalTick", () => {
     const r = await runEvalTick("smoke", deps);
     expect(r.spent_usd).toBeGreaterThan(0);
     expect(r.state!.results.filter((x) => x.provider === "deepinfra").every((x) => !x.score.ok)).toBe(true);
+  });
+
+  it("P1-2: an unfinished run is never dropped — a new period first closes it as `incomplete` (finalized, for the coordinator)", async () => {
+    const h = makeDeps({ wallBudgetMs: 6_000, latency: 2_000 });
+    const first = await runEvalTick("full", h.deps);
+    expect(first.status).toBe("running");
+    h.advance(7 * 86_400_000); // next ISO week
+    const closed = await runEvalTick("full", h.deps);
+    expect(closed).toMatchObject({ status: "incomplete", finalized: true, run_id: first.run_id });
+    expect(closed.state!.results.length).toBe(first.processed);
+    const next = await runEvalTick("full", h.deps);
+    expect(next.run_id).not.toBe(first.run_id);
+    expect(next.status).toBe("running");
+  });
+
+  it("P1-2: ?finalize closes a running run (end of its window) without calling a model; otherwise it is a no-op", async () => {
+    const h = makeDeps({ wallBudgetMs: 6_000, latency: 2_000 });
+    const first = await runEvalTick("full", h.deps);
+    const n = h.calls.length;
+    const fin = await runEvalTick("full", h.deps, { finalize: true });
+    expect(fin).toMatchObject({ status: "incomplete", finalized: true });
+    expect(h.calls.length).toBe(n);
+    expect((await runEvalTick("full", h.deps, { finalize: true })).status).toBe("noop");
+    expect((await runEvalTick("full", h.deps)).status).toBe("noop"); // same week, already closed
+    expect(first.run_id).toBe(fin.run_id);
+  });
+
+  it("P2-3: paid spend goes to the shared ledger tagged by provider; the daily paid cap stops paid calls", async () => {
+    const recordSpend = vi.fn();
+    const { deps } = makeDeps({ recordSpend });
+    await runEvalTick("smoke", deps);
+    expect(recordSpend).toHaveBeenCalled();
+    expect(recordSpend.mock.calls.every(([p, usd]) => p === "deepinfra" && usd > 0)).toBe(true);
+    const capped = makeDeps({ recordSpend: vi.fn(), dailyCapReached: () => true });
+    const r = await runEvalTick("smoke", capped.deps);
+    expect(r.status).toBe("daily_cap_reached");
+    expect(capped.calls.every((c) => c.provider !== "deepinfra")).toBe(true);
+  });
+
+  it("call caps are configurable per mode (env string) on top of the defaults", () => {
+    expect(DEFAULT_PROVIDER_CALL_CAPS.full.groq).toBe(250);
+    expect(parseCallCaps("groq=120, openrouter=0,bogus,x=-1", DEFAULT_PROVIDER_CALL_CAPS.full)).toMatchObject({ groq: 120, openrouter: 0, cerebras: 250 });
+    expect(parseCallCaps(undefined, DEFAULT_PROVIDER_CALL_CAPS.smoke)).toEqual(DEFAULT_PROVIDER_CALL_CAPS.smoke);
   });
 });

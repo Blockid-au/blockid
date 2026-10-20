@@ -16,7 +16,7 @@ import path from "node:path";
 import { getRuntimeWebDir, runtimeReportsPath } from "@/lib/runtime-paths";
 import { readJsonlTail, getStatusRoot } from "@/lib/status/jsonl";
 import { ModelEvalFixture, type ModelEvalFixture as ModelEvalFixtureT } from "./model-eval-scoring";
-import { DEFAULT_MONTHLY_EVAL_BUDGET_USD, DEFAULT_PACE_MS, RUN_COST_CAP_USD, runEvalTick, type EvalDeps, type EvalMode, type EvalRunState, type EvalSplit, type TickResult } from "./model-eval";
+import { DEFAULT_MONTHLY_EVAL_BUDGET_USD, DEFAULT_PACE_MS, DEFAULT_PROVIDER_CALL_CAPS, RUN_COST_CAP_USD, parseCallCaps, runEvalTick, type EvalDeps, type EvalMode, type EvalRunState, type EvalSplit, type TickResult } from "./model-eval";
 import { createEvalTransport, evalProviderConfigured } from "./model-eval-transport";
 import {
   SCORECARD_FILE_NAME,
@@ -28,7 +28,8 @@ import {
   writeJsonAtomic,
   type Scorecard,
 } from "./model-coordinator";
-import { _resetRoutingPolicyCache, readRoutingPolicyFresh, routingPolicyFile, routingPolicyHistoryFile } from "./routing-policy";
+import { _resetRoutingPolicyCache, readRoutingPolicyFileState, routingPolicyFile, routingPolicyHistoryFile, routingPolicyWriteError } from "./routing-policy";
+import { isDailyCapReached, recordPaidSpend } from "./spend-guard";
 import { isDeadRung, readStrikes } from "./model-strikes";
 import type { EvalTaskId } from "./task-profiles";
 import { EVAL_FREE_PROVIDERS } from "./task-profiles";
@@ -59,18 +60,44 @@ export interface CronParams {
   mode: EvalMode;
   restart?: boolean;
   dryRun?: boolean;
+  /** Close a running run as `incomplete` and coordinate it (end of its window). */
+  finalize?: boolean;
 }
+
+export type OpsAlert = (text: string) => Promise<void>;
 
 export interface CronOverrides {
   deps?: Partial<EvalDeps>;
   freeModelsFile?: string;
   defaultPaidLadders?: { report: readonly string[]; synthesis: readonly string[]; classify: readonly string[] };
+  /** Raw free ladders (tests); default = ai-client rawFreeLadder per provider. */
+  freeLadders?: Record<string, readonly string[]>;
+  alert?: OpsAlert;
 }
 
 export interface CronResult extends Omit<TickResult, "state"> {
   coordinated: boolean;
   decisions: number;
   skipped: number;
+  /** Set when the coordinator refused to write (corrupt policy file / invalid output). */
+  coordination_error?: string;
+}
+
+/** Thrown when the coordinator must not write (P2-1). Nothing was written. */
+export class PolicyWriteRefused extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PolicyWriteRefused";
+  }
+}
+
+async function defaultAlert(text: string): Promise<void> {
+  try {
+    const { sendTelegram, mdEscape } = await import("@/lib/telegram");
+    await sendTelegram(mdEscape(text));
+  } catch {
+    console.error("[model-eval] ops alert failed:", text);
+  }
 }
 
 function readFreeLists(file: string): Record<string, string[]> {
@@ -115,6 +142,12 @@ export function buildEvalDeps(overrides: CronOverrides = {}, thinkingOff?: Reado
     runCapUsd: runCap(),
     monthlyBudgetUsd: monthlyBudget(),
     paceMs: (p: string) => DEFAULT_PACE_MS[p] ?? 0,
+    // P2-3: eval DeepInfra spend lands in the shared paid-spend ledger (tagged
+    // `<provider>:eval`) so the daily paid cap sees it — and stops the eval.
+    recordSpend: (provider: string, usd: number) => {
+      recordPaidSpend(`${provider}:eval`, usd);
+    },
+    dailyCapReached: () => isDailyCapReached(),
   };
   return { ...deps, ...(overrides.deps ?? {}) };
 }
@@ -122,25 +155,48 @@ export function buildEvalDeps(overrides: CronOverrides = {}, thinkingOff?: Reado
 /** Coordinate a finished run: scorecard + policy + history. Returns the decision count. */
 export async function coordinateRun(
   run: EvalRunState,
-  opts: { freeLadders: Record<string, readonly string[]>; defaultPaidLadders: { report: readonly string[]; synthesis: readonly string[]; classify: readonly string[] }; now?: Date },
+  opts: { freeLadders: Record<string, readonly string[]>; defaultPaidLadders: { report: readonly string[]; synthesis: readonly string[]; classify: readonly string[] }; now?: Date; alert?: OpsAlert },
 ): Promise<number> {
   const tbr = await readJsonlTail<{ ts?: string; sections?: Array<{ id?: string; model?: string | null; grounded?: boolean }> }>(getStatusRoot(), "tbr-quality.jsonl", 400);
   const strikes = readStrikes();
   const now = opts.now ?? new Date();
+  const alert = opts.alert ?? defaultAlert;
+  // P2-1: a policy file that exists but cannot be read / validated is NEVER
+  // overwritten — it may hold an admin-approved ladder, its rollback target and
+  // a pending proposal. Keep it, alert ops, write nothing.
+  const file = routingPolicyFile();
+  const current = readRoutingPolicyFileState(file);
+  if (current.state === "invalid") {
+    const msg = `model-eval: ${file} is invalid (${current.error}); coordinator wrote nothing — fix or restore the file (run ${run.run_id})`;
+    await alert(msg);
+    throw new PolicyWriteRefused(msg);
+  }
   // Read the policy fresh and write it back with no await in between (an admin
   // Approve in the same process cannot interleave).
   const scorecardFile = runtimeReportsPath(SCORECARD_FILE_NAME);
   const out = coordinate({
     run,
     prior: readJsonFile<Scorecard>(scorecardFile),
-    policy: readRoutingPolicyFresh(),
+    policy: current.state === "ok" ? current.policy : null,
     live: liveSignalsFromTbr(tbr),
     isDead: (p, m) => isDeadRung(strikes, p, m, now),
     freeLadders: opts.freeLadders,
     defaultPaidLadders: opts.defaultPaidLadders,
     now,
   });
-  writeJsonAtomic(routingPolicyFile(), out.policy);
+  const invalid = routingPolicyWriteError(out.policy);
+  if (invalid) {
+    const msg = `model-eval: coordinator produced an invalid routing policy (${invalid}); nothing written (run ${run.run_id})`;
+    await alert(msg);
+    throw new PolicyWriteRefused(msg);
+  }
+  // Re-check right before the write: the file must still be valid (or absent).
+  if (readRoutingPolicyFileState(file).state === "invalid") {
+    const msg = `model-eval: ${file} became invalid during coordination; nothing written (run ${run.run_id})`;
+    await alert(msg);
+    throw new PolicyWriteRefused(msg);
+  }
+  writeJsonAtomic(file, out.policy);
   appendJsonl(routingPolicyHistoryFile(), out.history);
   writeJsonAtomic(scorecardFile, out.scorecard);
   appendJsonl(runtimeReportsPath(SCORECARD_JSONL_NAME), out.jsonl);
@@ -154,21 +210,33 @@ export async function runModelEvalCron(params: CronParams, overrides: CronOverri
   const ai = await import("@/lib/ai-client");
   const freeModelsFile = overrides.freeModelsFile ?? ai.FREE_MODELS_CONFIG;
   const deps = buildEvalDeps(overrides, ai.DEEPINFRA_THINKING_OFF, freeModelsFile);
-  const tick = await runEvalTick(params.mode, deps, { restart: params.restart, dryRun: params.dryRun });
+  if (!overrides.deps?.providerCallCaps) {
+    deps.providerCallCaps = parseCallCaps(process.env[`MODEL_EVAL_CALL_CAPS_${params.mode.toUpperCase()}`], DEFAULT_PROVIDER_CALL_CAPS[params.mode]);
+  }
+  const tick = await runEvalTick(params.mode, deps, { restart: params.restart, dryRun: params.dryRun, finalize: params.finalize });
   let coordinated = false;
   let decisions = 0;
   // A finished run whose coordination never landed (the process died between the
   // last tick and the write) is coordinated by the next tick of its period.
   const uncoordinated = tick.status === "noop" && tick.state !== null && !tick.state.coordinated_at && tick.state.results.length > 0;
   if ((tick.finalized || uncoordinated) && tick.state) {
-    const freeLadders: Record<string, readonly string[]> = { ...deps.freeLists() };
-    for (const p of EVAL_FREE_PROVIDERS) if (!freeLadders[p]?.length) freeLadders[p] = ai.ladderFor(p as Parameters<typeof ai.ladderFor>[0]);
+    // P1-1: RAW ladders (file or curated default, before the policy) so demoted
+    // rungs can be re-evaluated, pruned or expire.
+    const freeLadders: Record<string, readonly string[]> = overrides.freeLadders ?? Object.fromEntries(EVAL_FREE_PROVIDERS.map((p) => [p, ai.rawFreeLadder(p as Parameters<typeof ai.rawFreeLadder>[0])]));
     const defaults = overrides.defaultPaidLadders ?? {
       report: ai.DEEPINFRA_MODELS_BY_CLASS.report,
       synthesis: ai.DEEPINFRA_MODELS_BY_CLASS.synthesis,
       classify: ai.DEEPINFRA_MODELS_BY_CLASS.classify,
     };
-    decisions = await coordinateRun(tick.state, { freeLadders, defaultPaidLadders: defaults });
+    try {
+      decisions = await coordinateRun(tick.state, { freeLadders, defaultPaidLadders: defaults, alert: overrides.alert });
+    } catch (err) {
+      if (err instanceof PolicyWriteRefused) {
+        const { state, ...rest } = tick;
+        return { ...rest, coordinated: false, decisions: 0, skipped: state?.skipped.length ?? 0, coordination_error: err.message };
+      }
+      throw err;
+    }
     coordinated = true;
     tick.state.coordinated_at = new Date().toISOString();
     deps.writeState(params.mode, tick.state);

@@ -4,6 +4,8 @@
 //   ?mode=full   weekly: the held-out split + a different-family judge sample
 //   ?restart=1   start a new run even if this period's run already finished
 //   ?dry=1       plan only: item count + worst-case cost, no model call
+//   ?finalize=1  close a still-running run as `incomplete` and coordinate it
+//                (the last tick of a window; a run is never silently dropped)
 //
 // Resumable: each tick works ≤ 240 s and checkpoints; the next tick of the
 // same period (UTC day / ISO week) continues; afterwards ticks are no-ops
@@ -36,8 +38,9 @@ async function handle(request: Request): Promise<NextResponse> {
   }
   const flag = (k: string) => url.searchParams.get(k) === "1" || url.searchParams.get(k) === "true";
   try {
-    const result = await runModelEvalCron({ mode: modeRaw, restart: flag("restart"), dryRun: flag("dry") });
-    return NextResponse.json({ ok: true, noop: result.status === "noop", ...result });
+    const result = await runModelEvalCron({ mode: modeRaw, restart: flag("restart"), dryRun: flag("dry"), finalize: flag("finalize") });
+    // A refused coordination (corrupt policy file) is a failure cron-runner must alert on.
+    return NextResponse.json({ ok: !result.coordination_error, noop: result.status === "noop" && !result.coordinated, ...result });
   } catch (err) {
     console.error("[cron:model-eval] failed", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ ok: false, error: "model eval failed" }, { status: 500 });
