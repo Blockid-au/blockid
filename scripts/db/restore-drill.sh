@@ -195,6 +195,15 @@ set -e
 mkdir -p "$(dirname "$HEALTH_LOG")"
 printf '%s\n' "$ROW" >> "$HEALTH_LOG" 2>/dev/null || log "WARN: could not append to $HEALTH_LOG"
 
+# ── 6. off-site copy (D30): newest GCS object → download → decrypt →
+#    pg_restore -l. Own {job:"offsite-verify"} row + alert; never fails the
+#    local drill. Opt out with OFFSITE_VERIFY=0.
+OFFSITE_SCRIPT="$REPO_ROOT/scripts/db-backup-offsite-gcs.mjs"
+if [ "${OFFSITE_VERIFY:-1}" = "1" ] && [ -f "$OFFSITE_SCRIPT" ]; then
+  log "off-site verify (GCS download → decrypt → pg_restore -l)"
+  nice -n 19 ionice -c3 node "$OFFSITE_SCRIPT" --verify-only || log "WARN: off-site verify failed (see backup-health.jsonl job offsite-verify)"
+fi
+
 if [ "$VERDICT" != "0" ]; then
   ERR=$(printf '%s' "$ROW" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("error",""))' 2>/dev/null || echo "see backup-health.jsonl")
   ops_cron_health "db-restore-drill" "fail" "$DURATION_MS" "file=$(basename "$FILE") err=$ERR"
