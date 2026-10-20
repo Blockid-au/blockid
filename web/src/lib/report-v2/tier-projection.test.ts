@@ -79,7 +79,7 @@ describe("free tier — locked chapter bodies are removed server-side", () => {
     // The investment view is the UNLOCKED sections 2 / 13 / 14 (investment
     // view, risk matrix, 90-day plan) — derived from every chapter and shown
     // on the free page today; it is compared with the full-document build below.
-    const { investmentView: _derived, ...rest } = projected;
+    const rest = { ...projected, investmentView: undefined };
     const leaked = sentinelsIn(rest).filter((s) => [...lockedDims].some((d) => s.startsWith(`${SENTINEL}-${d}-`)));
     expect(leaked).toEqual([]);
     expect(lockedBodyLeaks(projected)).toEqual([]);
@@ -132,7 +132,7 @@ describe("free tier — locked chapter bodies are removed server-side", () => {
     const cut = projectReportForTier(std, "free");
     expect(cut.tier).toBe("free");
     expect(lockedBodyLeaks(cut)).toEqual([]);
-    const { investmentView: _derived, ...rest } = cut;
+    const rest = { ...cut, investmentView: undefined };
     expect(sentinelsIn(rest).filter((s) => /-(cgh|iri|lco|svm)-/.test(s))).toEqual([]);
   });
 });

@@ -117,7 +117,11 @@ function lockChapter(ch: DimensionChapter, mode: "card" | "metadata"): Dimension
     criteria: ch.criteria.map(criterionStub),
     strengths: [],
     gaps: [],
-    evidence: ch.evidence.map(({ value: _value, ...row }) => row),
+    evidence: ch.evidence.map((e) => {
+      const row = { ...e };
+      delete row.value;
+      return row;
+    }),
     modules: [],
     nextAction: card ? ch.nextAction : { title: "", window: ch.nextAction.window, expectedLift: 0 },
     phaseLens: card ? ch.phaseLens : { ...ch.phaseLens, whatMattersNow: "" },

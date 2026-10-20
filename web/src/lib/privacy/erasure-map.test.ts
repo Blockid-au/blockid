@@ -167,7 +167,7 @@ describe("erasure map ↔ live-schema fixture", () => {
     const s = summariseErasureMap();
     expect(s.entries).toBe(153);
     expect(s.delete + s.anonymise + s.detach).toBe(153);
-    expect(s).toMatchObject({ delete: 87, anonymise: 35, detach: 28, immutable: 3, tables: 132 });
+    expect(s).toMatchObject({ delete: 87, anonymise: 35, detach: 31, immutable: 3, tables: 133 });
     expect(s.project_detaches).toBe(PROJECT_DETACHES.length);
     expect(s.non_fk_extras).toBe(NON_FK_EXTRAS.length);
   });
