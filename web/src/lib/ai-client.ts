@@ -64,6 +64,7 @@ import * as path from "path";
 import { AITransportError, inprocessFetch, inprocessStreamChat, type AITransportDiagnostics } from "@/lib/ai/http-transport";
 import { beginModelCall, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "@/lib/ai/model-throughput";
 import { REPORT_ADMITTED_MODELS } from "@/lib/ai/report-admitted-models";
+import { meetsCapabilityFloor } from "@/lib/ai/model-capability";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -330,20 +331,38 @@ const REPORT_MODEL_DENY: RegExp[] = [
   /nemotron-3(\.\d+)?-nano|lightning|:mini|-mini\b|\bmini\b|distill/i,
 ];
 
+/** W1 (pricing v5 §7.2 #4): strong OpenRouter `:free` candidates admitted for
+ *  NON-report free paths only (classify, unscoped chat). Report-scoped calls
+ *  are DeepInfra-only (G30) and these stay out of the free report fallback
+ *  until they pass report qualification — Nemotron-3-Super returned invalid
+ *  JSON / 0 citations on the G30 chapter benchmark. */
+export const FREE_NON_REPORT_ONLY_MODELS: ReadonlySet<string> = new Set([
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "google/gemma-4-31b-it:free",
+]);
+
 /** True when a model id looks strong enough to write a report section. */
 export function isReportGradeModel(model: string): boolean {
+  if (FREE_NON_REPORT_ONLY_MODELS.has(model)) return false;
+  if (!meetsCapabilityFloor(model)) return false;
   if (REPORT_MODEL_DENY.some((re) => re.test(model))) return false;
   return REPORT_MODEL_ALLOW.some((re) => re.test(model));
 }
 
-/** Filter a free-tier model list for the task class: `report` / `synthesis`
- *  keep report-grade models only (falling back to the full list when the
- *  filter would leave nothing — a weak answer beats no answer, and the
- *  grounding validator still checks it); `classify` keeps every model. */
+/** Filter a free-tier model list for the task class. Every class first
+ *  applies the capability floor (lib/ai/model-capability.ts — W1: classify
+ *  was answered by Groq `allam-2-7b`): no speech / safety / Arabic-only
+ *  checkpoints, and ≥ 20B or an allow-listed family. `report` / `synthesis`
+ *  then keep report-grade models only, falling back to the floor-passing
+ *  list when none qualifies (the grounding validator still checks it) —
+ *  never to a model below the floor. An empty result means "this provider
+ *  has no capable model": the caller skips the provider without a call. */
 export function modelsForClass(models: string[], cls: AITaskClass): string[] {
-  if (cls === "classify") return models;
-  const strong = models.filter(isReportGradeModel);
-  return strong.length > 0 ? strong : models;
+  const capable = models.filter(meetsCapabilityFloor);
+  if (cls === "classify") return capable;
+  const strong = capable.filter(isReportGradeModel);
+  return strong.length > 0 ? strong : capable;
 }
 
 // ── G29-A dead rungs (runtime side) ──────────────────────────────────
@@ -427,12 +446,23 @@ function clearDeadRung(provider: Provider, model: string, now: number = Date.now
   }, now);
 }
 
-/** Thrown by a ladder whose every rung is dead — no call was made. */
+/** Thrown by a ladder whose every rung is dead — or (W1) whose live rungs all
+ *  fall below the capability floor for the class — no call was made. */
 export class DeadLadderError extends Error {
-  constructor(readonly provider: Provider, readonly total: number) {
-    super(`${provider}: all ${total} models are dead rungs (402 / 404 in the last 24 h) — skipped without a call; see /api/status ai.dead_rungs`);
+  constructor(readonly provider: Provider, readonly total: number, readonly reason: "dead" | "no_capable_model" = "dead") {
+    super(reason === "no_capable_model"
+      ? `${provider}: none of the ${total} listed models clears the capability floor for this task class (lib/ai/model-capability.ts) — skipped without a call`
+      : `${provider}: all ${total} models are dead rungs (402 / 404 in the last 24 h) — skipped without a call; see /api/status ai.dead_rungs`);
     this.name = "DeadLadderError";
   }
+}
+
+/** The DeadLadderError for an empty free ladder: dead rungs vs no capable model. */
+function emptyLadderError(provider: Provider, models: string[], now: number = Date.now()): DeadLadderError {
+  const strikes = currentStrikes(now);
+  const at = new Date(now);
+  const alive = models.filter((m) => !isDeadRung(strikes, provider, m, at));
+  return new DeadLadderError(provider, models.length, alive.length > 0 ? "no_capable_model" : "dead");
 }
 
 /** Order a model list with dead rungs (G29-A) and cooled-down models
@@ -1280,7 +1310,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
 
   let lastErr: Error | null = null;
   const groqRungs = readyModels("groq", GROQ_MODELS, cls);
-  if (groqRungs.length === 0) throw new DeadLadderError("groq", GROQ_MODELS.length);
+  if (groqRungs.length === 0) throw emptyLadderError("groq", GROQ_MODELS);
   for (const model of groqRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "groq")) { lastErr = lastErr ?? runStruckError(opts, "groq"); break; }
@@ -1344,7 +1374,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
 
   let lastErr: Error | null = null;
   const cerebrasRungs = readyModels("cerebras", CEREBRAS_MODELS, cls);
-  if (cerebrasRungs.length === 0) throw new DeadLadderError("cerebras", CEREBRAS_MODELS.length);
+  if (cerebrasRungs.length === 0) throw emptyLadderError("cerebras", CEREBRAS_MODELS);
   for (const model of cerebrasRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "cerebras")) { lastErr = lastErr ?? runStruckError(opts, "cerebras"); break; }
@@ -1410,7 +1440,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
 
   let lastErr: Error | null = null;
   const sambaRungs = readyModels("sambanova", SAMBANOVA_MODELS, cls);
-  if (sambaRungs.length === 0) throw new DeadLadderError("sambanova", SAMBANOVA_MODELS.length);
+  if (sambaRungs.length === 0) throw emptyLadderError("sambanova", SAMBANOVA_MODELS);
   for (const model of sambaRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "sambanova")) { lastErr = lastErr ?? runStruckError(opts, "sambanova"); break; }
@@ -1751,7 +1781,7 @@ async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"
 
   let lastErr: Error | null = null;
   const openrouterRungs = readyModels("openrouter", FREE_MODELS, cls);
-  if (openrouterRungs.length === 0) throw new DeadLadderError("openrouter", FREE_MODELS.length);
+  if (openrouterRungs.length === 0) throw emptyLadderError("openrouter", FREE_MODELS);
   for (const model of openrouterRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "openrouter")) { lastErr = lastErr ?? runStruckError(opts, "openrouter"); break; }
