@@ -23,6 +23,10 @@
 
 import * as React from "react";
 import { ArrowRight, Loader2, X } from "lucide-react";
+import { LEGACY_REPORT_CENTS, audFromCents } from "@/lib/pricing/payg-copy";
+
+/** Flag-OFF price copy — the legacy one-off report price, derived (never typed). */
+const LEGACY_PRICE_LABEL = audFromCents(LEGACY_REPORT_CENTS);
 
 export type GuestInputType = "pitch_file" | "website_url";
 
@@ -35,8 +39,13 @@ export interface GuestPaidCheckoutProps {
   file?: File | null;
   /** Required when inputType === "website_url". */
   url?: string;
-  /** Price copy, inc. GST. */
+  /** Price copy, inc. GST. Defaults to the legacy one-off price (payg_enabled OFF). */
   priceLabel?: string;
+  /**
+   * G35 P5 (D26): the PAYG tier name when payg_enabled is ON ("Snapshot" /
+   * "Full") — the heading then names the tier. Omitted → today's heading.
+   */
+  tierName?: string;
   /** Pre-filled address (the one given for the free report). */
   initialEmail?: string;
 }
@@ -112,7 +121,8 @@ export function GuestPaidCheckout({
   inputType,
   file,
   url,
-  priceLabel = "A$3",
+  priceLabel = LEGACY_PRICE_LABEL,
+  tierName,
   initialEmail,
 }: GuestPaidCheckoutProps) {
   // G25-C: the address the visitor already gave for the free report is
@@ -188,7 +198,7 @@ export function GuestPaidCheckout({
           id="guest-paid-checkout-title"
           className="text-lg font-semibold text-primary"
         >
-          Get your full report — {priceLabel}
+          {tierName ? `Get your ${tierName} report — ${priceLabel}` : `Get your full report — ${priceLabel}`}
         </h2>
         <p className="mt-1 text-xs text-muted">
           One-off payment, inc. GST. No account needed. We email the PDF a

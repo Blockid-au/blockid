@@ -175,12 +175,15 @@ async function POST_handler(
     // Imported here rather than at module scope: @react-pdf pulls in a large
     // dependency graph, and this route is the only place the free summary is
     // rendered.
-    const [{ renderToBuffer }, { SVISummaryPDF }] = await Promise.all([
+    const [{ renderToBuffer }, { SVISummaryPDF }, { getPaygView }] = await Promise.all([
       import("@react-pdf/renderer"),
       import("@/lib/pdf/svi-summary-pdf"),
+      import("@/lib/pricing/payg-view.server"),
     ]);
+    // G35 P5 — page five's upsell price follows payg_enabled (OFF = today).
+    const payg = await getPaygView();
     const pdf = await renderToBuffer(
-      SVISummaryPDF({ analysis: svi, startupName: startupName ?? undefined }),
+      SVISummaryPDF({ analysis: svi, startupName: startupName ?? undefined, payg }),
     );
 
     const result = await sendFreeSummary({

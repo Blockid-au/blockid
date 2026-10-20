@@ -39,6 +39,7 @@ import {
   type EvaluatorProgress,
 } from "@/lib/evaluations/progress-radar";
 import { renderEvaluatorProgressEmail } from "@/lib/evaluations/progress-email";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,6 +127,8 @@ export async function GET(request: Request) {
   let skippedUnsub = 0;
   let failures = 0;
   let budgetExceeded = false;
+  // G35 P5 — the Pricing v5 switch, read once per run (OFF = today's e-mail copy).
+  const payg = await getPaygView();
 
   for (const u of audience) {
     if (Date.now() - startedAt > BUDGET_MS) {
@@ -194,7 +197,7 @@ export async function GET(request: Request) {
       }
       const token = await ensureEmailPreferences(u.email);
       const unsubscribeUrl = token ? getUnsubscribeUrl(token, "money_radar") : undefined;
-      const rendered = renderEvaluatorProgressEmail({ progress, displayName: u.display_name, unsubscribeUrl });
+      const rendered = renderEvaluatorProgressEmail({ progress, displayName: u.display_name, unsubscribeUrl, payg });
       const result = await sendEmail({
         to: u.email,
         subject: rendered.subject,

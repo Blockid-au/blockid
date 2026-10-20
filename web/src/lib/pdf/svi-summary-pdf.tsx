@@ -45,6 +45,7 @@ import {
   FREE_SUMMARY_PAGES,
   PAID_REPORT_ADDITIONS,
 } from "@/lib/analyses/free-summary";
+import { LEGACY_REPORT_CENTS, PAYG_OFF_VIEW, audFromCents, type PaygView } from "@/lib/pricing/payg-copy";
 import {
   ActionItem,
   Bullet,
@@ -88,6 +89,12 @@ export interface SVISummaryPDFProps {
   startupName?: string;
   /** en-AU long date. Defaults to today. */
   reportDate?: string;
+  /**
+   * G35 P5 — server-read Pricing v5 view (the free-summary route passes
+   * getPaygView()). OFF (default) = the legacy one-off price on page five;
+   * ON = the Full PAYG price, with Snapshot as the entry price.
+   */
+  payg?: PaygView;
 }
 
 /** Small caps eyebrow above a block. */
@@ -175,7 +182,16 @@ export function SVISummaryPDF({
   analysis,
   startupName,
   reportDate,
+  payg = PAYG_OFF_VIEW,
 }: SVISummaryPDFProps) {
+  // Page five upsell price words (OFF = today's legacy amount, derived).
+  const legacyPrice = audFromCents(LEGACY_REPORT_CENTS);
+  const upsellHeading = payg.enabled
+    ? `What the full written report adds — Full ${payg.full}, one payment`
+    : `What the full written report adds — ${legacyPrice}, one payment`;
+  const upsellBuyLine = payg.enabled
+    ? `blockid.au/one-click-report — Snapshot ${payg.snapshot} or Full ${payg.full} inc. GST, no account, no subscription.`
+    : `blockid.au/one-click-report — A$${(LEGACY_REPORT_CENTS / 100).toFixed(2)} inc. GST, no account, no subscription.`;
   const name = startupName?.trim() || "Your startup";
   const date =
     reportDate ||
@@ -554,7 +570,7 @@ export function SVISummaryPDF({
               marginBottom: 3,
             }}
           >
-            What the full written report adds — A$3, one payment
+            {upsellHeading}
           </Text>
           <Text
             style={{
@@ -578,8 +594,7 @@ export function SVISummaryPDF({
               marginTop: 7,
             }}
           >
-            blockid.au/one-click-report — A$3.00 inc. GST, no account, no
-            subscription.
+            {upsellBuyLine}
           </Text>
         </View>
 

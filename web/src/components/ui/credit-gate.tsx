@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { CREDIT_PACKS, type CreditPack } from "@/lib/credit-packs";
 import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+import { creditsLabel } from "@/lib/pricing/payg-copy";
+import { usePaygView } from "@/components/pricing/payg-view-context";
 
 // ---------------------------------------------------------------------------
 // Prices come from the two catalogues, never from this file.
@@ -29,7 +31,13 @@ export function creditGatePacks(): CreditPack[] {
   });
 }
 
-export function perCreditLabel(pack: CreditPack): string {
+/**
+ * Card sub-line. Flag OFF (default): "A$0.90 per credit — save 10%".
+ * G35 P5 / D27 (payg_enabled ON): credits are never converted to A$, so the
+ * line is the savings badge alone ("Save 10%") or "N credits".
+ */
+export function perCreditLabel(pack: CreditPack, paygEnabled = false): string {
+  if (paygEnabled) return pack.savings ?? creditsLabel(pack.credits);
   const perCredit = pack.price / pack.credits;
   return `A$${perCredit.toFixed(2)} per credit${pack.savings ? ` — ${pack.savings.toLowerCase()}` : ""}`;
 }
@@ -40,41 +48,46 @@ const STARTER = PLANS_V2.find((p) => p.id === "founder_starter");
 // Feature label + description map
 // ---------------------------------------------------------------------------
 
-const FEATURE_INFO: Record<string, { label: string; description: string; costLabel: string }> = {
+// The fallback cost line (shown when the caller passes no cost). `credits`
+// mirrors FEATURE_COSTS (lib/credits.ts): flag OFF prints it at the legacy
+// one-A$-per-credit rate ("A$0.50"), flag ON (D27) as "N credits" — never A$.
+// `costLabel` is for rows with no fixed credit cost.
+type FeatureInfo = { label: string; description: string; costLabel?: string; credits?: number };
+const FEATURE_INFO: Record<string, FeatureInfo> = {
   svi_analysis: {
     label: "SVI Analysis",
     description: "AI-powered startup value index analysis of your business idea.",
-    costLabel: "A$0.50",
+    credits: 0.5,
   },
   svi_report: {
     label: "SVI Report",
     description: "Full 10-page AI-generated startup analysis report with actionable insights.",
-    costLabel: "A$0.50",
+    credits: 0.5,
   },
   rnd_report: {
     label: "R&D Report",
     description: "Standard 10-page R&D report with SSE streaming analysis.",
-    costLabel: "A$1.00",
+    credits: 1,
   },
   rnd_deep_dive: {
     label: "Deep Dive Report",
     description: "Extended R&D analysis with detailed competitor profiles and growth tactics.",
-    costLabel: "A$1.50",
+    credits: 1.5,
   },
   term_sheet: {
     label: "Term Sheet AI",
     description: "AI-assisted term sheet generation and analysis for fundraising.",
-    costLabel: "A$1.00",
+    credits: 1,
   },
   research: {
     label: "Competitive Research",
     description: "AI-powered market and competitive landscape research for your startup.",
-    costLabel: "A$0.50",
+    credits: 0.5,
   },
   ai_score: {
     label: "AI Score",
     description: "Enhanced AI scoring for your startup across multiple dimensions.",
-    costLabel: "A$0.25",
+    credits: 0.25,
   },
   grant_match: {
     label: "Grant & Program match report (≈1,200 words, 12-month timeline)",
@@ -90,16 +103,16 @@ const FEATURE_INFO: Record<string, { label: string; description: string; costLab
   trust_report: {
     label: "Trusted Business Report",
     description: "Trusted Business Report — 8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words",
-    costLabel: "A$3.00",
+    credits: 3,
   },
   trust_report_rescore: {
     label: "Re-score",
     description: "Re-score an existing startup",
-    costLabel: "A$1.00",
+    credits: 1,
   },
 };
 
-function getFeatureInfo(feature: string) {
+function getFeatureInfo(feature: string): FeatureInfo {
   return (
     FEATURE_INFO[feature] ?? {
       label: feature.replace(/_/g, " "),
@@ -119,6 +132,12 @@ interface CreditGateProps {
   feature: string;
   cost: number;
   balance: number;
+  /**
+   * G35 P5 — `platform_config.payg_enabled`, read server-side by the page.
+   * Omitted → the nearest PaygViewProvider (default: flag OFF = today's copy).
+   * ON → D27: costs read "N credits", no A$-per-credit line, no 5-pack.
+   */
+  paygEnabled?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -131,8 +150,17 @@ export function CreditGate({
   feature,
   cost,
   balance,
+  paygEnabled,
 }: CreditGateProps) {
   const info = getFeatureInfo(feature);
+  const ctxPayg = usePaygView();
+  const payg = paygEnabled ?? ctxPayg.enabled;
+  const fallbackCost =
+    typeof info.credits === "number"
+      ? payg
+        ? creditsLabel(info.credits)
+        : `A$${info.credits.toFixed(2)}`
+      : (info.costLabel ?? "Varies");
 
   const [buyLoading, setBuyLoading] = React.useState<string | false>(false);
   const [planLoading, setPlanLoading] = React.useState(false);
@@ -254,7 +282,7 @@ export function CreditGate({
               <span className="font-bold text-ink-800">
                 {cost > 0
                   ? `${Number.isInteger(cost) ? cost : cost.toFixed(2)} credit${cost === 1 ? "" : "s"}`
-                  : info.costLabel}
+                  : fallbackCost}
               </span>
             </div>
           </div>
@@ -278,7 +306,7 @@ export function CreditGate({
                 credits={pack.credits}
                 price={formatAud(pack.price)}
                 label={pack.label}
-                desc={perCreditLabel(pack)}
+                desc={perCreditLabel(pack, payg)}
                 onClick={() => handleBuyPack(pack.credits)}
                 highlight={i === 1}
                 badge={i === 1 ? "Most Popular" : undefined}

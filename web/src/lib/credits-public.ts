@@ -26,8 +26,10 @@ export const RND_REPORT_CREDITS = 1;
 /**
  * Credits one evaluator re-score costs — mirrors FEATURE_COSTS.trust_report_rescore.
  * G20-F3 (2026-09-20): the evaluations list, the dossier actions block and the
- * report dialog are "use client" and typed "A$1" by hand. 1 credit = A$1 at
- * the base pack rate (CREDIT_PACKS[0]), so the label is formatAud(this).
+ * report dialog are "use client" and typed the A$ amount by hand. With
+ * platform_config.payg_enabled OFF the label is still the legacy A$ amount
+ * (`rescoreLabel()` in lib/pricing/payg-copy.ts); ON, G35 D27 shows credits
+ * only — "1 credit", never converted to A$.
  */
 export const TRUST_REPORT_RESCORE_CREDITS = 1;
 

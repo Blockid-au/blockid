@@ -42,10 +42,13 @@ import {
   normaliseSummaryEmail,
   type FreeSummaryOutcome,
 } from "@/lib/analyses/free-summary";
+import { LEGACY_REPORT_CENTS, PAYG_OFF_VIEW, audFromCents, reportFromLabel, type PaygView } from "@/lib/pricing/payg-copy";
 
 export interface FreeSummaryPanelProps {
   /** Row id from POST /api/intake. `null` means the run was never saved. */
   analysisId: string | null;
+  /** G35 P5 — server-read Pricing v5 view (via AnalyzeRoot). Omitted → flag OFF (today's line). */
+  payg?: PaygView;
   /** Told when a send succeeds, so the page can carry the address forward. */
   onSent?: (email: string) => void;
   className?: string;
@@ -98,6 +101,7 @@ export function FreeSummaryPanel({
   analysisId,
   onSent,
   className,
+  payg = PAYG_OFF_VIEW,
 }: FreeSummaryPanelProps) {
   const [email, setEmail] = React.useState("");
   const [phase, setPhase] = React.useState<Phase>({ kind: "idle" });
@@ -286,7 +290,9 @@ export function FreeSummaryPanel({
           className="font-medium text-action underline-offset-2 hover:underline"
           data-testid="analyze-free-summary-upgrade"
         >
-          Later decks or sites: the Trusted Business Report is A$3
+          {payg.enabled
+            ? `Later decks or sites: a single report is ${reportFromLabel(payg)}`
+            : `Later decks or sites: the Trusted Business Report is ${audFromCents(LEGACY_REPORT_CENTS)}`}
         </Link>
         .
       </p>

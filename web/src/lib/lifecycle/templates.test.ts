@@ -145,6 +145,18 @@ describe("renderLifecycleEmail", () => {
     expect(r.html).not.toMatch(/stripe\.com|\/api\/checkout|\/api\/stripe/i);
     expect(r.text).toContain("Nothing is charged until you press Pay.");
     expect(r.text).toMatch(/A\$\d+\/mo/);
+    // G35 P5 — flag OFF (default): today's smallest pack (5 credits).
+    expect(r.html).toContain("checkout/review?pack=5&amp;entry=email");
+  });
+
+  it("G35 P5 EM16: payg_enabled ON offers the smallest pack still on sale (D27 retires the 5-pack)", () => {
+    const input = { lifecycle: { quota: { reports_used: 2, delivered_at: "x" } } };
+    const off = renderLifecycleEmail("free_quota_used", EMAIL, input, { paygEnabled: false });
+    expect(off).toEqual(renderLifecycleEmail("free_quota_used", EMAIL, input));
+    const on = renderLifecycleEmail("free_quota_used", EMAIL, input, { paygEnabled: true });
+    expect(on.html).toContain("checkout/review?pack=10&amp;entry=email");
+    expect(on.text).toContain("A credit pack: 10 credits for");
+    expect(on.html).not.toContain("pack=5&amp;");
   });
 
   it("EM19 digest: quiet month still renders; percentile only with n ≥ 10", () => {

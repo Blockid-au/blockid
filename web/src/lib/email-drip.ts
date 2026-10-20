@@ -29,6 +29,7 @@ import {
 import type { EmailClass } from "@/lib/email-sends";
 import { isExcludedAccountEmail } from "@/lib/traction/snapshot";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import { LIFECYCLE_CAMPAIGNS, LIFECYCLE_META, isLifecycleCampaign, type LifecycleCampaign } from "@/lib/lifecycle/campaigns";
@@ -919,9 +920,15 @@ function d7Copy(email: string, p: DripPayload): RenderedEmail {
   return { subject, html, text };
 }
 
-/** G16-B tbr_unlock_24h subject — the price comes from the SKU, never a literal. */
-export function tbrUnlockSubject(): string {
-  return `Your report is ready — unlock the full version for ${trustReportPriceLabel()}`;
+/**
+ * G16-B tbr_unlock_24h subject — the price comes from the SKU, never a literal.
+ * G35 P5: with payg_enabled ON the full version is the Full tier at the
+ * view's display price.
+ */
+export function tbrUnlockSubject(view: Pick<PaygView, "enabled" | "full"> = PAYG_OFF_VIEW): string {
+  return view.enabled
+    ? `Your report is ready — get the Full report for ${view.full}`
+    : `Your report is ready — unlock the full version for ${trustReportPriceLabel()}`;
 }
 
 /**
@@ -929,11 +936,11 @@ export function tbrUnlockSubject(): string {
  * the report page, where the unlock rail opens the confirm-before-charge
  * step (credits + A$ shown first). The mail itself never links to Stripe.
  */
-function tbrUnlockCopy(email: string, p: DripPayload): RenderedEmail {
-  const price = trustReportPriceLabel();
+function tbrUnlockCopy(email: string, p: DripPayload, view: Pick<PaygView, "enabled" | "full"> = PAYG_OFF_VIEW): RenderedEmail {
+  const price = view.enabled ? view.full : trustReportPriceLabel();
   const reportUrl = tbrReportUrl(p.project_id);
   const dim = p.weakestDim ? escapeHtml(p.weakestDim) : null;
-  const subject = tbrUnlockSubject();
+  const subject = tbrUnlockSubject(view);
   const html = shell(`
     <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Trusted Business Report</p>
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">Your Trusted Business Report is ready to unlock</h1>
@@ -1222,12 +1229,19 @@ function radarSetup2Copy(email: string, p: DripPayload): RenderedEmail {
   });
 }
 
+/** Render-time options the (server) sender passes — G35 P5. */
+export interface DripRenderOptions {
+  /** Server-read Pricing v5 view. Omitted → flag OFF (today's copy). */
+  payg?: PaygView;
+}
+
 export function renderDripBody(
   campaign: DripCampaign,
   email: string,
   payload: DripPayload,
+  opts: DripRenderOptions = {},
 ): RenderedEmail {
-  if (isLifecycleCampaign(campaign)) return renderLifecycleEmail(campaign, email, payload);
+  if (isLifecycleCampaign(campaign)) return renderLifecycleEmail(campaign, email, payload, { paygEnabled: opts.payg?.enabled === true });
   switch (campaign) {
     case "radar_setup":
       return radarSetupCopy(email, payload);
@@ -1244,7 +1258,7 @@ export function renderDripBody(
     case "nps_d30":
       return npsCopy(email, payload);
     case "tbr_unlock_24h":
-      return tbrUnlockCopy(email, payload);
+      return tbrUnlockCopy(email, payload, opts.payg ?? PAYG_OFF_VIEW);
     case "radar_t30":
       return radarT30Copy(email, payload);
     case "radar_t14":

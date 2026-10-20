@@ -39,6 +39,7 @@ import { resolveResellerDisplayNameByEmail } from "./reseller/email-attribution"
 import { buildWholesaleWelcomeEmail } from "./reseller/wholesale-welcome-email";
 import { renderFounderFeedbackLetterEmail, type FeedbackLetterEmailInput } from "./evaluations/feedback-letter-email";
 import { CREDIT_PACKS, type CreditPack } from "./credit-packs";
+import { LEGACY_REPORT_CENTS, creditsLabel } from "@/lib/pricing/payg-copy";
 import { FREE_SIGNUP_CREDITS, SVI_ANALYSIS_CREDITS } from "./credits-public";
 import { PLANS_V2, formatAud, type Plan } from "./plans-v2";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
@@ -83,6 +84,16 @@ function packPriceLabel(pack: CreditPack): string {
 /** How many standard SVI analyses a pack (or a monthly grant) covers. */
 function analysesFor(credits: number): number {
   return Math.floor(credits / SVI_ANALYSIS_CREDITS);
+}
+
+/**
+ * Legacy one-off guest report amount line (two decimals), derived from the v3
+ * SKU — the tax-invoice / recovery fallback when the caller does not pass
+ * the order's own amount.
+ */
+function guestReportAmountLabel(amountCents?: number | null): string {
+  const cents = typeof amountCents === "number" && Number.isFinite(amountCents) && amountCents > 0 ? amountCents : LEGACY_REPORT_CENTS;
+  return `A$${(cents / 100).toFixed(2)}`;
 }
 
 /** "A$0.50" — one SVI analysis priced at the smallest pack's per-credit rate. */
@@ -2205,6 +2216,12 @@ export async function sendUnlockDeeperAnalysis(args: {
   to: string;
   name?: string | null;
   stageLabel: string;
+  /**
+   * G35 P5 — `platform_config.payg_enabled` from the (server) caller. ON →
+   * D27: the analysis is priced in credits only, never converted to A$.
+   * Omitted → OFF (today's "from A$…" line).
+   */
+  paygEnabled?: boolean;
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
@@ -2225,12 +2242,12 @@ export async function sendUnlockDeeperAnalysis(args: {
           <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Credit packs</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;">1 Full Analysis (${SVI_ANALYSIS_CREDITS} credits)</td><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #e5e7eb;">from ${sviAnalysisFromPriceLabel()}</td></tr>
+              <tr><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;">${args.paygEnabled ? "1 Full Analysis" : `1 Full Analysis (${SVI_ANALYSIS_CREDITS} credits)`}</td><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #e5e7eb;">${args.paygEnabled ? creditsLabel(SVI_ANALYSIS_CREDITS) : `from ${sviAnalysisFromPriceLabel()}`}</td></tr>
               ${creditPackRowsHtml([creditPack(10), creditPack(50)])}
             </table>
           </div>
           <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">Credits never expire. Use them for analyses, AI evidence reviews, and full reports.`,
-    ctaLabel: `Unlock Full Analysis \u2014 from ${sviAnalysisFromPriceLabel()}`,
+    ctaLabel: args.paygEnabled ? `Unlock Full Analysis \u2014 ${creditsLabel(SVI_ANALYSIS_CREDITS)}` : `Unlock Full Analysis \u2014 from ${sviAnalysisFromPriceLabel()}`,
     ctaUrl: billingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "unlock_deeper_7d"));
   return sendEmail({
@@ -2629,6 +2646,11 @@ export async function sendGuestReport(params: {
   reportData: Record<string, unknown>;
   pdfUrl: string;
   guestAnalysisId: string;
+  /**
+   * What Stripe actually charged (`guest_analyses.paid_amount_aud_cents`),
+   * printed on the tax-invoice line. Omitted → the legacy one-off amount.
+   */
+  amountCents?: number | null;
 }): Promise<void> {
   const { email: to, reportData, pdfUrl, guestAnalysisId } = params;
 
@@ -2736,7 +2758,7 @@ export async function sendGuestReport(params: {
         This report was generated for ${escapeHtml(to)} · Order ID: ${escapeHtml(guestAnalysisId.slice(0, 8))}
       </p>
       <p style="margin:4px 0 0;color:#4b5563;font-size:12px;text-align:center;">
-        Tax invoice · ${tradingAsLine()} · ${LEGAL_ENTITY_ABN_LABEL} · A$3.00 inc. GST
+        Tax invoice · ${tradingAsLine()} · ${LEGAL_ENTITY_ABN_LABEL} · ${guestReportAmountLabel(params.amountCents)} inc. GST
       </p>
     </div>
   `) + unsubFooter(unsubscribeUrl, preferencesUrl);
@@ -2803,6 +2825,11 @@ export async function sendGuestCheckoutRecovery(params: {
   /** Link that rebuilds their Stripe checkout with the same input. */
   resumeUrl: string;
   guestAnalysisId: string;
+  /**
+   * The amount the resumed checkout will charge (the order's intended price,
+   * `guest_analyses.amount_paid_aud_cents`). Omitted → the legacy one-off amount.
+   */
+  amountCents?: number | null;
 }): Promise<SendResult> {
   const { email: to, inputType, inputLabel, resumeUrl, guestAnalysisId } = params;
 
@@ -2843,7 +2870,7 @@ export async function sendGuestCheckoutRecovery(params: {
             <p style="margin:0;color:#4b5563;font-size:14px;line-height:1.7;">
               An 8-dimension Startup Value Index scorecard, a comparable-based valuation range in AUD, and a prioritised action list — delivered by email as a PDF.
             </p>
-            <p style="margin:14px 0 0;color:#0b0f1a;font-size:14px;font-weight:600;">A$3.00 inc. GST — one payment, no subscription.</p>
+            <p style="margin:14px 0 0;color:#0b0f1a;font-size:14px;font-weight:600;">${guestReportAmountLabel(params.amountCents)} inc. GST — one payment, no subscription.</p>
           </div>
 
           <p style="margin:0 0 24px;text-align:center;">

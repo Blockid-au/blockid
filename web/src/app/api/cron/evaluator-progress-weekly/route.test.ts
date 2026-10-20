@@ -45,6 +45,12 @@ vi.mock("@/lib/evaluations/progress-radar", async () => {
   };
 });
 
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => (paygState.enabled ? PAYG_ON_VIEW : PAYG_OFF_VIEW) };
+});
+
 import { GET, POST, dynamic, maxDuration } from "./route";
 
 const USERS = [
@@ -158,6 +164,20 @@ describe("evaluator-progress-weekly route", () => {
     expect(args.html).toContain("Hi Sam");
     expect(args.html).toContain("Unsubscribe from Progress Radar emails");
     expect(h.releaseMock).not.toHaveBeenCalled();
+    // G35 P5 — flag OFF: today's price words.
+    expect(args.html).toContain("Run a re-score (A$1)");
+  });
+
+  it("G35 P5: payg_enabled ON → the e-mail prices the re-score as 1 credit and the report as Full (D27)", async () => {
+    paygState.enabled = true;
+    try {
+      await POST(req(undefined, "Bearer s3cret"));
+      const args = h.sendEmailMock.mock.calls[0][0] as Record<string, string>;
+      expect(args.html).toContain("Run a re-score (1 credit)");
+      expect(args.html).not.toContain("A$1)");
+    } finally {
+      paygState.enabled = false;
+    }
   });
 
   it("skips: silent week (no claim), dupe slot (no notify / send), unsubscribed (in-app still written)", async () => {

@@ -129,6 +129,19 @@ describe("renderEvaluatorProgressEmail", () => {
     }
   });
 
+  it("G35 P5: payg OFF (explicit) is byte-identical to the default; ON prices the re-score as 1 credit and the report as Full PAYG (D27)", async () => {
+    const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    const base = { progress: progress(), siteUrl: "https://blockid.au/" };
+    expect(renderEvaluatorProgressEmail({ ...base, payg: PAYG_OFF_VIEW })).toEqual(renderEvaluatorProgressEmail(base));
+    const { html, text } = renderEvaluatorProgressEmail({ ...base, payg: PAYG_ON_VIEW });
+    expect(html).toContain("Run a re-score (1 credit)");
+    expect(html).toContain("Run a full report");
+    expect(html).toContain(`A full report is one of your included reports, or Full ${PAYG_ON_VIEW.full} pay as you go.`);
+    expect(html).not.toMatch(/A\$1(?![\d,.])/);
+    expect(html).not.toMatch(/A\$3(?!\d)/);
+    expect(text).toContain("Run a re-score (1 credit) or a full report:");
+  });
+
   it("omits the unsubscribe line when no URL is supplied", () => {
     const { html, text } = renderEvaluatorProgressEmail({ progress: progress() });
     expect(html).not.toContain("Unsubscribe");

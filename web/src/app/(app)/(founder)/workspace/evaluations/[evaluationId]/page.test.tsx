@@ -44,6 +44,12 @@ vi.mock("next/navigation", () => ({
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 vi.mock("@/lib/projects", () => ({ getCurrentProjectIsSandbox: async () => false }));
+// G35 P5 — the Pricing v5 switch for the block 6 price line.
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => (paygState.enabled ? PAYG_ON_VIEW : PAYG_OFF_VIEW) };
+});
 
 const isEvaluatorUserMock = vi.fn();
 vi.mock("@/lib/evaluations", async (importOriginal) => ({
@@ -274,6 +280,19 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toContain("Startup Value Index v");
     expect(out).toContain("data-signature-overrides");
     expect(out).toContain("Humans make the decision.");
+    // G35 P5 — flag OFF: today's re-score / report price line.
+    expect(out.replace(/<!-- -->/g, "")).toContain("Re-score (A$1) and the full Trusted Business Report (A$3)");
+  });
+
+  it("G35 P5 payg_enabled ON: block 6 shows the re-score as 1 credit and the report as the Full tier (D27)", async () => {
+    paygState.enabled = true;
+    try {
+      const out = (await html()).replace(/<!-- -->/g, "");
+      expect(out).toContain("Re-score (1 credit) and the full report (Full A$49)");
+      expect(out).not.toContain("Re-score (A$1)");
+    } finally {
+      paygState.enabled = false;
+    }
   });
 
   // V04a (D22): block 2 renders a stored CFO valuation chapter — a snapshot

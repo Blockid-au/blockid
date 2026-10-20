@@ -56,3 +56,37 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
   pack(50,  3500, "Save 30%"),   // A$35  = A$0.70/credit
   pack(100, 6000, "Save 40%"),   // A$60  = A$0.60/credit
 ] as const;
+
+// ─── Pricing v5 D27 (G35 P5, founder-approved 2026-10-20) ───────────────────
+//
+// D27 drops the 5-credit pack from sale once `platform_config.payg_enabled`
+// flips (one A$ per credit is the last visible "A$1"). The pack stays in
+// CREDIT_PACKS so a receipt, a transaction-history row or a late webhook for
+// a session minted before the cut-over still resolves it — only the LISTINGS
+// (billing, credit gates, rails, e-mails) and the purchase entry points
+// (POST /api/credits, /checkout/review) consult the helpers below.
+// Flag OFF → every helper returns exactly today's ladder.
+
+/** Pack sizes no longer offered for sale when Pricing v5 PAYG is on (D27). */
+export const PAYG_RETIRED_PACK_CREDITS: readonly number[] = Object.freeze([5]);
+
+/** Is this pack size on sale right now? Unknown sizes are never on sale. */
+export function isCreditPackForSale(credits: number, paygEnabled: boolean): boolean {
+  if (!CREDIT_PACKS.some((p) => p.credits === credits)) return false;
+  return !(paygEnabled && PAYG_RETIRED_PACK_CREDITS.includes(credits));
+}
+
+/** The ladder a listing shows (flag OFF → CREDIT_PACKS unchanged). */
+export function creditPacksForSale(paygEnabled: boolean): readonly CreditPack[] {
+  return paygEnabled ? CREDIT_PACKS.filter((p) => isCreditPackForSale(p.credits, true)) : CREDIT_PACKS;
+}
+
+/** The smallest pack on sale — "buy credit packs from A$…" lines. */
+export function smallestCreditPackForSale(paygEnabled: boolean): CreditPack {
+  return creditPacksForSale(paygEnabled)[0] ?? CREDIT_PACKS[0]!;
+}
+
+/** Resolve ANY pack, retired or not — receipts, history, webhook lookups. */
+export function findCreditPack(credits: number): CreditPack | undefined {
+  return CREDIT_PACKS.find((p) => p.credits === credits);
+}

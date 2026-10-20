@@ -32,18 +32,23 @@ import { LoadDemoCohortButton } from "@/components/evaluations/DemoCohortActions
 /** G22-A: a Cohorts-list row — `role` is the caller's seat (owner = created it; reviewer / viewer = invited). */
 type CohortListBatch = EvaluationBatch & { role?: BatchRole };
 import { useModalDialog } from "@/hooks/useModalDialog";
-import { formatAud, PLANS_V2 } from "@/lib/plans-v2";
-import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
-import { TRUST_REPORT_RESCORE_CREDITS } from "@/lib/credits-public";
+import { PLANS_V2 } from "@/lib/plans-v2";
+import { reportPriceLabelFor } from "@/lib/pricing/trust-report-price";
+import { PAYG_OFF_VIEW, rescoreLabel, type PaygView } from "@/lib/pricing/payg-copy";
 
 /** Sold name for a plan id ("investor_vc_small" → "Program"); the raw id humanised was printing "Investor Vc Small plan" (design check 2026-09-21). */
 export function planDisplayName(planId: string): string {
   return PLANS_V2.find((p) => p.id === planId)?.name ?? planId.replace(/_/g, " ");
 }
 
-/** Price labels read from the SKU / cost constants — never typed by hand (G20-F3). */
-const TBR_LABEL = trustReportPriceLabel();
-const RESCORE_LABEL = formatAud(TRUST_REPORT_RESCORE_CREDITS);
+/**
+ * Price labels read from the SKU / cost constants — never typed by hand
+ * (G20-F3). G35 P5: they follow the server-read PaygView — OFF = the legacy
+ * legacy A$ amounts, ON = the Full tier price / "1 credit" (D27).
+ */
+function priceLabels(view: PaygView): { tbr: string; rescore: string } {
+  return { tbr: view.enabled ? `${reportPriceLabelFor(view)} report` : `Trusted Business Report ${reportPriceLabelFor(view)}`, rescore: rescoreLabel(view) };
+}
 
 // ---------------------------------------------------------------------------
 // Props + local constants
@@ -84,6 +89,8 @@ export interface EvaluationsClientProps {
   batches?: CohortListBatch[];
   /** G24-C: catalogue copy for the demo cohort chip / CTA (EN default). */
   demoLabels?: DemoCohortLabels;
+  /** G35 P5 — server-read Pricing v5 view (payg_enabled + display prices). Omitted → flag OFF (today). */
+  payg?: PaygView;
 }
 
 const AU_STATE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -209,7 +216,7 @@ function DeltaCell({ item }: { item: EvaluatorProgressItem | null }) {
   );
 }
 
-export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: EvaluatorProgress | null; hasMoneyRadar: boolean }) {
+export function ProgressRadarPanel({ progress, hasMoneyRadar, payg = PAYG_OFF_VIEW }: { progress: EvaluatorProgress | null; hasMoneyRadar: boolean; payg?: Pick<PaygView, "enabled"> }) {
   if (!hasMoneyRadar) {
     return (
       <div
@@ -254,7 +261,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">Movers</p>
           {movers.length === 0 ? (
-            <p className="mt-1 text-xs text-ink-500">No SVI movement this week. Run a re-score ({RESCORE_LABEL}) after new evidence lands.</p>
+            <p className="mt-1 text-xs text-ink-500">No SVI movement this week. Run a re-score ({rescoreLabel(payg)}) after new evidence lands.</p>
           ) : (
             <ul className="mt-1 space-y-1">
               {movers.map((m) => (
@@ -406,7 +413,9 @@ export function EvaluationsClient({
   autoOpenAdd = false,
   preselectBatchId = null,
   demoLabels = DEMO_COHORT_LABELS_EN,
+  payg = PAYG_OFF_VIEW,
 }: EvaluationsClientProps) {
+  const labels = priceLabels(payg);
   const progressByEval = React.useMemo(() => {
     const m = new Map<string, EvaluatorProgressItem>();
     for (const it of progress?.items ?? []) m.set(it.evaluationId, it);
@@ -769,7 +778,7 @@ export function EvaluationsClient({
             ) : reportQuota ? (
               <>
                 <span className="mx-1.5 text-surface-300">|</span>
-                <span data-testid="report-quota">Trusted Business Report {TBR_LABEL} · re-score {RESCORE_LABEL}</span>
+                <span data-testid="report-quota">{labels.tbr} · re-score {labels.rescore}</span>
               </>
             ) : null}
           </span>
@@ -782,7 +791,7 @@ export function EvaluationsClient({
       )}
 
       {/* Progress Radar (T0273) — panel for money_radar plans, Scout teaser otherwise */}
-      {isEvaluator && rows.length > 0 ? <ProgressRadarPanel progress={progress} hasMoneyRadar={hasMoneyRadar} /> : null}
+      {isEvaluator && rows.length > 0 ? <ProgressRadarPanel progress={progress} hasMoneyRadar={hasMoneyRadar} payg={payg} /> : null}
 
       {/* Cohorts (T0272) — Program batch scoring */}
       {isEvaluator ? <CohortsSection batches={batches} canBatch={canBatch} demoLabels={demoLabels} /> : null}

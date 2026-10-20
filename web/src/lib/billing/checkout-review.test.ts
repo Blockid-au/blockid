@@ -139,6 +139,10 @@ describe("resolveCheckoutOrder — catalogue facts, never typed", () => {
       expect(o.postBody).toEqual({ amount: pack.credits });
     }
     expect(resolveCheckoutOrder({ kind: "pack", credits: 7, entry: "credits" })).toBeNull();
+    // Pricing v5 D27: the 5-pack leaves sale when payg_enabled (OFF / omitted → today).
+    expect(resolveCheckoutOrder({ kind: "pack", credits: 5, entry: "credits" }, { paygEnabled: false })?.id).toBe("credits_5");
+    expect(resolveCheckoutOrder({ kind: "pack", credits: 5, entry: "credits" }, { paygEnabled: true })).toBeNull();
+    expect(resolveCheckoutOrder({ kind: "pack", credits: 10, entry: "credits" }, { paygEnabled: true })?.id).toBe("credits_10");
   });
 
   it("Startup Package: A$149 one-off from the csv row, posts {plan:'founder_package'[, projectId]}", () => {

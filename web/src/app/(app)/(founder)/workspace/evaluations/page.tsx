@@ -39,6 +39,7 @@ import { getInvestorPreferences, getInvestorVisibility } from "@/lib/investor-po
 import { TRIAL_REMINDER_FROM, type ActivationInputs } from "@/lib/evaluations/activation-checklist";
 import { EvaluationsClient } from "./evaluations-client";
 import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const metadata: Metadata = {
   title: "Startups I'm evaluating | BlockID",
@@ -65,10 +66,11 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
   const batchParam = first(params?.batch);
   const preselectBatchId = batchParam && /^[A-Za-z0-9_-]{1,64}$/.test(batchParam) ? batchParam : null;
 
-  const [isSandbox, isEvaluator, demoLabels] = await Promise.all([
+  const [isSandbox, isEvaluator, demoLabels, payg] = await Promise.all([
     getCurrentProjectIsSandbox(),
     isEvaluatorUser(user),
     loadDemoCohortLabels(),
+    getPaygView(),
   ]);
 
   const [evaluations, quota, lastReports, reportQuota, progress, flags, batches, prefs, visibility] = isEvaluator
@@ -116,6 +118,7 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         autoOpenAdd={autoOpenAdd}
         preselectBatchId={preselectBatchId}
         demoLabels={demoLabels}
+        payg={payg}
       />
     </WorkspaceLayout>
   );

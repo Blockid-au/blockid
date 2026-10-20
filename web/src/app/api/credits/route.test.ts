@@ -96,6 +96,11 @@ vi.mock("@/lib/stripe", () => ({
   STRIPE_PRICE_MAP: mocks.STRIPE_PRICE_MAP_FIXTURE,
 }));
 
+const paygEnabledMock = vi.hoisted(() => vi.fn(async () => false));
+vi.mock("@/lib/pricing/payg-view.server", () => ({
+  isPaygEnabled: () => paygEnabledMock(),
+}));
+
 vi.mock("@/lib/stripe/idempotency", () => ({
   sessionIdempotencyKey: (kind: string, parts: unknown[]) =>
     mocks.sessionIdempotencyKeyMock(kind, parts),
@@ -149,6 +154,7 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 }
 
 beforeEach(() => {
+  paygEnabledMock.mockReset().mockResolvedValue(false);
   enforceRateLimitMock.mockReset().mockReturnValue(null);
   mocks.getCurrentUserMock.mockReset().mockResolvedValue(USER);
   mocks.getBalanceMock.mockReset().mockResolvedValue(150);
@@ -466,6 +472,41 @@ describe("POST /api/credits — gate precedence", () => {
     const res = await POST(postReq({ amount: 7 }));
     expect(res.status).toBe(400);
     expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/credits — Pricing v5 D27 5-pack retirement", () => {
+  // The fixture ladder carries a 5-pack for this block only.
+  beforeEach(() => {
+    mocks.CREDIT_PACKS_FIXTURE.unshift({ credits: 5, priceCents: 500 });
+    mocks.STRIPE_PRICE_MAP_FIXTURE.credits_5 = "price_credits_5";
+  });
+  afterEach(() => {
+    mocks.CREDIT_PACKS_FIXTURE.shift();
+    delete mocks.STRIPE_PRICE_MAP_FIXTURE.credits_5;
+  });
+
+  it("flag OFF: the 5-pack still sells exactly as today", async () => {
+    const res = await POST(postReq({ amount: 5 }));
+    expect(res.status).toBe(200);
+    expect(mocks.stripeCreateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("flag ON: the 5-pack is refused (400) before Stripe, other sizes still sell", async () => {
+    paygEnabledMock.mockResolvedValue(true);
+    const res = await POST(postReq({ amount: 5 }));
+    expect(res.status).toBe(400);
+    const reason = String((await json(res)).reason);
+    expect(reason).toMatch(/no longer offered/i);
+    expect(reason).not.toMatch(/\b5\b/);
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+    const ok = await POST(postReq({ amount: 10 }));
+    expect(ok.status).toBe(200);
+  });
+
+  it("never reads the flag for a size that is not retired", async () => {
+    await POST(postReq({ amount: 25 }));
+    expect(paygEnabledMock).not.toHaveBeenCalled();
   });
 });
 

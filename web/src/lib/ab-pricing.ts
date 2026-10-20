@@ -33,6 +33,12 @@ export interface PricingVariant {
   priceAud: string;            // "A$3"
   weight: number;              // relative traffic share (0-1)
   description: string;         // one-liner shown on /admin/pricing-test
+  /**
+   * G35 P5 (D27, 2026-10-20): `false` = retired arm — never assigned to new
+   * traffic (pickVariant skips it), still listed so /admin/pricing-test can
+   * report its historical rows. Omitted → active.
+   */
+  active?: boolean;
 }
 
 export interface Experiment {
@@ -58,9 +64,9 @@ export const FOUNDING_PRICE_EXPERIMENT: Experiment = {
   primaryMetric: "paid",
   variants: [
     { id: "a5",  label: "A$5 (control / current config)", priceCents: 500,  priceAud: "A$5",  weight: 0.40, description: "Current platform-config value (bumped from A$3 on 2026-06-21)." },
-    { id: "a3",  label: "A$3 (legacy / previous control)", priceCents: 300,  priceAud: "A$3",  weight: 0.10, description: "Previous control — held as comparison cohort." },
+    { id: "a3",  label: "A$3 (legacy / previous control)", priceCents: 300,  priceAud: "A$3",  weight: 0.10, description: "Previous control — held as comparison cohort. Retired G35 D27.", active: false },
     { id: "a10", label: "A$10",                            priceCents: 1000, priceAud: "A$10", weight: 0.30, description: "Premium positioning — tests whether the audience is anchor-sensitive vs value-sensitive." },
-    { id: "a1",  label: "A$1 (legacy / floor)",            priceCents: 100,  priceAud: "A$1",  weight: 0.20, description: "Legacy price — kept as floor to measure ceiling lift from the bumps above." },
+    { id: "a1",  label: "A$1 (legacy / floor)",            priceCents: 100,  priceAud: "A$1",  weight: 0.20, description: "Legacy price — kept as floor to measure ceiling lift from the bumps above. Retired G35 D27.", active: false },
   ],
 };
 
@@ -80,14 +86,23 @@ function hashIdentity(identity: string): number {
   return Math.abs(h) / 2147483648;
 }
 
+/** Arms that still take new traffic (G35 D27 retired the A$1 / A$3 arms). */
+export function activeVariants(experiment: Experiment): PricingVariant[] {
+  const live = experiment.variants.filter((v) => v.active !== false);
+  return live.length > 0 ? live : [experiment.variants[0]];
+}
+
 function pickVariant(experiment: Experiment, identity: string): PricingVariant {
   const r = hashIdentity(`${experiment.id}|${identity}`);
+  const live = activeVariants(experiment);
+  // Re-normalise the live arms' weights so traffic stays fully covered.
+  const total = live.reduce((acc, v) => acc + v.weight, 0) || 1;
   let cum = 0;
-  for (const v of experiment.variants) {
-    cum += v.weight;
+  for (const v of live) {
+    cum += v.weight / total;
     if (r <= cum) return v;
   }
-  return experiment.variants[experiment.variants.length - 1];
+  return live[live.length - 1];
 }
 
 /** Read or create an anonymous_id cookie. Server-side only. */

@@ -123,3 +123,28 @@ describe("SVISummaryPDF", () => {
     expect(pdfPageCount(buffer)).toBe(FREE_SUMMARY_PAGE_COUNT);
   }, 120_000);
 });
+
+describe("SVISummaryPDF — page five upsell follows payg_enabled (G35 P5)", () => {
+  async function fullText(buffer: Buffer): Promise<string> {
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const result = await parser.getText();
+      return result.pages.map((p) => p.text.replace(/\s+/g, " ")).join("\n");
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  it("OFF (default) keeps the legacy one-off line; ON names Snapshot / Full from the view", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    const analysis = computeSVI(extractSignals({ rawText: RICH }));
+    const off = await fullText(await renderToBuffer(SVISummaryPDF({ analysis, startupName: "Northwind Freight" })));
+    expect(off).toContain("What the full written report adds — A$3, one payment");
+    expect(off).toContain("A$3.00 inc. GST");
+    const on = await fullText(await renderToBuffer(SVISummaryPDF({ analysis, startupName: "Northwind Freight", payg: PAYG_ON_VIEW })));
+    expect(on).toContain(`What the full written report adds — Full ${PAYG_ON_VIEW.full}, one payment`);
+    expect(on).toContain(`Snapshot ${PAYG_ON_VIEW.snapshot} or Full ${PAYG_ON_VIEW.full} inc. GST`);
+    expect(on).not.toMatch(/A\$3(?!\d)/);
+  }, 120_000);
+});
+

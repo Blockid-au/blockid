@@ -24,7 +24,7 @@ import {
   normaliseBillingPlanId,
   resolveActivePlan,
 } from "./billing-plans";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { creditPacksForSale } from "@/lib/credit-packs";
 import { formatAud, withGst } from "@/lib/plans-v2";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
@@ -63,6 +63,12 @@ interface BillingClientProps {
   subscription?: BillingSubscriptionView;
   /** Public plan name for the subscription (Scout / Starter / Cohort 25 …). */
   subscriptionPlanLabel?: string | null;
+  /**
+   * `platform_config.payg_enabled` (Pricing v5, read by the server page).
+   * ON → D27: the 5-pack leaves the grid and no "A$x/credit" rate is shown —
+   * packs read "N credits" + the pack price only. Omitted → OFF (today).
+   */
+  paygEnabled?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +125,7 @@ export function BillingClient({
   shareMgmtAddonPriceIds,
   subscription,
   subscriptionPlanLabel = null,
+  paygEnabled = false,
 }: BillingClientProps) {
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -736,9 +743,10 @@ function CreditsPurchaseSection() {
 
         {/* Pack grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {CREDIT_PACKS.map((pack) => {
+          {creditPacksForSale(paygEnabled).map((pack) => {
             const priceLabel = withGst(formatAud(pack.price));
-            const perCredit = `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
+            // D27: no A$-per-credit conversion once Pricing v5 is on.
+            const perCredit = paygEnabled ? null : `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
             return (
             <div
               key={pack.credits}
@@ -756,7 +764,7 @@ function CreditsPurchaseSection() {
               <p className="text-sm font-semibold text-brand-600 mb-0.5">
                 {priceLabel}
               </p>
-              <p className="text-[11px] text-ink-500 mb-1">{perCredit}</p>
+              {perCredit ? <p className="text-[11px] text-ink-500 mb-1">{perCredit}</p> : null}
               {pack.savings && (
                 <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-3">
                   {pack.savings}

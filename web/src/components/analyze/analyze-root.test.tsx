@@ -1,14 +1,46 @@
 import { describe, expect, it } from "vitest";
 import {
   guestInputTypeFor,
+  guestPaidCopy,
   guestUrlFor,
   shouldAutoRun,
 } from "./analyze-root";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 
 const deckIntake = { inputKind: "pitch_deck" } as IntakeResult;
 const siteIntake = { inputKind: "website", rawText: "https://a.io" } as IntakeResult;
 const ideaIntake = { inputKind: "idea_text" } as IntakeResult;
+
+describe("guestPaidCopy (G35 P5 payg switch, copy only)", () => {
+  it("flag OFF: today's legacy one-off wording, byte-identical, whatever the tier param", () => {
+    for (const tier of ["full", "snapshot"] as const) {
+      const c = guestPaidCopy(PAYG_OFF_VIEW, tier);
+      expect(c.banner).toBe("Paid report · A$3 inc. GST · emailed as a PDF");
+      expect(c.cta).toBe("Continue — A$3 report");
+      expect(c.title).toBe("Your A$3 report");
+      expect(c.oneOff).toBe("One-off A$3 inc. GST");
+      expect(c.checkoutPrice).toBe("A$3");
+      expect(c.tierName).toBeUndefined();
+      expect(c.quoteLabel).toBeNull();
+    }
+  });
+
+  it("flag ON (D26): Full by default, Snapshot when the link chose it, prices from the view", () => {
+    const full = guestPaidCopy(PAYG_ON_VIEW);
+    expect(full.cta).toBe(`Continue — Full report ${PAYG_ON_VIEW.full}`);
+    expect(full.title).toBe(`Your Full report — ${PAYG_ON_VIEW.full}`);
+    expect(full.banner).toBe(`Paid report · Full ${PAYG_ON_VIEW.full} inc. GST · emailed as a PDF`);
+    expect(full.quoteLabel).toBe(`Full ${PAYG_ON_VIEW.full} inc. GST`);
+    expect(full.tierName).toBe("Full");
+    const snap = guestPaidCopy(PAYG_ON_VIEW, "snapshot");
+    expect(snap.cta).toBe(`Continue — Snapshot report ${PAYG_ON_VIEW.snapshot}`);
+    expect(snap.oneOff).toBe(`One-off Snapshot report ${PAYG_ON_VIEW.snapshot} inc. GST`);
+    for (const c of [full, snap]) {
+      for (const v of Object.values(c)) if (typeof v === "string") expect(v).not.toMatch(/A\$3(?!\d)/);
+    }
+  });
+});
 
 describe("shouldAutoRun", () => {
   it("runs straight away for an anonymous free visitor", () => {
