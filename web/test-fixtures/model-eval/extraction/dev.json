@@ -1,7 +1,7 @@
 {
  "task": "extraction",
  "split": "dev",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -9,16 +9,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Saltbush Labs Pty Ltd is a fintech company founded in 2019, building a payments app for small retailers. It employs 8 people. It has raised A$975,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Numbat Group Pty Ltd is a deeptech company founded in 2016, building quantum-safe encryption chips. It employs 42 people. FY2026 revenue was A$400,000. It has raised A$1,050,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Saltbush Labs",
-     "founded_year": 2019,
-     "employees": 8,
-     "revenue_aud": null,
-     "funding_raised_aud": 975000,
-     "sector": "fintech"
+     "company_name": "Numbat Group",
+     "founded_year": 2016,
+     "employees": 42,
+     "revenue_aud": 400000,
+     "funding_raised_aud": 1050000,
+     "sector": "deeptech"
     }
    }
   },
@@ -27,16 +27,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Dingo Labs Pty Ltd là một công ty saas được thành lập năm 2020, chuyên về phần mềm B2B cho các công ty kế toán. Tổng vốn đã huy động là A$700,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Dingo Logic Pty Ltd là một công ty deeptech được thành lập năm 2022, chuyên về chip mã hoá an toàn lượng tử. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Dingo Labs",
-     "founded_year": 2020,
+     "company_name": "Dingo Logic",
+     "founded_year": 2022,
      "employees": null,
      "revenue_aud": null,
-     "funding_raised_aud": 700000,
-     "sector": "saas"
+     "funding_raised_aud": null,
+     "sector": "deeptech"
     }
    }
   },
@@ -45,16 +45,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Banksia Farm Pty Ltd is a healthtech company founded in 2023, building remote monitoring for aged-care residents. It employs 34 people. FY2026 revenue was A$1,450,000. It has raised A$650,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Dingo Co Pty Ltd is a saas company founded in 2019, building B2B software for accounting firms. It employs 12 people. It has raised A$1,200,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Banksia Farm",
-     "founded_year": 2023,
-     "employees": 34,
-     "revenue_aud": 1450000,
-     "funding_raised_aud": 650000,
-     "sector": "healthtech"
+     "company_name": "Dingo Co",
+     "founded_year": 2019,
+     "employees": 12,
+     "revenue_aud": null,
+     "funding_raised_aud": 1200000,
+     "sector": "saas"
     }
    }
   },
@@ -63,16 +63,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Echidna Grid Pty Ltd là một công ty fintech được thành lập năm 2020, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 5 nhân viên. Tổng vốn đã huy động là A$950,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Saltbush Labs Pty Ltd là một công ty saas được thành lập năm 2020, chuyên về phần mềm B2B cho các công ty kế toán. Công ty hiện có 57 nhân viên. Tổng vốn đã huy động là A$125,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Echidna Grid",
+     "company_name": "Saltbush Labs",
      "founded_year": 2020,
-     "employees": 5,
+     "employees": 57,
      "revenue_aud": null,
-     "funding_raised_aud": 950000,
-     "sector": "fintech"
+     "funding_raised_aud": 125000,
+     "sector": "saas"
     }
    }
   },
@@ -81,15 +81,15 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Galah Pay Pty Ltd is a deeptech company founded in 2020, building quantum-safe encryption chips. It employs 43 people. FY2026 revenue was A$1,750,000. It has raised A$1,400,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Ironbark Group Pty Ltd is a deeptech company founded in 2019, building quantum-safe encryption chips. It employs 23 people. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Galah Pay",
-     "founded_year": 2020,
-     "employees": 43,
-     "revenue_aud": 1750000,
-     "funding_raised_aud": 1400000,
+     "company_name": "Ironbark Group",
+     "founded_year": 2019,
+     "employees": 23,
+     "revenue_aud": null,
+     "funding_raised_aud": null,
      "sector": "deeptech"
     }
    }
@@ -99,16 +99,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Brolga Grid Pty Ltd là một công ty saas được thành lập năm 2023, chuyên về phần mềm B2B cho các công ty kế toán. Công ty hiện có 24 nhân viên. Tổng vốn đã huy động là A$1,425,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Dingo Labs Pty Ltd là một công ty marketplace được thành lập năm 2022, chuyên về sàn giao dịch hai chiều kết nối thợ với chủ nhà. Công ty hiện có 33 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,350,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Brolga Grid",
-     "founded_year": 2023,
-     "employees": 24,
-     "revenue_aud": null,
-     "funding_raised_aud": 1425000,
-     "sector": "saas"
+     "company_name": "Dingo Labs",
+     "founded_year": 2022,
+     "employees": 33,
+     "revenue_aud": 1350000,
+     "funding_raised_aud": null,
+     "sector": "marketplace"
     }
    }
   },
@@ -117,16 +117,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Galah Learn Pty Ltd is a edtech company founded in 2016, building a maths tutoring platform for high-school students. It employs 17 people. FY2026 revenue was A$1,700,000. The founders are looking for distribution partners in Queensland."
+    "document": "Brolga One Pty Ltd is a deeptech company founded in 2021, building quantum-safe encryption chips. It employs 32 people. FY2026 revenue was A$1,750,000. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Galah Learn",
-     "founded_year": 2016,
-     "employees": 17,
-     "revenue_aud": 1700000,
+     "company_name": "Brolga One",
+     "founded_year": 2021,
+     "employees": 32,
+     "revenue_aud": 1750000,
      "funding_raised_aud": null,
-     "sector": "edtech"
+     "sector": "deeptech"
     }
    }
   },
@@ -135,16 +135,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Spinifex Labs Pty Ltd là một công ty edtech được thành lập năm 2019, chuyên về nền tảng dạy kèm toán cho học sinh trung học. Công ty hiện có 53 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,250,000. Tổng vốn đã huy động là A$325,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Coral Works Pty Ltd là một công ty marketplace được thành lập năm 2018, chuyên về sàn giao dịch hai chiều kết nối thợ với chủ nhà. Doanh thu năm tài chính 2026 đạt A$1,450,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Spinifex Labs",
-     "founded_year": 2019,
-     "employees": 53,
-     "revenue_aud": 1250000,
-     "funding_raised_aud": 325000,
-     "sector": "edtech"
+     "company_name": "Coral Works",
+     "founded_year": 2018,
+     "employees": null,
+     "revenue_aud": 1450000,
+     "funding_raised_aud": null,
+     "sector": "marketplace"
     }
    }
   },
@@ -153,16 +153,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Banksia Pay Pty Ltd is a deeptech company founded in 2020, building quantum-safe encryption chips. It employs 31 people. FY2026 revenue was A$1,300,000. It has raised A$875,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Brolga Group Pty Ltd is a saas company founded in 2019, building B2B software for accounting firms. FY2026 revenue was A$850,000. It has raised A$1,450,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Banksia Pay",
-     "founded_year": 2020,
-     "employees": 31,
-     "revenue_aud": 1300000,
-     "funding_raised_aud": 875000,
-     "sector": "deeptech"
+     "company_name": "Brolga Group",
+     "founded_year": 2019,
+     "employees": null,
+     "revenue_aud": 850000,
+     "funding_raised_aud": 1450000,
+     "sector": "saas"
     }
    }
   },
@@ -171,16 +171,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Coral Learn Pty Ltd là một công ty cleantech được thành lập năm 2019, chuyên về phần mềm quản lý pin cho điện mặt trời áp mái. Công ty hiện có 54 nhân viên. Doanh thu năm tài chính 2026 đạt A$400,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Koala Works Pty Ltd là một công ty healthtech được thành lập năm 2023, chuyên về theo dõi từ xa cho người cao tuổi trong viện dưỡng lão. Công ty hiện có 13 nhân viên. Tổng vốn đã huy động là A$525,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Coral Learn",
-     "founded_year": 2019,
-     "employees": 54,
-     "revenue_aud": 400000,
-     "funding_raised_aud": null,
-     "sector": "cleantech"
+     "company_name": "Koala Works",
+     "founded_year": 2023,
+     "employees": 13,
+     "revenue_aud": null,
+     "funding_raised_aud": 525000,
+     "sector": "healthtech"
     }
    }
   },
@@ -189,16 +189,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Coral Farm Pty Ltd is a marketplace company founded in 2025, building a two-sided marketplace matching tradies with homeowners. It employs 10 people. FY2026 revenue was A$250,000. The founders are looking for distribution partners in Queensland."
+    "document": "Wattle Hub Pty Ltd is a saas company founded in 2024, building B2B software for accounting firms. FY2026 revenue was A$750,000. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Coral Farm",
-     "founded_year": 2025,
-     "employees": 10,
-     "revenue_aud": 250000,
+     "company_name": "Wattle Hub",
+     "founded_year": 2024,
+     "employees": null,
+     "revenue_aud": 750000,
      "funding_raised_aud": null,
-     "sector": "marketplace"
+     "sector": "saas"
     }
    }
   },
@@ -207,16 +207,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Galah Works Pty Ltd là một công ty fintech được thành lập năm 2023, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 41 nhân viên. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Quokka Co Pty Ltd là một công ty cleantech được thành lập năm 2022, chuyên về phần mềm quản lý pin cho điện mặt trời áp mái. Công ty hiện có 42 nhân viên. Doanh thu năm tài chính 2026 đạt A$400,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Galah Works",
-     "founded_year": 2023,
-     "employees": 41,
-     "revenue_aud": null,
+     "company_name": "Quokka Co",
+     "founded_year": 2022,
+     "employees": 42,
+     "revenue_aud": 400000,
      "funding_raised_aud": null,
-     "sector": "fintech"
+     "sector": "cleantech"
     }
    }
   },
@@ -225,16 +225,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Ironbark Labs Pty Ltd is a saas company founded in 2023, building B2B software for accounting firms. It employs 43 people. FY2026 revenue was A$1,500,000. It has raised A$850,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Numbat Systems Pty Ltd is a deeptech company founded in 2022, building quantum-safe encryption chips. It employs 6 people. FY2026 revenue was A$900,000. It has raised A$1,050,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Ironbark Labs",
-     "founded_year": 2023,
-     "employees": 43,
-     "revenue_aud": 1500000,
-     "funding_raised_aud": 850000,
-     "sector": "saas"
+     "company_name": "Numbat Systems",
+     "founded_year": 2022,
+     "employees": 6,
+     "revenue_aud": 900000,
+     "funding_raised_aud": 1050000,
+     "sector": "deeptech"
     }
    }
   },
@@ -243,16 +243,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Coral Analytics Pty Ltd là một công ty deeptech được thành lập năm 2019, chuyên về chip mã hoá an toàn lượng tử. Công ty hiện có 35 nhân viên. Doanh thu năm tài chính 2026 đạt A$300,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Dingo Studio Pty Ltd là một công ty saas được thành lập năm 2018, chuyên về phần mềm B2B cho các công ty kế toán. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Coral Analytics",
-     "founded_year": 2019,
-     "employees": 35,
-     "revenue_aud": 300000,
+     "company_name": "Dingo Studio",
+     "founded_year": 2018,
+     "employees": null,
+     "revenue_aud": null,
      "funding_raised_aud": null,
-     "sector": "deeptech"
+     "sector": "saas"
     }
    }
   },
@@ -261,16 +261,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Quokka Pay Pty Ltd is a agritech company founded in 2025, building soil-moisture sensors for grain farms. It employs 44 people. The founders are looking for distribution partners in Queensland."
+    "document": "Spinifex Hub Pty Ltd is a cleantech company founded in 2022, building battery management software for rooftop solar. FY2026 revenue was A$1,850,000. It has raised A$525,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Quokka Pay",
-     "founded_year": 2025,
-     "employees": 44,
-     "revenue_aud": null,
-     "funding_raised_aud": null,
-     "sector": "agritech"
+     "company_name": "Spinifex Hub",
+     "founded_year": 2022,
+     "employees": null,
+     "revenue_aud": 1850000,
+     "funding_raised_aud": 525000,
+     "sector": "cleantech"
     }
    }
   },
@@ -279,16 +279,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Ironbark Health Pty Ltd là một công ty agritech được thành lập năm 2020, chuyên về cảm biến độ ẩm đất cho trang trại ngũ cốc. Công ty hiện có 35 nhân viên. Doanh thu năm tài chính 2026 đạt A$650,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Koala One Pty Ltd là một công ty edtech được thành lập năm 2025, chuyên về nền tảng dạy kèm toán cho học sinh trung học. Công ty hiện có 58 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,400,000. Tổng vốn đã huy động là A$100,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Ironbark Health",
-     "founded_year": 2020,
-     "employees": 35,
-     "revenue_aud": 650000,
-     "funding_raised_aud": null,
-     "sector": "agritech"
+     "company_name": "Koala One",
+     "founded_year": 2025,
+     "employees": 58,
+     "revenue_aud": 1400000,
+     "funding_raised_aud": 100000,
+     "sector": "edtech"
     }
    }
   },
@@ -297,16 +297,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Tidal Analytics Pty Ltd is a fintech company founded in 2017, building a payments app for small retailers. It employs 42 people. FY2026 revenue was A$1,850,000. It has raised A$1,500,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Banksia Studio Pty Ltd is a agritech company founded in 2017, building soil-moisture sensors for grain farms. It employs 47 people. FY2026 revenue was A$500,000. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Tidal Analytics",
+     "company_name": "Banksia Studio",
      "founded_year": 2017,
-     "employees": 42,
-     "revenue_aud": 1850000,
-     "funding_raised_aud": 1500000,
-     "sector": "fintech"
+     "employees": 47,
+     "revenue_aud": 500000,
+     "funding_raised_aud": null,
+     "sector": "agritech"
     }
    }
   },
@@ -315,16 +315,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Galah Labs Pty Ltd là một công ty saas được thành lập năm 2017, chuyên về phần mềm B2B cho các công ty kế toán. Công ty hiện có 44 nhân viên. Doanh thu năm tài chính 2026 đạt A$2,000,000. Tổng vốn đã huy động là A$850,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Kestrel Works Pty Ltd là một công ty marketplace được thành lập năm 2021, chuyên về sàn giao dịch hai chiều kết nối thợ với chủ nhà. Công ty hiện có 56 nhân viên. Tổng vốn đã huy động là A$1,350,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Galah Labs",
-     "founded_year": 2017,
-     "employees": 44,
-     "revenue_aud": 2000000,
-     "funding_raised_aud": 850000,
-     "sector": "saas"
+     "company_name": "Kestrel Works",
+     "founded_year": 2021,
+     "employees": 56,
+     "revenue_aud": null,
+     "funding_raised_aud": 1350000,
+     "sector": "marketplace"
     }
    }
   },
@@ -333,15 +333,15 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Kestrel Analytics Pty Ltd is a fintech company founded in 2017, building a payments app for small retailers. It employs 23 people. FY2026 revenue was A$50,000. It has raised A$25,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Koala Systems Pty Ltd is a fintech company founded in 2024, building a payments app for small retailers. FY2026 revenue was A$400,000. It has raised A$50,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Kestrel Analytics",
-     "founded_year": 2017,
-     "employees": 23,
-     "revenue_aud": 50000,
-     "funding_raised_aud": 25000,
+     "company_name": "Koala Systems",
+     "founded_year": 2024,
+     "employees": null,
+     "revenue_aud": 400000,
+     "funding_raised_aud": 50000,
      "sector": "fintech"
     }
    }
@@ -351,15 +351,15 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Paperbark Health Pty Ltd là một công ty deeptech được thành lập năm 2016, chuyên về chip mã hoá an toàn lượng tử. Doanh thu năm tài chính 2026 đạt A$1,000,000. Tổng vốn đã huy động là A$1,300,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Mallee Group Pty Ltd là một công ty deeptech được thành lập năm 2022, chuyên về chip mã hoá an toàn lượng tử. Công ty hiện có 49 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,750,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Paperbark Health",
-     "founded_year": 2016,
-     "employees": null,
-     "revenue_aud": 1000000,
-     "funding_raised_aud": 1300000,
+     "company_name": "Mallee Group",
+     "founded_year": 2022,
+     "employees": 49,
+     "revenue_aud": 1750000,
+     "funding_raised_aud": null,
      "sector": "deeptech"
     }
    }
@@ -369,16 +369,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Tidal Grid Pty Ltd is a healthtech company founded in 2022, building remote monitoring for aged-care residents. It employs 21 people. FY2026 revenue was A$1,650,000. The founders are looking for distribution partners in Queensland."
+    "document": "Dingo Systems Pty Ltd is a cleantech company founded in 2022, building battery management software for rooftop solar. It employs 8 people. FY2026 revenue was A$1,250,000. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Tidal Grid",
+     "company_name": "Dingo Systems",
      "founded_year": 2022,
-     "employees": 21,
-     "revenue_aud": 1650000,
+     "employees": 8,
+     "revenue_aud": 1250000,
      "funding_raised_aud": null,
-     "sector": "healthtech"
+     "sector": "cleantech"
     }
    }
   },
@@ -387,16 +387,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Mallee Learn Pty Ltd là một công ty agritech được thành lập năm 2021, chuyên về cảm biến độ ẩm đất cho trang trại ngũ cốc. Công ty hiện có 42 nhân viên. Doanh thu năm tài chính 2026 đạt A$350,000. Tổng vốn đã huy động là A$275,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Dingo Group Pty Ltd là một công ty deeptech được thành lập năm 2024, chuyên về chip mã hoá an toàn lượng tử. Công ty hiện có 6 nhân viên. Doanh thu năm tài chính 2026 đạt A$350,000. Tổng vốn đã huy động là A$500,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Mallee Learn",
-     "founded_year": 2021,
-     "employees": 42,
+     "company_name": "Dingo Group",
+     "founded_year": 2024,
+     "employees": 6,
      "revenue_aud": 350000,
-     "funding_raised_aud": 275000,
-     "sector": "agritech"
+     "funding_raised_aud": 500000,
+     "sector": "deeptech"
     }
    }
   },
@@ -405,16 +405,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Quokka Cloud Pty Ltd is a cleantech company founded in 2025, building battery management software for rooftop solar. The founders are looking for distribution partners in Queensland."
+    "document": "Jarrah Logic Pty Ltd is a marketplace company founded in 2017, building a two-sided marketplace matching tradies with homeowners. It employs 5 people. FY2026 revenue was A$50,000. It has raised A$1,225,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Quokka Cloud",
-     "founded_year": 2025,
-     "employees": null,
-     "revenue_aud": null,
-     "funding_raised_aud": null,
-     "sector": "cleantech"
+     "company_name": "Jarrah Logic",
+     "founded_year": 2017,
+     "employees": 5,
+     "revenue_aud": 50000,
+     "funding_raised_aud": 1225000,
+     "sector": "marketplace"
     }
    }
   },
@@ -423,16 +423,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Saltbush Works Pty Ltd là một công ty marketplace được thành lập năm 2023, chuyên về sàn giao dịch hai chiều kết nối thợ với chủ nhà. Doanh thu năm tài chính 2026 đạt A$550,000. Tổng vốn đã huy động là A$625,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Dingo Studio Pty Ltd là một công ty saas được thành lập năm 2020, chuyên về phần mềm B2B cho các công ty kế toán. Công ty hiện có 36 nhân viên. Doanh thu năm tài chính 2026 đạt A$50,000. Tổng vốn đã huy động là A$975,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Saltbush Works",
-     "founded_year": 2023,
-     "employees": null,
-     "revenue_aud": 550000,
-     "funding_raised_aud": 625000,
-     "sector": "marketplace"
+     "company_name": "Dingo Studio",
+     "founded_year": 2020,
+     "employees": 36,
+     "revenue_aud": 50000,
+     "funding_raised_aud": 975000,
+     "sector": "saas"
     }
    }
   },
@@ -441,16 +441,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Bluegum Farm Pty Ltd is a deeptech company founded in 2017, building quantum-safe encryption chips. FY2026 revenue was A$350,000. The founders are looking for distribution partners in Queensland."
+    "document": "Banksia Group Pty Ltd is a edtech company founded in 2017, building a maths tutoring platform for high-school students. It employs 39 people. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Bluegum Farm",
+     "company_name": "Banksia Group",
      "founded_year": 2017,
-     "employees": null,
-     "revenue_aud": 350000,
+     "employees": 39,
+     "revenue_aud": null,
      "funding_raised_aud": null,
-     "sector": "deeptech"
+     "sector": "edtech"
     }
    }
   },
@@ -459,15 +459,15 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Dingo Analytics Pty Ltd là một công ty fintech được thành lập năm 2022, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 22 nhân viên. Tổng vốn đã huy động là A$1,250,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Tidal One Pty Ltd là một công ty fintech được thành lập năm 2023, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 5 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,500,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Dingo Analytics",
-     "founded_year": 2022,
-     "employees": 22,
-     "revenue_aud": null,
-     "funding_raised_aud": 1250000,
+     "company_name": "Tidal One",
+     "founded_year": 2023,
+     "employees": 5,
+     "revenue_aud": 1500000,
+     "funding_raised_aud": null,
      "sector": "fintech"
     }
    }
@@ -477,16 +477,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Ironbark Health Pty Ltd is a agritech company founded in 2025, building soil-moisture sensors for grain farms. It employs 4 people. FY2026 revenue was A$700,000. The founders are looking for distribution partners in Queensland."
+    "document": "Koala Works Pty Ltd is a edtech company founded in 2021, building a maths tutoring platform for high-school students. It employs 21 people. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Ironbark Health",
-     "founded_year": 2025,
-     "employees": 4,
-     "revenue_aud": 700000,
+     "company_name": "Koala Works",
+     "founded_year": 2021,
+     "employees": 21,
+     "revenue_aud": null,
      "funding_raised_aud": null,
-     "sector": "agritech"
+     "sector": "edtech"
     }
    }
   },
@@ -495,16 +495,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Dingo Logic Pty Ltd là một công ty healthtech được thành lập năm 2022, chuyên về theo dõi từ xa cho người cao tuổi trong viện dưỡng lão. Công ty hiện có 15 nhân viên. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Brolga Group Pty Ltd là một công ty fintech được thành lập năm 2025, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 40 nhân viên. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Dingo Logic",
-     "founded_year": 2022,
-     "employees": 15,
+     "company_name": "Brolga Group",
+     "founded_year": 2025,
+     "employees": 40,
      "revenue_aud": null,
      "funding_raised_aud": null,
-     "sector": "healthtech"
+     "sector": "fintech"
     }
    }
   },
@@ -513,16 +513,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Dingo Learn Pty Ltd is a marketplace company founded in 2023, building a two-sided marketplace matching tradies with homeowners. FY2026 revenue was A$1,150,000. The founders are looking for distribution partners in Queensland."
+    "document": "Wattle One Pty Ltd is a deeptech company founded in 2019, building quantum-safe encryption chips. It employs 5 people. FY2026 revenue was A$500,000. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Dingo Learn",
-     "founded_year": 2023,
-     "employees": null,
-     "revenue_aud": 1150000,
+     "company_name": "Wattle One",
+     "founded_year": 2019,
+     "employees": 5,
+     "revenue_aud": 500000,
      "funding_raised_aud": null,
-     "sector": "marketplace"
+     "sector": "deeptech"
     }
    }
   },
@@ -531,15 +531,15 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Brolga Cloud Pty Ltd là một công ty fintech được thành lập năm 2018, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 15 nhân viên. Tổng vốn đã huy động là A$1,375,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Brolga Logic Pty Ltd là một công ty fintech được thành lập năm 2019, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Doanh thu năm tài chính 2026 đạt A$1,200,000. Tổng vốn đã huy động là A$1,350,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Brolga Cloud",
-     "founded_year": 2018,
-     "employees": 15,
-     "revenue_aud": null,
-     "funding_raised_aud": 1375000,
+     "company_name": "Brolga Logic",
+     "founded_year": 2019,
+     "employees": null,
+     "revenue_aud": 1200000,
+     "funding_raised_aud": 1350000,
      "sector": "fintech"
     }
    }
@@ -549,16 +549,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Spinifex Labs Pty Ltd is a marketplace company founded in 2020, building a two-sided marketplace matching tradies with homeowners. It employs 18 people. FY2026 revenue was A$1,550,000. It has raised A$1,050,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Kestrel Group Pty Ltd is a edtech company founded in 2024, building a maths tutoring platform for high-school students. It has raised A$450,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Spinifex Labs",
-     "founded_year": 2020,
-     "employees": 18,
-     "revenue_aud": 1550000,
-     "funding_raised_aud": 1050000,
-     "sector": "marketplace"
+     "company_name": "Kestrel Group",
+     "founded_year": 2024,
+     "employees": null,
+     "revenue_aud": null,
+     "funding_raised_aud": 450000,
+     "sector": "edtech"
     }
    }
   },
@@ -567,16 +567,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Coral Pay Pty Ltd là một công ty healthtech được thành lập năm 2025, chuyên về theo dõi từ xa cho người cao tuổi trong viện dưỡng lão. Doanh thu năm tài chính 2026 đạt A$300,000. Tổng vốn đã huy động là A$725,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Paperbark Collective Pty Ltd là một công ty edtech được thành lập năm 2022, chuyên về nền tảng dạy kèm toán cho học sinh trung học. Doanh thu năm tài chính 2026 đạt A$950,000. Tổng vốn đã huy động là A$1,300,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Coral Pay",
-     "founded_year": 2025,
+     "company_name": "Paperbark Collective",
+     "founded_year": 2022,
      "employees": null,
-     "revenue_aud": 300000,
-     "funding_raised_aud": 725000,
-     "sector": "healthtech"
+     "revenue_aud": 950000,
+     "funding_raised_aud": 1300000,
+     "sector": "edtech"
     }
    }
   },
@@ -585,16 +585,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Echidna Grid Pty Ltd is a fintech company founded in 2018, building a payments app for small retailers. It employs 7 people. FY2026 revenue was A$700,000. It has raised A$375,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Ironbark Works Pty Ltd is a deeptech company founded in 2018, building quantum-safe encryption chips. It employs 22 people. FY2026 revenue was A$1,200,000. It has raised A$350,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Echidna Grid",
+     "company_name": "Ironbark Works",
      "founded_year": 2018,
-     "employees": 7,
-     "revenue_aud": 700000,
-     "funding_raised_aud": 375000,
-     "sector": "fintech"
+     "employees": 22,
+     "revenue_aud": 1200000,
+     "funding_raised_aud": 350000,
+     "sector": "deeptech"
     }
    }
   },
@@ -603,16 +603,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Koala Health Pty Ltd là một công ty cleantech được thành lập năm 2025, chuyên về phần mềm quản lý pin cho điện mặt trời áp mái. Công ty hiện có 5 nhân viên. Tổng vốn đã huy động là A$1,025,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Echidna Works Pty Ltd là một công ty edtech được thành lập năm 2025, chuyên về nền tảng dạy kèm toán cho học sinh trung học. Công ty hiện có 37 nhân viên. Doanh thu năm tài chính 2026 đạt A$50,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Koala Health",
+     "company_name": "Echidna Works",
      "founded_year": 2025,
-     "employees": 5,
-     "revenue_aud": null,
-     "funding_raised_aud": 1025000,
-     "sector": "cleantech"
+     "employees": 37,
+     "revenue_aud": 50000,
+     "funding_raised_aud": null,
+     "sector": "edtech"
     }
    }
   },
@@ -621,16 +621,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Jarrah Labs Pty Ltd is a edtech company founded in 2019, building a maths tutoring platform for high-school students. It employs 56 people. The founders are looking for distribution partners in Queensland."
+    "document": "Dingo Collective Pty Ltd is a fintech company founded in 2018, building a payments app for small retailers. It employs 37 people. It has raised A$525,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Jarrah Labs",
-     "founded_year": 2019,
-     "employees": 56,
+     "company_name": "Dingo Collective",
+     "founded_year": 2018,
+     "employees": 37,
      "revenue_aud": null,
-     "funding_raised_aud": null,
-     "sector": "edtech"
+     "funding_raised_aud": 525000,
+     "sector": "fintech"
     }
    }
   },
@@ -639,16 +639,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Ironbark Labs Pty Ltd là một công ty agritech được thành lập năm 2023, chuyên về cảm biến độ ẩm đất cho trang trại ngũ cốc. Doanh thu năm tài chính 2026 đạt A$200,000. Tổng vốn đã huy động là A$1,275,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Wattle Hub Pty Ltd là một công ty cleantech được thành lập năm 2017, chuyên về phần mềm quản lý pin cho điện mặt trời áp mái. Công ty hiện có 44 nhân viên. Tổng vốn đã huy động là A$1,350,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Ironbark Labs",
-     "founded_year": 2023,
-     "employees": null,
-     "revenue_aud": 200000,
-     "funding_raised_aud": 1275000,
-     "sector": "agritech"
+     "company_name": "Wattle Hub",
+     "founded_year": 2017,
+     "employees": 44,
+     "revenue_aud": null,
+     "funding_raised_aud": 1350000,
+     "sector": "cleantech"
     }
    }
   },
@@ -657,16 +657,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Coral Health Pty Ltd is a saas company founded in 2020, building B2B software for accounting firms. It employs 51 people. FY2026 revenue was A$1,600,000. It has raised A$225,000 in total. The founders are looking for distribution partners in Queensland."
+    "document": "Kestrel Logic Pty Ltd is a marketplace company founded in 2018, building a two-sided marketplace matching tradies with homeowners. It employs 22 people. FY2026 revenue was A$500,000. It has raised A$425,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Coral Health",
-     "founded_year": 2020,
-     "employees": 51,
-     "revenue_aud": 1600000,
-     "funding_raised_aud": 225000,
-     "sector": "saas"
+     "company_name": "Kestrel Logic",
+     "founded_year": 2018,
+     "employees": 22,
+     "revenue_aud": 500000,
+     "funding_raised_aud": 425000,
+     "sector": "marketplace"
     }
    }
   },
@@ -675,16 +675,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Dingo Farm Pty Ltd là một công ty edtech được thành lập năm 2024, chuyên về nền tảng dạy kèm toán cho học sinh trung học. Công ty hiện có 58 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,000,000. Tổng vốn đã huy động là A$1,200,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Tidal Collective Pty Ltd là một công ty agritech được thành lập năm 2021, chuyên về cảm biến độ ẩm đất cho trang trại ngũ cốc. Công ty hiện có 39 nhân viên. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Dingo Farm",
-     "founded_year": 2024,
-     "employees": 58,
-     "revenue_aud": 1000000,
-     "funding_raised_aud": 1200000,
-     "sector": "edtech"
+     "company_name": "Tidal Collective",
+     "founded_year": 2021,
+     "employees": 39,
+     "revenue_aud": null,
+     "funding_raised_aud": null,
+     "sector": "agritech"
     }
    }
   },
@@ -693,16 +693,16 @@
    "lang": "en",
    "section": "fields",
    "input": {
-    "document": "Jarrah Health Pty Ltd is a edtech company founded in 2021, building a maths tutoring platform for high-school students. It employs 5 people. FY2026 revenue was A$800,000. The founders are looking for distribution partners in Queensland."
+    "document": "Ironbark One Pty Ltd is a cleantech company founded in 2025, building battery management software for rooftop solar. It employs 20 people. FY2026 revenue was A$950,000. It has raised A$250,000 in total. The founders are looking for distribution partners in Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Jarrah Health",
-     "founded_year": 2021,
-     "employees": 5,
-     "revenue_aud": 800000,
-     "funding_raised_aud": null,
-     "sector": "edtech"
+     "company_name": "Ironbark One",
+     "founded_year": 2025,
+     "employees": 20,
+     "revenue_aud": 950000,
+     "funding_raised_aud": 250000,
+     "sector": "cleantech"
     }
    }
   },
@@ -711,16 +711,16 @@
    "lang": "vi",
    "section": "fields",
    "input": {
-    "document": "Numbat Cloud Pty Ltd là một công ty fintech được thành lập năm 2022, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 10 nhân viên. Doanh thu năm tài chính 2026 đạt A$750,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+    "document": "Galah Works Pty Ltd là một công ty cleantech được thành lập năm 2022, chuyên về phần mềm quản lý pin cho điện mặt trời áp mái. Công ty hiện có 60 nhân viên. Doanh thu năm tài chính 2026 đạt A$550,000. Tổng vốn đã huy động là A$1,250,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
    },
    "expected": {
     "fields": {
-     "company_name": "Numbat Cloud",
+     "company_name": "Galah Works",
      "founded_year": 2022,
-     "employees": 10,
-     "revenue_aud": 750000,
-     "funding_raised_aud": null,
-     "sector": "fintech"
+     "employees": 60,
+     "revenue_aud": 550000,
+     "funding_raised_aud": 1250000,
+     "sector": "cleantech"
     }
    }
   }

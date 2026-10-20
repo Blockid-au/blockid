@@ -1,7 +1,7 @@
 {
  "task": "chat",
  "split": "dev",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {

@@ -1,13 +1,13 @@
 {
  "task": "vision",
  "split": "dev",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
    "id": "vision-dev-001-en",
    "lang": "en",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/dev-1-en.png",
     "question": "Read the value of every bar."
@@ -15,33 +15,23 @@
    "expected": {
     "values": [
      {
-      "label": "Apr",
-      "value": 25,
+      "label": "Q1",
+      "value": 49,
       "tol": 0.05
      },
      {
-      "label": "May",
-      "value": 62,
+      "label": "Q2",
+      "value": 50,
       "tol": 0.05
      },
      {
-      "label": "Jun",
-      "value": 55,
+      "label": "Q3",
+      "value": 51,
       "tol": 0.05
      },
      {
-      "label": "Jul",
-      "value": 70.8,
-      "tol": 0.05
-     },
-     {
-      "label": "Aug",
-      "value": 62,
-      "tol": 0.05
-     },
-     {
-      "label": "Sep",
-      "value": 32,
+      "label": "Q4",
+      "value": 110,
       "tol": 0.05
      }
     ]
@@ -59,17 +49,22 @@
     "values": [
      {
       "label": "Q1",
-      "value": 27,
+      "value": 49.1,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 96,
+      "value": 70,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 95,
+      "value": 15.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 15,
       "tol": 0.05
      }
     ]
@@ -87,22 +82,27 @@
     "values": [
      {
       "label": "Q1",
-      "value": 60.4,
+      "value": 9,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 66,
+      "value": 107.6,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 37,
+      "value": 5,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 28.6,
+      "value": 88,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 14.2,
       "tol": 0.05
      }
     ]
@@ -119,28 +119,28 @@
    "expected": {
     "values": [
      {
+      "label": "T6",
+      "value": 53,
+      "tol": 0.05
+     },
+     {
+      "label": "T7",
+      "value": 115,
+      "tol": 0.05
+     },
+     {
       "label": "T8",
-      "value": 103,
+      "value": 79.3,
       "tol": 0.05
      },
      {
       "label": "T9",
-      "value": 111,
+      "value": 116.1,
       "tol": 0.05
      },
      {
       "label": "T10",
-      "value": 41,
-      "tol": 0.05
-     },
-     {
-      "label": "T11",
-      "value": 37,
-      "tol": 0.05
-     },
-     {
-      "label": "T12",
-      "value": 45,
+      "value": 113,
       "tol": 0.05
      }
     ]
@@ -149,7 +149,7 @@
   {
    "id": "vision-dev-005-en",
    "lang": "en",
-   "section": "quarterly",
+   "section": "monthly",
    "input": {
     "image": "img/dev-5-en.png",
     "question": "Read the value of every bar."
@@ -157,33 +157,28 @@
    "expected": {
     "values": [
      {
-      "label": "Q1",
-      "value": 22,
+      "label": "Jul",
+      "value": 83.8,
       "tol": 0.05
      },
      {
-      "label": "Q2",
-      "value": 28.3,
+      "label": "Aug",
+      "value": 85,
       "tol": 0.05
      },
      {
-      "label": "Q3",
-      "value": 38.7,
+      "label": "Sep",
+      "value": 89.1,
       "tol": 0.05
      },
      {
-      "label": "Q4",
-      "value": 31,
+      "label": "Oct",
+      "value": 51,
       "tol": 0.05
      },
      {
-      "label": "Q5",
-      "value": 74,
-      "tol": 0.05
-     },
-     {
-      "label": "Q6",
-      "value": 61,
+      "label": "Nov",
+      "value": 53,
       "tol": 0.05
      }
     ]
@@ -200,18 +195,33 @@
    "expected": {
     "values": [
      {
+      "label": "T3",
+      "value": 63,
+      "tol": 0.05
+     },
+     {
+      "label": "T4",
+      "value": 15,
+      "tol": 0.05
+     },
+     {
+      "label": "T5",
+      "value": 53,
+      "tol": 0.05
+     },
+     {
+      "label": "T6",
+      "value": 6,
+      "tol": 0.05
+     },
+     {
       "label": "T7",
-      "value": 97,
+      "value": 7.2,
       "tol": 0.05
      },
      {
       "label": "T8",
-      "value": 87,
-      "tol": 0.05
-     },
-     {
-      "label": "T9",
-      "value": 59.2,
+      "value": 104.7,
       "tol": 0.05
      }
     ]
@@ -228,27 +238,17 @@
    "expected": {
     "values": [
      {
-      "label": "Jul",
-      "value": 28.1,
-      "tol": 0.05
-     },
-     {
-      "label": "Aug",
-      "value": 16,
-      "tol": 0.05
-     },
-     {
-      "label": "Sep",
-      "value": 79,
-      "tol": 0.05
-     },
-     {
       "label": "Oct",
-      "value": 118.1,
+      "value": 83,
       "tol": 0.05
      },
      {
       "label": "Nov",
+      "value": 117.3,
+      "tol": 0.05
+     },
+     {
+      "label": "Dec",
       "value": 39,
       "tol": 0.05
      }
@@ -267,32 +267,22 @@
     "values": [
      {
       "label": "Q1",
-      "value": 35,
+      "value": 96,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 86.2,
-      "tol": 0.05
-     },
-     {
-      "label": "Q3",
-      "value": 21.1,
-      "tol": 0.05
-     },
-     {
-      "label": "Q4",
       "value": 52,
       "tol": 0.05
      },
      {
-      "label": "Q5",
-      "value": 118,
+      "label": "Q3",
+      "value": 60,
       "tol": 0.05
      },
      {
-      "label": "Q6",
-      "value": 31.2,
+      "label": "Q4",
+      "value": 118,
       "tol": 0.05
      }
     ]
@@ -309,18 +299,33 @@
    "expected": {
     "values": [
      {
+      "label": "Apr",
+      "value": 18.8,
+      "tol": 0.05
+     },
+     {
       "label": "May",
-      "value": 104,
+      "value": 50,
       "tol": 0.05
      },
      {
       "label": "Jun",
-      "value": 105,
+      "value": 115,
       "tol": 0.05
      },
      {
       "label": "Jul",
-      "value": 39.1,
+      "value": 48,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 55,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 117,
       "tol": 0.05
      }
     ]
@@ -338,27 +343,32 @@
     "values": [
      {
       "label": "Q1",
-      "value": 15,
+      "value": 110.8,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 110.7,
+      "value": 41,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 53,
+      "value": 109.6,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 117.5,
+      "value": 30.4,
       "tol": 0.05
      },
      {
       "label": "Q5",
-      "value": 79.4,
+      "value": 68,
+      "tol": 0.05
+     },
+     {
+      "label": "Q6",
+      "value": 62,
       "tol": 0.05
      }
     ]
@@ -376,17 +386,27 @@
     "values": [
      {
       "label": "Aug",
-      "value": 113.2,
+      "value": 91.6,
       "tol": 0.05
      },
      {
       "label": "Sep",
-      "value": 105.3,
+      "value": 113.5,
       "tol": 0.05
      },
      {
       "label": "Oct",
-      "value": 113,
+      "value": 101,
+      "tol": 0.05
+     },
+     {
+      "label": "Nov",
+      "value": 82.9,
+      "tol": 0.05
+     },
+     {
+      "label": "Dec",
+      "value": 56,
       "tol": 0.05
      }
     ]
@@ -403,33 +423,23 @@
    "expected": {
     "values": [
      {
+      "label": "T3",
+      "value": 116.3,
+      "tol": 0.05
+     },
+     {
       "label": "T4",
-      "value": 37,
+      "value": 29,
       "tol": 0.05
      },
      {
       "label": "T5",
-      "value": 92.1,
+      "value": 71,
       "tol": 0.05
      },
      {
       "label": "T6",
-      "value": 33.4,
-      "tol": 0.05
-     },
-     {
-      "label": "T7",
-      "value": 87.5,
-      "tol": 0.05
-     },
-     {
-      "label": "T8",
-      "value": 19,
-      "tol": 0.05
-     },
-     {
-      "label": "T9",
-      "value": 91,
+      "value": 117.5,
       "tol": 0.05
      }
     ]
@@ -447,22 +457,22 @@
     "values": [
      {
       "label": "Q1",
-      "value": 30.5,
+      "value": 14.6,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 62.9,
+      "value": 100.3,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 99,
+      "value": 54.6,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 48.9,
+      "value": 89,
       "tol": 0.05
      }
     ]
@@ -471,7 +481,7 @@
   {
    "id": "vision-dev-014-vi",
    "lang": "vi",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/dev-14-vi.png",
     "question": "Đọc giá trị của từng cột."
@@ -479,18 +489,23 @@
    "expected": {
     "values": [
      {
-      "label": "T10",
-      "value": 21,
+      "label": "Q1",
+      "value": 15,
       "tol": 0.05
      },
      {
-      "label": "T11",
-      "value": 26,
+      "label": "Q2",
+      "value": 61,
       "tol": 0.05
      },
      {
-      "label": "T12",
-      "value": 65,
+      "label": "Q3",
+      "value": 41.2,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 105.6,
       "tol": 0.05
      }
     ]
@@ -507,23 +522,18 @@
    "expected": {
     "values": [
      {
-      "label": "Jun",
-      "value": 15,
-      "tol": 0.05
-     },
-     {
       "label": "Jul",
-      "value": 26.4,
+      "value": 62.4,
       "tol": 0.05
      },
      {
       "label": "Aug",
-      "value": 80,
+      "value": 82.2,
       "tol": 0.05
      },
      {
       "label": "Sep",
-      "value": 106.7,
+      "value": 75,
       "tol": 0.05
      }
     ]
@@ -532,7 +542,7 @@
   {
    "id": "vision-dev-016-vi",
    "lang": "vi",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/dev-16-vi.png",
     "question": "Đọc giá trị của từng cột."
@@ -540,23 +550,33 @@
    "expected": {
     "values": [
      {
-      "label": "T7",
-      "value": 44,
+      "label": "Q1",
+      "value": 40,
       "tol": 0.05
      },
      {
-      "label": "T8",
-      "value": 7.7,
+      "label": "Q2",
+      "value": 69,
       "tol": 0.05
      },
      {
-      "label": "T9",
-      "value": 14,
+      "label": "Q3",
+      "value": 63.1,
       "tol": 0.05
      },
      {
-      "label": "T10",
-      "value": 49,
+      "label": "Q4",
+      "value": 47,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 15,
+      "tol": 0.05
+     },
+     {
+      "label": "Q6",
+      "value": 118,
       "tol": 0.05
      }
     ]
@@ -565,7 +585,7 @@
   {
    "id": "vision-dev-017-en",
    "lang": "en",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/dev-17-en.png",
     "question": "Read the value of every bar."
@@ -573,33 +593,28 @@
    "expected": {
     "values": [
      {
-      "label": "Jul",
-      "value": 44,
+      "label": "Q1",
+      "value": 80.4,
       "tol": 0.05
      },
      {
-      "label": "Aug",
-      "value": 114.8,
+      "label": "Q2",
+      "value": 91,
       "tol": 0.05
      },
      {
-      "label": "Sep",
-      "value": 103,
+      "label": "Q3",
+      "value": 52.3,
       "tol": 0.05
      },
      {
-      "label": "Oct",
-      "value": 58,
+      "label": "Q4",
+      "value": 56,
       "tol": 0.05
      },
      {
-      "label": "Nov",
-      "value": 77.8,
-      "tol": 0.05
-     },
-     {
-      "label": "Dec",
-      "value": 52,
+      "label": "Q5",
+      "value": 35,
       "tol": 0.05
      }
     ]
@@ -617,22 +632,27 @@
     "values": [
      {
       "label": "Q1",
-      "value": 95.8,
+      "value": 49.9,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 77,
+      "value": 42,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 115.7,
+      "value": 114,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 45,
+      "value": 120,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 15,
       "tol": 0.05
      }
     ]
@@ -649,18 +669,23 @@
    "expected": {
     "values": [
      {
-      "label": "Oct",
-      "value": 88,
+      "label": "May",
+      "value": 5.5,
       "tol": 0.05
      },
      {
-      "label": "Nov",
-      "value": 79.6,
+      "label": "Jun",
+      "value": 78.4,
       "tol": 0.05
      },
      {
-      "label": "Dec",
-      "value": 5,
+      "label": "Jul",
+      "value": 60,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 109,
       "tol": 0.05
      }
     ]
@@ -678,22 +703,27 @@
     "values": [
      {
       "label": "Q1",
-      "value": 60,
+      "value": 79,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 106.1,
+      "value": 32,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 39,
+      "value": 45,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 79.3,
+      "value": 58.7,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 6.9,
       "tol": 0.05
      }
     ]
@@ -710,23 +740,33 @@
    "expected": {
     "values": [
      {
-      "label": "Apr",
-      "value": 83,
-      "tol": 0.05
-     },
-     {
       "label": "May",
-      "value": 39,
+      "value": 48,
       "tol": 0.05
      },
      {
       "label": "Jun",
-      "value": 59.6,
+      "value": 114.9,
       "tol": 0.05
      },
      {
       "label": "Jul",
-      "value": 86,
+      "value": 82,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 83.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 49.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Oct",
+      "value": 68.1,
       "tol": 0.05
      }
     ]
@@ -735,7 +775,7 @@
   {
    "id": "vision-dev-022-vi",
    "lang": "vi",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/dev-22-vi.png",
     "question": "Đọc giá trị của từng cột."
@@ -743,23 +783,23 @@
    "expected": {
     "values": [
      {
-      "label": "T2",
-      "value": 80,
+      "label": "Q1",
+      "value": 97,
       "tol": 0.05
      },
      {
-      "label": "T3",
-      "value": 79,
+      "label": "Q2",
+      "value": 10.5,
       "tol": 0.05
      },
      {
-      "label": "T4",
-      "value": 35.6,
+      "label": "Q3",
+      "value": 98.5,
       "tol": 0.05
      },
      {
-      "label": "T5",
-      "value": 14.7,
+      "label": "Q4",
+      "value": 94.8,
       "tol": 0.05
      }
     ]
@@ -776,18 +816,28 @@
    "expected": {
     "values": [
      {
-      "label": "Jan",
-      "value": 54,
+      "label": "Apr",
+      "value": 84,
       "tol": 0.05
      },
      {
-      "label": "Feb",
-      "value": 51,
+      "label": "May",
+      "value": 29,
       "tol": 0.05
      },
      {
-      "label": "Mar",
-      "value": 109.4,
+      "label": "Jun",
+      "value": 86,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 108.5,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 72.3,
       "tol": 0.05
      }
     ]
@@ -805,22 +855,27 @@
     "values": [
      {
       "label": "Q1",
-      "value": 23,
+      "value": 28.7,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 77.4,
+      "value": 91,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 119,
+      "value": 91.8,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 106.6,
+      "value": 81.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 83,
       "tol": 0.05
      }
     ]

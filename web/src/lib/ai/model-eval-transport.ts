@@ -52,6 +52,9 @@ export function buildChatBody(req: ModelCallRequest, thinkingOff: ReadonlySet<st
     temperature: 0,
   };
   if (req.provider === "deepinfra" && thinkingOff.has(req.model)) body.chat_template_kwargs = { thinking: false };
+  // gpt-oss always reasons; at a small max_tokens the trace ate the whole budget
+  // and the answer came back empty (smoke 2026-10-20, Groq gpt-oss-20b).
+  if (/gpt-oss/i.test(req.model) && req.provider !== "openrouter") body.reasoning_effort = "low";
   return body;
 }
 

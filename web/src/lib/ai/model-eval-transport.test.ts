@@ -50,6 +50,10 @@ describe("eval transport", () => {
     const user = (b.messages as Array<{ content: unknown }>)[1]!.content as Array<{ type: string; image_url?: { url: string } }>;
     expect(user[1]!.image_url!.url).toBe("data:image/png;base64,AAAA");
     expect(b.chat_template_kwargs).toBeUndefined();
+    // gpt-oss reasons first: low effort so a small max_tokens still leaves an answer.
+    expect(buildChatBody(req({ provider: "groq", model: "openai/gpt-oss-20b" })).reasoning_effort).toBe("low");
+    expect(buildChatBody(req({ provider: "deepinfra", model: "openai/gpt-oss-120b" })).reasoning_effort).toBe("low");
+    expect(buildChatBody(req({ provider: "groq", model: "qwen/qwen3.8-27b" })).reasoning_effort).toBeUndefined();
   });
 
   it("parseChatResponse + evalProviderConfigured", () => {

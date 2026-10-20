@@ -1,7 +1,7 @@
 {
  "task": "translation",
  "split": "dev",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -11,12 +11,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$22,600 [ev:e1] và biên lợi nhuận gộp 77% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$35,100 [ev:e1] và biên lợi nhuận gộp 65% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$22,600",
-     "77%",
+     "A$35,100",
+     "65%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -35,12 +35,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$46,200 [ev:e1] and a gross margin of 38% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$64,500 [ev:e1] and a gross margin of 53% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$46,200",
-     "38%",
+     "A$64,500",
+     "53%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -59,12 +59,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$17,200 [ev:e1] và biên lợi nhuận gộp 64% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$65,500 [ev:e1] và biên lợi nhuận gộp 82% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$17,200",
-     "64%",
+     "A$65,500",
+     "82%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -83,12 +83,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$92,500 [ev:e1] and a gross margin of 67% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$53,500 [ev:e1] and a gross margin of 70% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$92,500",
-     "67%",
+     "A$53,500",
+     "70%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -107,12 +107,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$90,400 [ev:e1] và biên lợi nhuận gộp 76% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$14,000 [ev:e1] và biên lợi nhuận gộp 58% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$90,400",
-     "76%",
+     "A$14,000",
+     "58%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -131,12 +131,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$32,000 [ev:e1] and a gross margin of 39% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$25,100 [ev:e1] and a gross margin of 50% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$32,000",
-     "39%",
+     "A$25,100",
+     "50%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -155,12 +155,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$22,300 [ev:e1] và biên lợi nhuận gộp 67% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$57,600 [ev:e1] và biên lợi nhuận gộp 48% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$22,300",
-     "67%",
+     "A$57,600",
+     "48%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -174,6 +174,582 @@
   },
   {
    "id": "translation-dev-008-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$76,600 [ev:e1] and a gross margin of 47% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$76,600",
+     "47%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-009-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$34,200 [ev:e1] và biên lợi nhuận gộp 70% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$34,200",
+     "70%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-010-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$46,500 [ev:e1] and a gross margin of 67% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$46,500",
+     "67%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-011-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$73,100 [ev:e1] và biên lợi nhuận gộp 38% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$73,100",
+     "38%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-012-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$53,600 [ev:e1] and a gross margin of 72% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$53,600",
+     "72%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-013-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$9,100 [ev:e1] và biên lợi nhuận gộp 74% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$9,100",
+     "74%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-014-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$68,500 [ev:e1] and a gross margin of 59% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$68,500",
+     "59%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-015-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$58,700 [ev:e1] và biên lợi nhuận gộp 47% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$58,700",
+     "47%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-016-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$8,600 [ev:e1] and a gross margin of 56% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$8,600",
+     "56%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-017-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$34,600 [ev:e1] và biên lợi nhuận gộp 67% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$34,600",
+     "67%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-018-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$79,900 [ev:e1] and a gross margin of 44% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$79,900",
+     "44%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-019-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$26,300 [ev:e1] và biên lợi nhuận gộp 43% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$26,300",
+     "43%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-020-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$21,200 [ev:e1] and a gross margin of 78% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$21,200",
+     "78%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-021-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$63,800 [ev:e1] và biên lợi nhuận gộp 56% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$63,800",
+     "56%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-022-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$66,400 [ev:e1] and a gross margin of 80% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$66,400",
+     "80%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-023-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$44,100 [ev:e1] và biên lợi nhuận gộp 68% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$44,100",
+     "68%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-024-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$65,000 [ev:e1] and a gross margin of 81% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$65,000",
+     "81%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-025-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$22,100 [ev:e1] và biên lợi nhuận gộp 43% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$22,100",
+     "43%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-026-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$15,000 [ev:e1] and a gross margin of 38% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$15,000",
+     "38%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-027-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$88,300 [ev:e1] và biên lợi nhuận gộp 83% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$88,300",
+     "83%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-028-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$45,100 [ev:e1] and a gross margin of 38% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$45,100",
+     "38%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-029-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$22,600 [ev:e1] và biên lợi nhuận gộp 66% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$22,600",
+     "66%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-030-vi",
+   "lang": "vi",
+   "section": "en->vi",
+   "input": {
+    "source_lang": "en",
+    "target_lang": "vi",
+    "text": "BlockID's SVI review found monthly recurring revenue of A$81,700 [ev:e1] and a gross margin of 77% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+   },
+   "expected": {
+    "must_keep": [
+     "A$81,700",
+     "77%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "doanh thu",
+     "biên lợi nhuận"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-031-en",
+   "lang": "en",
+   "section": "vi->en",
+   "input": {
+    "source_lang": "vi",
+    "target_lang": "en",
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$26,100 [ev:e1] và biên lợi nhuận gộp 55% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+   },
+   "expected": {
+    "must_keep": [
+     "A$26,100",
+     "55%",
+     "[ev:e1]",
+     "[ev:e3]",
+     "BlockID",
+     "SVI"
+    ],
+    "must_mention_any": [
+     "revenue",
+     "margin"
+    ]
+   }
+  },
+  {
+   "id": "translation-dev-032-vi",
    "lang": "vi",
    "section": "en->vi",
    "input": {
@@ -197,594 +773,18 @@
    }
   },
   {
-   "id": "translation-dev-009-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$12,900 [ev:e1] và biên lợi nhuận gộp 55% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$12,900",
-     "55%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-010-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$94,500 [ev:e1] and a gross margin of 46% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$94,500",
-     "46%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-011-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$64,700 [ev:e1] và biên lợi nhuận gộp 82% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$64,700",
-     "82%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-012-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$71,200 [ev:e1] and a gross margin of 41% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$71,200",
-     "41%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-013-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$41,600 [ev:e1] và biên lợi nhuận gộp 72% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$41,600",
-     "72%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-014-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$51,800 [ev:e1] and a gross margin of 77% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$51,800",
-     "77%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-015-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$10,200 [ev:e1] và biên lợi nhuận gộp 38% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$10,200",
-     "38%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-016-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$68,700 [ev:e1] and a gross margin of 70% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$68,700",
-     "70%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-017-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$48,900 [ev:e1] và biên lợi nhuận gộp 58% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$48,900",
-     "58%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-018-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$65,200 [ev:e1] and a gross margin of 55% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$65,200",
-     "55%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-019-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$81,300 [ev:e1] và biên lợi nhuận gộp 72% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$81,300",
-     "72%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-020-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$64,400 [ev:e1] and a gross margin of 73% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$64,400",
-     "73%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-021-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$58,600 [ev:e1] và biên lợi nhuận gộp 84% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$58,600",
-     "84%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-022-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$88,100 [ev:e1] and a gross margin of 55% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$88,100",
-     "55%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-023-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$88,300 [ev:e1] và biên lợi nhuận gộp 41% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$88,300",
-     "41%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-024-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$87,400 [ev:e1] and a gross margin of 77% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$87,400",
-     "77%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-025-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$94,500 [ev:e1] và biên lợi nhuận gộp 81% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$94,500",
-     "81%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-026-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$57,500 [ev:e1] and a gross margin of 72% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$57,500",
-     "72%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-027-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$38,600 [ev:e1] và biên lợi nhuận gộp 55% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$38,600",
-     "55%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-028-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$84,700 [ev:e1] and a gross margin of 41% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$84,700",
-     "41%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-029-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$43,500 [ev:e1] và biên lợi nhuận gộp 60% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$43,500",
-     "60%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-030-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$35,500 [ev:e1] and a gross margin of 67% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$35,500",
-     "67%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-031-en",
-   "lang": "en",
-   "section": "vi->en",
-   "input": {
-    "source_lang": "vi",
-    "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$35,000 [ev:e1] và biên lợi nhuận gộp 46% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
-   },
-   "expected": {
-    "must_keep": [
-     "A$35,000",
-     "46%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "revenue",
-     "margin"
-    ]
-   }
-  },
-  {
-   "id": "translation-dev-032-vi",
-   "lang": "vi",
-   "section": "en->vi",
-   "input": {
-    "source_lang": "en",
-    "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$79,700 [ev:e1] and a gross margin of 51% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
-   },
-   "expected": {
-    "must_keep": [
-     "A$79,700",
-     "51%",
-     "[ev:e1]",
-     "[ev:e3]",
-     "BlockID",
-     "SVI"
-    ],
-    "must_mention_any": [
-     "doanh thu",
-     "biên lợi nhuận"
-    ]
-   }
-  },
-  {
    "id": "translation-dev-033-en",
    "lang": "en",
    "section": "vi->en",
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$50,300 [ev:e1] và biên lợi nhuận gộp 73% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$15,400 [ev:e1] và biên lợi nhuận gộp 83% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$50,300",
-     "73%",
+     "A$15,400",
+     "83%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -803,12 +803,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$13,800 [ev:e1] and a gross margin of 48% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$55,600 [ev:e1] and a gross margin of 70% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$13,800",
-     "48%",
+     "A$55,600",
+     "70%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -827,12 +827,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$54,200 [ev:e1] và biên lợi nhuận gộp 54% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$70,100 [ev:e1] và biên lợi nhuận gộp 81% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$54,200",
-     "54%",
+     "A$70,100",
+     "81%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -851,12 +851,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$24,700 [ev:e1] and a gross margin of 54% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$9,400 [ev:e1] and a gross margin of 57% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$24,700",
-     "54%",
+     "A$9,400",
+     "57%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -875,12 +875,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$19,200 [ev:e1] và biên lợi nhuận gộp 58% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$32,300 [ev:e1] và biên lợi nhuận gộp 39% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$19,200",
-     "58%",
+     "A$32,300",
+     "39%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -899,12 +899,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$12,400 [ev:e1] and a gross margin of 47% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$15,000 [ev:e1] and a gross margin of 38% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$12,400",
-     "47%",
+     "A$15,000",
+     "38%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -923,12 +923,12 @@
    "input": {
     "source_lang": "vi",
     "target_lang": "en",
-    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$27,500 [ev:e1] và biên lợi nhuận gộp 79% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
+    "text": "Đánh giá SVI của BlockID cho thấy doanh thu định kỳ hàng tháng đạt A$83,800 [ev:e1] và biên lợi nhuận gộp 60% [ev:e3]. Rủi ro chính là sự tập trung khách hàng; bước tiếp theo là ký thêm hai đối tác phân phối."
    },
    "expected": {
     "must_keep": [
-     "A$27,500",
-     "79%",
+     "A$83,800",
+     "60%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",
@@ -947,12 +947,12 @@
    "input": {
     "source_lang": "en",
     "target_lang": "vi",
-    "text": "BlockID's SVI review found monthly recurring revenue of A$89,500 [ev:e1] and a gross margin of 60% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
+    "text": "BlockID's SVI review found monthly recurring revenue of A$38,000 [ev:e1] and a gross margin of 50% [ev:e3]. The main risk is customer concentration; the next step is to sign two more distribution partners."
    },
    "expected": {
     "must_keep": [
-     "A$89,500",
-     "60%",
+     "A$38,000",
+     "50%",
      "[ev:e1]",
      "[ev:e3]",
      "BlockID",

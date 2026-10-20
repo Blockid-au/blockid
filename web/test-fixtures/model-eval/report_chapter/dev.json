@@ -1,7 +1,7 @@
 {
  "task": "report_chapter",
  "split": "dev",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -9,28 +9,33 @@
    "lang": "en",
    "section": "traction",
    "input": {
-    "company": "Saltbush Learn",
+    "company": "Brolga Logic",
     "section": "traction",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$95,900 in September 2026."
+      "text": "Monthly recurring revenue was A$64,000 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "254 paying customers as of 30 September 2026."
+      "text": "66 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 56% for FY2026."
+      "text": "Gross margin was 39% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2020 in Geelong; 17 full-time staff today."
+      "text": "Founded in 2023 in Sydney; 7 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 3.7% in Q3 2026."
      }
     ]
    },
@@ -48,38 +53,28 @@
    "lang": "vi",
    "section": "team",
    "input": {
-    "company": "Coral Farm",
+    "company": "Jarrah Works",
     "section": "team",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$95,700 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$62,800 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 253 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 342 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 39% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 77% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2020 tại Melbourne; hiện có 33 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.9% trong quý 3/2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Đã huy động A$1,950,000 từ nhà đầu tư thiên thần."
+      "text": "Thành lập năm 2021 tại Perth; hiện có 28 nhân viên toàn thời gian."
      }
     ]
    },
@@ -97,28 +92,33 @@
    "lang": "en",
    "section": "market",
    "input": {
-    "company": "Paperbark Analytics",
+    "company": "Quokka Co",
     "section": "market",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$35,100 in September 2026."
+      "text": "Monthly recurring revenue was A$74,000 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "309 paying customers as of 30 September 2026."
+      "text": "13 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 64% for FY2026."
+      "text": "Gross margin was 53% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2024 in Canberra; 4 full-time staff today."
+      "text": "Founded in 2019 in Darwin; 30 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 2.6% in Q3 2026."
      }
     ]
    },
@@ -136,38 +136,33 @@
    "lang": "vi",
    "section": "product",
    "input": {
-    "company": "Quokka Logic",
+    "company": "Numbat Works",
     "section": "product",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$28,900 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$56,300 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 356 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 451 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 58% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 77% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Adelaide; hiện có 12 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2019 tại Perth; hiện có 11 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.6% trong quý 3/2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Đã huy động A$750,000 từ nhà đầu tư thiên thần."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 4.7% trong quý 3/2026."
      }
     ]
    },
@@ -185,38 +180,23 @@
    "lang": "en",
    "section": "financials",
    "input": {
-    "company": "Paperbark Works",
+    "company": "Quokka Labs",
     "section": "financials",
     "evidence": [
      {
       "id": "e1",
-      "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$62,300 in September 2026."
+      "label": "Founder interview",
+      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
      },
      {
       "id": "e2",
-      "label": "CRM export",
-      "text": "308 paying customers as of 30 September 2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Gross margin was 78% for FY2026."
-     },
-     {
-      "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2024 in Newcastle; 20 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 2.2% in Q3 2026."
+      "text": "Founded in 2024 in Adelaide."
      }
     ]
    },
    "expected": {
-    "min_citations": 2,
+    "min_citations": 1,
     "must_not_mention": [
      "guaranteed return",
      "unicorn status",
@@ -229,38 +209,38 @@
    "lang": "vi",
    "section": "moat",
    "input": {
-    "company": "Tidal Pay",
+    "company": "Spinifex Works",
     "section": "moat",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$88,800 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$20,800 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 467 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 299 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 48% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 44% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2024 tại Perth; hiện có 33 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2021 tại Adelaide; hiện có 24 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.8% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.5% trong quý 3/2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Đã huy động A$1,450,000 từ nhà đầu tư thiên thần."
+      "text": "Đã huy động A$600,000 từ nhà đầu tư thiên thần."
      }
     ]
    },
@@ -278,241 +258,7 @@
    "lang": "en",
    "section": "traction",
    "input": {
-    "company": "Bluegum Grid",
-    "section": "traction",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$32,700 in September 2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "164 paying customers as of 30 September 2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Gross margin was 49% for FY2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Founded in 2022 in Adelaide; 22 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.8% in Q3 2026."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-008-vi",
-   "lang": "vi",
-   "section": "team",
-   "input": {
-    "company": "Bluegum Logic",
-    "section": "team",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$24,100 trong tháng 9/2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "Có 272 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 82% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Thành lập năm 2023 tại Newcastle; hiện có 21 nhân viên toàn thời gian."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-009-en",
-   "lang": "en",
-   "section": "market",
-   "input": {
-    "company": "Banksia Health",
-    "section": "market",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Founder interview",
-      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
-     },
-     {
-      "id": "e2",
-      "label": "Company profile",
-      "text": "Founded in 2024 in Perth."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 1,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-010-vi",
-   "lang": "vi",
-   "section": "product",
-   "input": {
-    "company": "Galah Pay",
-    "section": "product",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Founder interview",
-      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
-     },
-     {
-      "id": "e2",
-      "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Hobart."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 1,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-011-en",
-   "lang": "en",
-   "section": "financials",
-   "input": {
-    "company": "Paperbark Logic",
-    "section": "financials",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$78,600 in September 2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "374 paying customers as of 30 September 2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Gross margin was 55% for FY2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Founded in 2025 in Canberra; 34 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 2.4% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$1,700,000 from angel investors."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-012-vi",
-   "lang": "vi",
-   "section": "moat",
-   "input": {
-    "company": "Lyrebird Logic",
-    "section": "moat",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$95,200 trong tháng 9/2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "Có 457 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 41% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Brisbane; hiện có 32 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 5.9% trong quý 3/2026."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-013-en",
-   "lang": "en",
-   "section": "traction",
-   "input": {
-    "company": "Kestrel Cloud",
+    "company": "Galah Labs",
     "section": "traction",
     "evidence": [
      {
@@ -537,37 +283,71 @@
    }
   },
   {
-   "id": "report_chapter-dev-014-vi",
+   "id": "report_chapter-dev-008-vi",
    "lang": "vi",
    "section": "team",
    "input": {
-    "company": "Kestrel Farm",
+    "company": "Banksia Studio",
     "section": "team",
     "evidence": [
      {
       "id": "e1",
+      "label": "Founder interview",
+      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Thành lập năm 2021 tại Melbourne."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-009-en",
+   "lang": "en",
+   "section": "market",
+   "input": {
+    "company": "Mallee Hub",
+    "section": "market",
+    "evidence": [
+     {
+      "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$45,600 trong tháng 9/2026."
+      "text": "Monthly recurring revenue was A$74,000 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 436 khách hàng trả phí tính đến 30/9/2026."
+      "text": "336 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 43% trong năm tài chính 2026."
+      "text": "Gross margin was 56% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2022 tại Newcastle; hiện có 19 nhân viên toàn thời gian."
+      "text": "Founded in 2024 in Newcastle; 27 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.7% trong quý 3/2026."
+      "text": "Monthly customer churn was 6.0% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$900,000 from angel investors."
      }
     ]
    },
@@ -581,42 +361,217 @@
    }
   },
   {
+   "id": "report_chapter-dev-010-vi",
+   "lang": "vi",
+   "section": "product",
+   "input": {
+    "company": "Saltbush Works",
+    "section": "product",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$19,800 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 477 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 83% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2021 tại Melbourne; hiện có 32 nhân viên toàn thời gian."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-011-en",
+   "lang": "en",
+   "section": "financials",
+   "input": {
+    "company": "Tidal Logic",
+    "section": "financials",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$37,400 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "415 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 42% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2023 in Geelong; 22 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 3.0% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$1,550,000 from angel investors."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-012-vi",
+   "lang": "vi",
+   "section": "moat",
+   "input": {
+    "company": "Numbat Labs",
+    "section": "moat",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$9,300 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 440 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 65% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2022 tại Melbourne; hiện có 11 nhân viên toàn thời gian."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-013-en",
+   "lang": "en",
+   "section": "traction",
+   "input": {
+    "company": "Jarrah Hub",
+    "section": "traction",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Founder interview",
+      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Founded in 2020 in Adelaide."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-014-vi",
+   "lang": "vi",
+   "section": "team",
+   "input": {
+    "company": "Ironbark Labs",
+    "section": "team",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Founder interview",
+      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Thành lập năm 2022 tại Sydney."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
    "id": "report_chapter-dev-015-en",
    "lang": "en",
    "section": "market",
    "input": {
-    "company": "Brolga Farm",
+    "company": "Numbat Studio",
     "section": "market",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$78,900 in September 2026."
+      "text": "Monthly recurring revenue was A$89,500 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "143 paying customers as of 30 September 2026."
+      "text": "45 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 69% for FY2026."
+      "text": "Gross margin was 72% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2019 in Darwin; 33 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 4.4% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$850,000 from angel investors."
+      "text": "Founded in 2019 in Brisbane; 21 full-time staff today."
      }
     ]
    },
@@ -634,23 +589,43 @@
    "lang": "vi",
    "section": "product",
    "input": {
-    "company": "Brolga Grid",
+    "company": "Saltbush Labs",
     "section": "product",
     "evidence": [
      {
       "id": "e1",
-      "label": "Founder interview",
-      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$79,400 trong tháng 9/2026."
      },
      {
       "id": "e2",
+      "label": "CRM export",
+      "text": "Có 334 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 81% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2022 tại Geelong."
+      "text": "Thành lập năm 2021 tại Perth; hiện có 30 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 4.4% trong quý 3/2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Đã huy động A$1,850,000 từ nhà đầu tư thiên thần."
      }
     ]
    },
    "expected": {
-    "min_citations": 1,
+    "min_citations": 2,
     "must_not_mention": [
      "guaranteed return",
      "unicorn status",
@@ -663,38 +638,38 @@
    "lang": "en",
    "section": "financials",
    "input": {
-    "company": "Wattle Health",
+    "company": "Brolga Group",
     "section": "financials",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$43,100 in September 2026."
+      "text": "Monthly recurring revenue was A$55,000 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "332 paying customers as of 30 September 2026."
+      "text": "193 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 82% for FY2026."
+      "text": "Gross margin was 42% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2019 in Darwin; 17 full-time staff today."
+      "text": "Founded in 2021 in Hobart; 12 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.0% in Q3 2026."
+      "text": "Monthly customer churn was 5.3% in Q3 2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Raised A$1,550,000 from angel investors."
+      "text": "Raised A$1,700,000 from angel investors."
      }
     ]
    },
@@ -712,38 +687,38 @@
    "lang": "vi",
    "section": "moat",
    "input": {
-    "company": "Numbat Works",
+    "company": "Wattle Hub",
     "section": "moat",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$23,000 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$91,500 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 138 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 30 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 46% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 60% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2025 tại Sydney; hiện có 27 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2025 tại Newcastle; hiện có 18 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 5.3% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.6% trong quý 3/2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Đã huy động A$1,700,000 từ nhà đầu tư thiên thần."
+      "text": "Đã huy động A$1,750,000 từ nhà đầu tư thiên thần."
      }
     ]
    },
@@ -761,38 +736,33 @@
    "lang": "en",
    "section": "traction",
    "input": {
-    "company": "Wattle Logic",
+    "company": "Dingo Systems",
     "section": "traction",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$14,500 in September 2026."
+      "text": "Monthly recurring revenue was A$17,900 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "233 paying customers as of 30 September 2026."
+      "text": "51 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 49% for FY2026."
+      "text": "Gross margin was 43% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2025 in Darwin; 14 full-time staff today."
+      "text": "Founded in 2021 in Sydney; 15 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.6% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$100,000 from angel investors."
+      "text": "Monthly customer churn was 1.2% in Q3 2026."
      }
     ]
    },
@@ -810,23 +780,38 @@
    "lang": "vi",
    "section": "team",
    "input": {
-    "company": "Bluegum Labs",
+    "company": "Wattle Collective",
     "section": "team",
     "evidence": [
      {
       "id": "e1",
-      "label": "Founder interview",
-      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$87,300 trong tháng 9/2026."
      },
      {
       "id": "e2",
+      "label": "CRM export",
+      "text": "Có 145 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 57% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2020 tại Canberra."
+      "text": "Thành lập năm 2021 tại Hobart; hiện có 12 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.4% trong quý 3/2026."
      }
     ]
    },
    "expected": {
-    "min_citations": 1,
+    "min_citations": 2,
     "must_not_mention": [
      "guaranteed return",
      "unicorn status",
@@ -839,38 +824,28 @@
    "lang": "en",
    "section": "market",
    "input": {
-    "company": "Echidna Grid",
+    "company": "Wattle Group",
     "section": "market",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$72,200 in September 2026."
+      "text": "Monthly recurring revenue was A$26,200 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "286 paying customers as of 30 September 2026."
+      "text": "409 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 62% for FY2026."
+      "text": "Gross margin was 45% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2023 in Perth; 10 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 3.5% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$1,550,000 from angel investors."
+      "text": "Founded in 2025 in Adelaide; 3 full-time staff today."
      }
     ]
    },
@@ -888,33 +863,23 @@
    "lang": "vi",
    "section": "product",
    "input": {
-    "company": "Bluegum Logic",
+    "company": "Jarrah Collective",
     "section": "product",
     "evidence": [
      {
       "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$9,400 trong tháng 9/2026."
+      "label": "Founder interview",
+      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
      },
      {
       "id": "e2",
-      "label": "CRM export",
-      "text": "Có 361 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 69% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2024 tại Hobart; hiện có 33 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2020 tại Newcastle."
      }
     ]
    },
    "expected": {
-    "min_citations": 2,
+    "min_citations": 1,
     "must_not_mention": [
      "guaranteed return",
      "unicorn status",
@@ -927,28 +892,28 @@
    "lang": "en",
    "section": "financials",
    "input": {
-    "company": "Quokka Farm",
+    "company": "Banksia Group",
     "section": "financials",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$41,500 in September 2026."
+      "text": "Monthly recurring revenue was A$91,800 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "418 paying customers as of 30 September 2026."
+      "text": "85 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 54% for FY2026."
+      "text": "Gross margin was 77% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2020 in Geelong; 34 full-time staff today."
+      "text": "Founded in 2022 in Newcastle; 8 full-time staff today."
      }
     ]
    },
@@ -966,33 +931,28 @@
    "lang": "vi",
    "section": "moat",
    "input": {
-    "company": "Bluegum Farm",
+    "company": "Brolga Hub",
     "section": "moat",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$80,300 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$84,100 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 352 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 328 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 72% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 62% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2022 tại Geelong; hiện có 15 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 5.6% trong quý 3/2026."
+      "text": "Thành lập năm 2023 tại Newcastle; hiện có 5 nhân viên toàn thời gian."
      }
     ]
    },
@@ -1010,23 +970,33 @@
    "lang": "en",
    "section": "traction",
    "input": {
-    "company": "Galah Pay",
+    "company": "Lyrebird One",
     "section": "traction",
     "evidence": [
      {
       "id": "e1",
-      "label": "Founder interview",
-      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$31,500 in September 2026."
      },
      {
       "id": "e2",
+      "label": "CRM export",
+      "text": "212 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 74% for FY2026."
+     },
+     {
+      "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2023 in Perth."
+      "text": "Founded in 2020 in Adelaide; 12 full-time staff today."
      }
     ]
    },
    "expected": {
-    "min_citations": 1,
+    "min_citations": 2,
     "must_not_mention": [
      "guaranteed return",
      "unicorn status",
@@ -1039,28 +1009,38 @@
    "lang": "vi",
    "section": "team",
    "input": {
-    "company": "Ironbark Cloud",
+    "company": "Spinifex Co",
     "section": "team",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$22,600 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$81,400 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 397 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 311 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 79% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 39% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2025 tại Brisbane; hiện có 18 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2020 tại Melbourne; hiện có 3 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.1% trong quý 3/2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Đã huy động A$450,000 từ nhà đầu tư thiên thần."
      }
     ]
    },
@@ -1078,355 +1058,33 @@
    "lang": "en",
    "section": "market",
    "input": {
-    "company": "Coral Analytics",
+    "company": "Saltbush Systems",
     "section": "market",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$8,500 in September 2026."
+      "text": "Monthly recurring revenue was A$48,800 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "160 paying customers as of 30 September 2026."
+      "text": "376 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 78% for FY2026."
+      "text": "Gross margin was 38% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2020 in Perth; 21 full-time staff today."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-028-vi",
-   "lang": "vi",
-   "section": "product",
-   "input": {
-    "company": "Galah Learn",
-    "section": "product",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$94,600 trong tháng 9/2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "Có 48 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 76% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Thành lập năm 2024 tại Geelong; hiện có 25 nhân viên toàn thời gian."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-029-en",
-   "lang": "en",
-   "section": "financials",
-   "input": {
-    "company": "Wattle Works",
-    "section": "financials",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Founder interview",
-      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
-     },
-     {
-      "id": "e2",
-      "label": "Company profile",
-      "text": "Founded in 2019 in Perth."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 1,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-030-vi",
-   "lang": "vi",
-   "section": "moat",
-   "input": {
-    "company": "Brolga Labs",
-    "section": "moat",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$77,700 trong tháng 9/2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "Có 94 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 73% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Thành lập năm 2019 tại Melbourne; hiện có 18 nhân viên toàn thời gian."
+      "text": "Founded in 2021 in Brisbane; 10 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 0.8% trong quý 3/2026."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-031-en",
-   "lang": "en",
-   "section": "traction",
-   "input": {
-    "company": "Brolga Works",
-    "section": "traction",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$33,600 in September 2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "408 paying customers as of 30 September 2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Gross margin was 40% for FY2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Founded in 2023 in Adelaide; 31 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 3.2% in Q3 2026."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-032-vi",
-   "lang": "vi",
-   "section": "team",
-   "input": {
-    "company": "Paperbark Farm",
-    "section": "team",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$71,200 trong tháng 9/2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "Có 224 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 79% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Melbourne; hiện có 2 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 4.7% trong quý 3/2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Đã huy động A$1,500,000 từ nhà đầu tư thiên thần."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-033-en",
-   "lang": "en",
-   "section": "market",
-   "input": {
-    "company": "Echidna Labs",
-    "section": "market",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Founder interview",
-      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
-     },
-     {
-      "id": "e2",
-      "label": "Company profile",
-      "text": "Founded in 2022 in Brisbane."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 1,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-034-vi",
-   "lang": "vi",
-   "section": "product",
-   "input": {
-    "company": "Kestrel Grid",
-    "section": "product",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$12,500 trong tháng 9/2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "Có 447 khách hàng trả phí tính đến 30/9/2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 63% trong năm tài chính 2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Thành lập năm 2020 tại Geelong; hiện có 34 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.4% trong quý 3/2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Đã huy động A$300,000 từ nhà đầu tư thiên thần."
-     }
-    ]
-   },
-   "expected": {
-    "min_citations": 2,
-    "must_not_mention": [
-     "guaranteed return",
-     "unicorn status",
-     "lợi nhuận đảm bảo"
-    ]
-   }
-  },
-  {
-   "id": "report_chapter-dev-035-en",
-   "lang": "en",
-   "section": "financials",
-   "input": {
-    "company": "Wattle Logic",
-    "section": "financials",
-    "evidence": [
-     {
-      "id": "e1",
-      "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$34,900 in September 2026."
-     },
-     {
-      "id": "e2",
-      "label": "CRM export",
-      "text": "43 paying customers as of 30 September 2026."
-     },
-     {
-      "id": "e3",
-      "label": "Management accounts",
-      "text": "Gross margin was 54% for FY2026."
-     },
-     {
-      "id": "e4",
-      "label": "Company profile",
-      "text": "Founded in 2021 in Perth; 31 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.2% in Q3 2026."
+      "text": "Monthly customer churn was 5.3% in Q3 2026."
      },
      {
       "id": "e6",
@@ -1445,42 +1103,61 @@
    }
   },
   {
-   "id": "report_chapter-dev-036-vi",
+   "id": "report_chapter-dev-028-vi",
    "lang": "vi",
-   "section": "moat",
+   "section": "product",
    "input": {
-    "company": "Brolga Analytics",
-    "section": "moat",
+    "company": "Galah Co",
+    "section": "product",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Founder interview",
+      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Thành lập năm 2022 tại Newcastle."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-029-en",
+   "lang": "en",
+   "section": "financials",
+   "input": {
+    "company": "Quokka Works",
+    "section": "financials",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$68,800 trong tháng 9/2026."
+      "text": "Monthly recurring revenue was A$79,700 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 373 khách hàng trả phí tính đến 30/9/2026."
+      "text": "299 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 51% trong năm tài chính 2026."
+      "text": "Gross margin was 82% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Brisbane; hiện có 29 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.2% trong quý 3/2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Đã huy động A$1,150,000 từ nhà đầu tư thiên thần."
+      "text": "Founded in 2023 in Melbourne; 10 full-time staff today."
      }
     ]
    },
@@ -1494,37 +1171,295 @@
    }
   },
   {
+   "id": "report_chapter-dev-030-vi",
+   "lang": "vi",
+   "section": "moat",
+   "input": {
+    "company": "Ironbark Works",
+    "section": "moat",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Founder interview",
+      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Thành lập năm 2025 tại Hobart."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-031-en",
+   "lang": "en",
+   "section": "traction",
+   "input": {
+    "company": "Kestrel Hub",
+    "section": "traction",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Founder interview",
+      "text": "The founder says the product is in pilot with a few customers; no revenue figures were provided."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Founded in 2022 in Perth."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-032-vi",
+   "lang": "vi",
+   "section": "team",
+   "input": {
+    "company": "Jarrah Hub",
+    "section": "team",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$91,500 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 235 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 41% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2024 tại Perth; hiện có 12 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.1% trong quý 3/2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-033-en",
+   "lang": "en",
+   "section": "market",
+   "input": {
+    "company": "Spinifex Hub",
+    "section": "market",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$34,300 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "218 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 71% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2023 in Melbourne; 7 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 3.5% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$450,000 from angel investors."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-034-vi",
+   "lang": "vi",
+   "section": "product",
+   "input": {
+    "company": "Koala Group",
+    "section": "product",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$43,300 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 198 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 79% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2024 tại Brisbane; hiện có 24 nhân viên toàn thời gian."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-035-en",
+   "lang": "en",
+   "section": "financials",
+   "input": {
+    "company": "Wattle Co",
+    "section": "financials",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$18,900 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "323 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 56% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2025 in Canberra; 33 full-time staff today."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "report_chapter-dev-036-vi",
+   "lang": "vi",
+   "section": "moat",
+   "input": {
+    "company": "Paperbark Hub",
+    "section": "moat",
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Founder interview",
+      "text": "Nhà sáng lập cho biết sản phẩm đang chạy thử với một số khách hàng; chưa cung cấp số liệu doanh thu."
+     },
+     {
+      "id": "e2",
+      "label": "Company profile",
+      "text": "Thành lập năm 2021 tại Geelong."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 1,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
    "id": "report_chapter-dev-037-en",
    "lang": "en",
    "section": "traction",
    "input": {
-    "company": "Wattle Labs",
+    "company": "Dingo Hub",
     "section": "traction",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$32,500 in September 2026."
+      "text": "Monthly recurring revenue was A$76,900 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "179 paying customers as of 30 September 2026."
+      "text": "212 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 83% for FY2026."
+      "text": "Gross margin was 75% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2023 in Hobart; 19 full-time staff today."
+      "text": "Founded in 2024 in Geelong; 10 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Monthly customer churn was 5.9% in Q3 2026."
+      "text": "Monthly customer churn was 1.5% in Q3 2026."
      }
     ]
    },
@@ -1542,33 +1477,28 @@
    "lang": "vi",
    "section": "team",
    "input": {
-    "company": "Kestrel Health",
+    "company": "Mallee Co",
     "section": "team",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$27,900 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$43,100 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 357 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 220 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 41% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 68% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Perth; hiện có 22 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 4.5% trong quý 3/2026."
+      "text": "Thành lập năm 2021 tại Sydney; hiện có 35 nhân viên toàn thời gian."
      }
     ]
    },
@@ -1586,28 +1516,33 @@
    "lang": "en",
    "section": "market",
    "input": {
-    "company": "Banksia Works",
+    "company": "Galah Collective",
     "section": "market",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$45,500 in September 2026."
+      "text": "Monthly recurring revenue was A$58,800 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "143 paying customers as of 30 September 2026."
+      "text": "59 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 81% for FY2026."
+      "text": "Gross margin was 75% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2021 in Newcastle; 31 full-time staff today."
+      "text": "Founded in 2024 in Melbourne; 23 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 3.3% in Q3 2026."
      }
     ]
    },
@@ -1625,28 +1560,33 @@
    "lang": "vi",
    "section": "product",
    "input": {
-    "company": "Numbat Labs",
+    "company": "Wattle Systems",
     "section": "product",
     "evidence": [
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$73,300 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$82,800 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 144 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 16 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 75% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 43% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2020 tại Hobart; hiện có 19 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2021 tại Adelaide; hiện có 22 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.6% trong quý 3/2026."
      }
     ]
    },

@@ -1,7 +1,7 @@
 {
  "task": "vision",
  "split": "heldout",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -16,27 +16,17 @@
     "values": [
      {
       "label": "Q1",
-      "value": 36,
+      "value": 59,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 67,
+      "value": 92,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 41,
-      "tol": 0.05
-     },
-     {
-      "label": "Q4",
-      "value": 14,
-      "tol": 0.05
-     },
-     {
-      "label": "Q5",
-      "value": 91.9,
+      "value": 101,
       "tol": 0.05
      }
     ]
@@ -45,7 +35,7 @@
   {
    "id": "vision-heldout-002-vi",
    "lang": "vi",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/heldout-2-vi.png",
     "question": "Đọc giá trị của từng cột."
@@ -53,23 +43,33 @@
    "expected": {
     "values": [
      {
-      "label": "T7",
-      "value": 72,
+      "label": "Q1",
+      "value": 92.9,
       "tol": 0.05
      },
      {
-      "label": "T8",
-      "value": 80,
+      "label": "Q2",
+      "value": 89,
       "tol": 0.05
      },
      {
-      "label": "T9",
-      "value": 80,
+      "label": "Q3",
+      "value": 11.7,
       "tol": 0.05
      },
      {
-      "label": "T10",
-      "value": 51.5,
+      "label": "Q4",
+      "value": 102,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 101.5,
+      "tol": 0.05
+     },
+     {
+      "label": "Q6",
+      "value": 29.7,
       "tol": 0.05
      }
     ]
@@ -78,7 +78,7 @@
   {
    "id": "vision-heldout-003-en",
    "lang": "en",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/heldout-3-en.png",
     "question": "Read the value of every bar."
@@ -86,28 +86,23 @@
    "expected": {
     "values": [
      {
-      "label": "Apr",
-      "value": 101,
+      "label": "Q1",
+      "value": 119,
       "tol": 0.05
      },
      {
-      "label": "May",
-      "value": 51,
+      "label": "Q2",
+      "value": 14,
       "tol": 0.05
      },
      {
-      "label": "Jun",
-      "value": 67.7,
+      "label": "Q3",
+      "value": 44.9,
       "tol": 0.05
      },
      {
-      "label": "Jul",
-      "value": 60,
-      "tol": 0.05
-     },
-     {
-      "label": "Aug",
-      "value": 63,
+      "label": "Q4",
+      "value": 45.9,
       "tol": 0.05
      }
     ]
@@ -116,7 +111,7 @@
   {
    "id": "vision-heldout-004-vi",
    "lang": "vi",
-   "section": "quarterly",
+   "section": "monthly",
    "input": {
     "image": "img/heldout-4-vi.png",
     "question": "Đọc giá trị của từng cột."
@@ -124,23 +119,18 @@
    "expected": {
     "values": [
      {
-      "label": "Q1",
-      "value": 43,
+      "label": "T5",
+      "value": 17,
       "tol": 0.05
      },
      {
-      "label": "Q2",
-      "value": 15.7,
+      "label": "T6",
+      "value": 7,
       "tol": 0.05
      },
      {
-      "label": "Q3",
-      "value": 114.4,
-      "tol": 0.05
-     },
-     {
-      "label": "Q4",
-      "value": 37,
+      "label": "T7",
+      "value": 9,
       "tol": 0.05
      }
     ]
@@ -149,7 +139,7 @@
   {
    "id": "vision-heldout-005-en",
    "lang": "en",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/heldout-5-en.png",
     "question": "Read the value of every bar."
@@ -157,23 +147,28 @@
    "expected": {
     "values": [
      {
-      "label": "Feb",
-      "value": 15,
+      "label": "Q1",
+      "value": 19,
       "tol": 0.05
      },
      {
-      "label": "Mar",
-      "value": 20,
+      "label": "Q2",
+      "value": 100,
       "tol": 0.05
      },
      {
-      "label": "Apr",
-      "value": 96,
+      "label": "Q3",
+      "value": 60,
       "tol": 0.05
      },
      {
-      "label": "May",
-      "value": 92.4,
+      "label": "Q4",
+      "value": 114.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 108.8,
       "tol": 0.05
      }
     ]
@@ -182,7 +177,7 @@
   {
    "id": "vision-heldout-006-vi",
    "lang": "vi",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/heldout-6-vi.png",
     "question": "Đọc giá trị của từng cột."
@@ -190,28 +185,23 @@
    "expected": {
     "values": [
      {
-      "label": "T2",
-      "value": 80.3,
+      "label": "Q1",
+      "value": 118.3,
       "tol": 0.05
      },
      {
-      "label": "T3",
-      "value": 7,
-      "tol": 0.05
-     },
-     {
-      "label": "T4",
-      "value": 119,
-      "tol": 0.05
-     },
-     {
-      "label": "T5",
-      "value": 89,
-      "tol": 0.05
-     },
-     {
-      "label": "T6",
+      "label": "Q2",
       "value": 83,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 98,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 28,
       "tol": 0.05
      }
     ]
@@ -229,22 +219,22 @@
     "values": [
      {
       "label": "Q1",
-      "value": 37,
+      "value": 113.6,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 66.4,
+      "value": 75,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 60,
+      "value": 44.1,
       "tol": 0.05
      },
      {
       "label": "Q4",
-      "value": 115.5,
+      "value": 23,
       "tol": 0.05
      }
     ]
@@ -262,32 +252,32 @@
     "values": [
      {
       "label": "Q1",
-      "value": 116,
+      "value": 18,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 27,
-      "tol": 0.05
-     },
-     {
-      "label": "Q3",
       "value": 106,
       "tol": 0.05
      },
      {
+      "label": "Q3",
+      "value": 100,
+      "tol": 0.05
+     },
+     {
       "label": "Q4",
-      "value": 46,
+      "value": 41,
       "tol": 0.05
      },
      {
       "label": "Q5",
-      "value": 12,
+      "value": 36,
       "tol": 0.05
      },
      {
       "label": "Q6",
-      "value": 91,
+      "value": 93.3,
       "tol": 0.05
      }
     ]
@@ -296,7 +286,7 @@
   {
    "id": "vision-heldout-009-en",
    "lang": "en",
-   "section": "monthly",
+   "section": "quarterly",
    "input": {
     "image": "img/heldout-9-en.png",
     "question": "Read the value of every bar."
@@ -304,33 +294,28 @@
    "expected": {
     "values": [
      {
-      "label": "Jun",
-      "value": 13.4,
+      "label": "Q1",
+      "value": 59,
       "tol": 0.05
      },
      {
-      "label": "Jul",
-      "value": 77,
+      "label": "Q2",
+      "value": 62.2,
       "tol": 0.05
      },
      {
-      "label": "Aug",
-      "value": 55,
+      "label": "Q3",
+      "value": 87,
       "tol": 0.05
      },
      {
-      "label": "Sep",
-      "value": 9,
+      "label": "Q4",
+      "value": 22.5,
       "tol": 0.05
      },
      {
-      "label": "Oct",
-      "value": 94,
-      "tol": 0.05
-     },
-     {
-      "label": "Nov",
-      "value": 35,
+      "label": "Q5",
+      "value": 36,
       "tol": 0.05
      }
     ]
@@ -347,18 +332,23 @@
    "expected": {
     "values": [
      {
+      "label": "T8",
+      "value": 25,
+      "tol": 0.05
+     },
+     {
       "label": "T9",
-      "value": 108,
+      "value": 59,
       "tol": 0.05
      },
      {
       "label": "T10",
-      "value": 61,
+      "value": 101.2,
       "tol": 0.05
      },
      {
       "label": "T11",
-      "value": 94,
+      "value": 66.3,
       "tol": 0.05
      }
     ]
@@ -376,22 +366,27 @@
     "values": [
      {
       "label": "Q1",
-      "value": 32,
+      "value": 90,
       "tol": 0.05
      },
      {
       "label": "Q2",
-      "value": 7.5,
+      "value": 77,
       "tol": 0.05
      },
      {
       "label": "Q3",
-      "value": 13,
+      "value": 69,
       "tol": 0.05
      },
      {
       "label": "Q4",
       "value": 97,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 23.6,
       "tol": 0.05
      }
     ]
@@ -408,18 +403,18 @@
    "expected": {
     "values": [
      {
-      "label": "T8",
-      "value": 46,
+      "label": "T5",
+      "value": 30,
       "tol": 0.05
      },
      {
-      "label": "T9",
-      "value": 52,
+      "label": "T6",
+      "value": 48,
       "tol": 0.05
      },
      {
-      "label": "T10",
-      "value": 109.7,
+      "label": "T7",
+      "value": 85,
       "tol": 0.05
      }
     ]

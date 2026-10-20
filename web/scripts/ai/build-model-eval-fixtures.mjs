@@ -18,7 +18,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const VERSION = "2026-10-20.1";
+const VERSION = "2026-10-20.2";
 const SOURCE = "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(HERE, "../../test-fixtures/model-eval");
@@ -60,7 +60,8 @@ const mk = (task, split) => {
 
 // ── Vocabulary (fictional) ────────────────────────────────────────────
 const PREFIX = ["Wattle", "Banksia", "Koala", "Tidal", "Saltbush", "Ironbark", "Lyrebird", "Coral", "Dingo", "Quokka", "Mallee", "Spinifex", "Kestrel", "Paperbark", "Bluegum", "Numbat", "Brolga", "Echidna", "Galah", "Jarrah"];
-const SUFFIX = ["Labs", "Analytics", "Health", "Pay", "Grid", "Works", "Logic", "Cloud", "Farm", "Learn"];
+// Sector-neutral suffixes: "Coral Health" made a SaaS case read as healthtech (smoke 2026-10-20).
+const SUFFIX = ["Labs", "Works", "Logic", "Systems", "Group", "Studio", "Hub", "One", "Co", "Collective"];
 const CITY = ["Brisbane", "Perth", "Adelaide", "Hobart", "Melbourne", "Sydney", "Darwin", "Canberra", "Newcastle", "Geelong"];
 const CITY_VI = { Brisbane: "Brisbane", Perth: "Perth", Adelaide: "Adelaide", Hobart: "Hobart", Melbourne: "Melbourne", Sydney: "Sydney", Darwin: "Darwin", Canberra: "Canberra", Newcastle: "Newcastle", Geelong: "Geelong" };
 const SECTORS = {

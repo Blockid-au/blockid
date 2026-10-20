@@ -1,7 +1,7 @@
 {
  "task": "classify",
  "split": "heldout",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -9,7 +9,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Numbat Works builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
+    "text": "Lyrebird Labs builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -23,7 +23,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Galah Grid xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Wattle Hub xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -37,7 +37,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Brolga Analytics builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
+    "text": "Jarrah Studio builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -51,7 +51,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Wattle Works xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Echidna Systems xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -65,7 +65,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Echidna Cloud builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
+    "text": "Paperbark Group builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -79,7 +79,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Dingo Logic xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Lyrebird Group xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -93,7 +93,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Quokka Health builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
+    "text": "Galah Works builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -107,7 +107,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Ironbark Pay xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Dingo Labs xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -121,7 +121,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Spinifex Cloud builds B2B software for accounting firms. The product is live with 21 pilot customers; funded by the founders and friends only."
+    "text": "Tidal Co builds B2B software for accounting firms. The product is live with 17 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -135,7 +135,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Brolga Farm xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Sản phẩm đã ra mắt với 28 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Spinifex One xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Sản phẩm đã ra mắt với 12 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -149,7 +149,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Echidna Labs builds remote monitoring for aged-care residents. The product is live with 15 pilot customers; funded by the founders and friends only."
+    "text": "Brolga Works builds remote monitoring for aged-care residents. The product is live with 30 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -163,7 +163,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Banksia Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Sản phẩm đã ra mắt với 15 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Saltbush Hub xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Sản phẩm đã ra mắt với 24 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -177,7 +177,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Numbat Logic builds a maths tutoring platform for high-school students. The product is live with 15 pilot customers; funded by the founders and friends only."
+    "text": "Paperbark Group builds a maths tutoring platform for high-school students. The product is live with 14 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -191,7 +191,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Brolga Logic xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Sản phẩm đã ra mắt với 3 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Wattle Labs xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Sản phẩm đã ra mắt với 5 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -205,7 +205,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Kestrel Labs builds a two-sided marketplace matching tradies with homeowners. The product is live with 14 pilot customers; funded by the founders and friends only."
+    "text": "Mallee Logic builds a two-sided marketplace matching tradies with homeowners. The product is live with 13 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -219,7 +219,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Numbat Cloud xây dựng chip mã hoá an toàn lượng tử. Sản phẩm đã ra mắt với 26 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Mallee Labs xây dựng chip mã hoá an toàn lượng tử. Sản phẩm đã ra mắt với 27 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -233,7 +233,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Brolga Analytics builds B2B software for accounting firms. It just closed its first institutional seed round of A$1,400,000 from a venture fund."
+    "text": "Lyrebird One builds B2B software for accounting firms. It just closed its first institutional seed round of A$900,000 from a venture fund."
    },
    "expected": {
     "label": {
@@ -247,7 +247,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Dingo Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,900,000 từ một quỹ đầu tư mạo hiểm."
+    "text": "Coral Studio xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,400,000 từ một quỹ đầu tư mạo hiểm."
    },
    "expected": {
     "label": {
@@ -261,7 +261,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Dingo Cloud builds remote monitoring for aged-care residents. It just closed its first institutional seed round of A$600,000 from a venture fund."
+    "text": "Jarrah Co builds remote monitoring for aged-care residents. It just closed its first institutional seed round of A$600,000 from a venture fund."
    },
    "expected": {
     "label": {
@@ -275,7 +275,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Echidna Learn xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,100,000 từ một quỹ đầu tư mạo hiểm."
+    "text": "Mallee Group xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$600,000 từ một quỹ đầu tư mạo hiểm."
    },
    "expected": {
     "label": {

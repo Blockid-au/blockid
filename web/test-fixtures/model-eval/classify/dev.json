@@ -1,7 +1,7 @@
 {
  "task": "classify",
  "split": "dev",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -9,7 +9,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Numbat Health builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
+    "text": "Wattle Systems builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -23,7 +23,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Paperbark Logic xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Koala Studio xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -37,7 +37,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Quokka Logic builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
+    "text": "Paperbark Group builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -51,7 +51,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Paperbark Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Bluegum One xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -65,7 +65,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Koala Cloud builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
+    "text": "Koala Group builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -79,7 +79,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Ironbark Grid xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Banksia One xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -93,7 +93,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Galah Analytics builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
+    "text": "Spinifex Works builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -107,7 +107,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Ironbark Logic xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Spinifex Works xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -121,7 +121,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Quokka Health builds B2B software for accounting firms. The product is live with 13 pilot customers; funded by the founders and friends only."
+    "text": "Saltbush Group builds B2B software for accounting firms. The product is live with 7 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -135,7 +135,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Numbat Health xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Sản phẩm đã ra mắt với 10 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Jarrah One xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Sản phẩm đã ra mắt với 9 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -149,7 +149,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Dingo Works builds remote monitoring for aged-care residents. The product is live with 23 pilot customers; funded by the founders and friends only."
+    "text": "Spinifex Co builds remote monitoring for aged-care residents. The product is live with 14 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -163,7 +163,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Dingo Logic xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Sản phẩm đã ra mắt với 4 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Numbat Hub xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Sản phẩm đã ra mắt với 4 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -177,7 +177,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Quokka Logic builds a maths tutoring platform for high-school students. The product is live with 16 pilot customers; funded by the founders and friends only."
+    "text": "Tidal Co builds a maths tutoring platform for high-school students. The product is live with 17 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -191,7 +191,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Koala Farm xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Sản phẩm đã ra mắt với 23 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Wattle Co xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Sản phẩm đã ra mắt với 16 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -205,7 +205,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Bluegum Logic builds a two-sided marketplace matching tradies with homeowners. The product is live with 6 pilot customers; funded by the founders and friends only."
+    "text": "Mallee Co builds a two-sided marketplace matching tradies with homeowners. The product is live with 23 pilot customers; funded by the founders and friends only."
    },
    "expected": {
     "label": {
@@ -219,7 +219,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Mallee Pay xây dựng chip mã hoá an toàn lượng tử. Sản phẩm đã ra mắt với 7 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+    "text": "Tidal Group xây dựng chip mã hoá an toàn lượng tử. Sản phẩm đã ra mắt với 5 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
    },
    "expected": {
     "label": {
@@ -233,7 +233,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Quokka Learn builds B2B software for accounting firms. It just closed its first institutional seed round of A$1,200,000 from a venture fund."
+    "text": "Mallee Collective builds B2B software for accounting firms. It just closed its first institutional seed round of A$2,500,000 from a venture fund."
    },
    "expected": {
     "label": {
@@ -247,7 +247,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Koala Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$2,200,000 từ một quỹ đầu tư mạo hiểm."
+    "text": "Coral Systems xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$900,000 từ một quỹ đầu tư mạo hiểm."
    },
    "expected": {
     "label": {
@@ -261,7 +261,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Dingo Learn builds remote monitoring for aged-care residents. It just closed its first institutional seed round of A$600,000 from a venture fund."
+    "text": "Quokka Logic builds remote monitoring for aged-care residents. It just closed its first institutional seed round of A$2,000,000 from a venture fund."
    },
    "expected": {
     "label": {
@@ -275,7 +275,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Jarrah Grid xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$900,000 từ một quỹ đầu tư mạo hiểm."
+    "text": "Tidal Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,500,000 từ một quỹ đầu tư mạo hiểm."
    },
    "expected": {
     "label": {
@@ -289,7 +289,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Jarrah Logic builds a maths tutoring platform for high-school students. It just closed its first institutional seed round of A$2,300,000 from a venture fund."
+    "text": "Jarrah Co builds a maths tutoring platform for high-school students. It just closed its first institutional seed round of A$2,500,000 from a venture fund."
    },
    "expected": {
     "label": {
@@ -303,7 +303,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Numbat Labs xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$2,000,000 từ một quỹ đầu tư mạo hiểm."
+    "text": "Numbat One xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,400,000 từ một quỹ đầu tư mạo hiểm."
    },
    "expected": {
     "label": {
@@ -317,7 +317,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Dingo Health builds a two-sided marketplace matching tradies with homeowners. It just closed its first institutional seed round of A$2,400,000 from a venture fund."
+    "text": "Saltbush Hub builds a two-sided marketplace matching tradies with homeowners. It just closed its first institutional seed round of A$2,400,000 from a venture fund."
    },
    "expected": {
     "label": {
@@ -331,7 +331,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Brolga Analytics xây dựng chip mã hoá an toàn lượng tử. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,700,000 từ một quỹ đầu tư mạo hiểm."
+    "text": "Tidal Systems xây dựng chip mã hoá an toàn lượng tử. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$2,200,000 từ một quỹ đầu tư mạo hiểm."
    },
    "expected": {
     "label": {
@@ -345,7 +345,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Dingo Grid builds B2B software for accounting firms. It has closed a priced Series A round of A$8 million."
+    "text": "Lyrebird Systems builds B2B software for accounting firms. It has closed a priced Series A round of A$20 million."
    },
    "expected": {
     "label": {
@@ -359,7 +359,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Brolga Farm xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Đã hoàn tất vòng Series A có định giá, huy động A$16 triệu."
+    "text": "Jarrah Studio xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Đã hoàn tất vòng Series A có định giá, huy động A$19 triệu."
    },
    "expected": {
     "label": {
@@ -373,7 +373,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Quokka Farm builds remote monitoring for aged-care residents. It has closed a priced Series A round of A$17 million."
+    "text": "Lyrebird Collective builds remote monitoring for aged-care residents. It has closed a priced Series A round of A$8 million."
    },
    "expected": {
     "label": {
@@ -387,7 +387,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Galah Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Đã hoàn tất vòng Series A có định giá, huy động A$11 triệu."
+    "text": "Galah Group xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Đã hoàn tất vòng Series A có định giá, huy động A$17 triệu."
    },
    "expected": {
     "label": {
@@ -401,7 +401,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Dingo Works builds a maths tutoring platform for high-school students. It has closed a priced Series A round of A$11 million."
+    "text": "Koala One builds a maths tutoring platform for high-school students. It has closed a priced Series A round of A$10 million."
    },
    "expected": {
     "label": {
@@ -415,7 +415,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Tidal Farm xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Đã hoàn tất vòng Series A có định giá, huy động A$15 triệu."
+    "text": "Quokka Labs xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Đã hoàn tất vòng Series A có định giá, huy động A$8 triệu."
    },
    "expected": {
     "label": {
@@ -429,7 +429,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Tidal Farm builds a two-sided marketplace matching tradies with homeowners. It has closed a priced Series A round of A$18 million."
+    "text": "Wattle Co builds a two-sided marketplace matching tradies with homeowners. It has closed a priced Series A round of A$11 million."
    },
    "expected": {
     "label": {
@@ -443,7 +443,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Kestrel Works xây dựng chip mã hoá an toàn lượng tử. Đã hoàn tất vòng Series A có định giá, huy động A$7 triệu."
+    "text": "Brolga Co xây dựng chip mã hoá an toàn lượng tử. Đã hoàn tất vòng Series A có định giá, huy động A$20 triệu."
    },
    "expected": {
     "label": {
@@ -457,7 +457,7 @@
    "lang": "en",
    "section": "saas",
    "input": {
-    "text": "Dingo Labs builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
+    "text": "Wattle Studio builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -471,7 +471,7 @@
    "lang": "vi",
    "section": "fintech",
    "input": {
-    "text": "Koala Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Kestrel Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -485,7 +485,7 @@
    "lang": "en",
    "section": "healthtech",
    "input": {
-    "text": "Saltbush Learn builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
+    "text": "Spinifex Works builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -499,7 +499,7 @@
    "lang": "vi",
    "section": "agritech",
    "input": {
-    "text": "Echidna Grid xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Bluegum Systems xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -513,7 +513,7 @@
    "lang": "en",
    "section": "edtech",
    "input": {
-    "text": "Paperbark Works builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
+    "text": "Bluegum Labs builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -527,7 +527,7 @@
    "lang": "vi",
    "section": "cleantech",
    "input": {
-    "text": "Banksia Health xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Numbat Collective xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {
@@ -541,7 +541,7 @@
    "lang": "en",
    "section": "marketplace",
    "input": {
-    "text": "Spinifex Works builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
+    "text": "Saltbush Works builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
    },
    "expected": {
     "label": {
@@ -555,7 +555,7 @@
    "lang": "vi",
    "section": "deeptech",
    "input": {
-    "text": "Coral Health xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+    "text": "Banksia Hub xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
    },
    "expected": {
     "label": {

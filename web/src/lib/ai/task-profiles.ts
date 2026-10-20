@@ -144,7 +144,7 @@ const asJson = (v: unknown) => JSON.stringify(v, null, 1);
 
 const CITATION_CONTRACT = [
   "Evidence rules:",
-  "- Every sentence that states a figure (money, %, count, date-bound metric, multiple) must end with the [ev:<id>] marker of the evidence row that contains that exact figure.",
+  "- Every sentence that states a figure (money, %, count, date-bound metric, multiple) must end with the [ev:<id>] marker of the evidence row that contains that exact figure — written as \"<sentence with the figure> [ev:e1].\" — the literal prefix ev: then the row id, never [e1] or (e1).",
   "- Only cite ids listed in the evidence. Never invent an id.",
   "- If the evidence does not support a figure, do not state it; or say it is an estimate and append [unevidenced].",
   "- Do not invent investors, customers, awards or numbers.",
@@ -227,7 +227,8 @@ export const TASK_PROFILES: Readonly<Record<EvalTaskId, TaskProfile>> = Object.f
     vision: false,
     outputSchema: ExtractionOutput,
     criteria: { schemaGate: true, minGroundedShare: null, numericCheck: true, noFabricatedCitation: false, p95LatencyMs: 20_000, maxCostUsdPerOutput: 0.002, maxSchemaFailRate: 0.1 },
-    maxTokens: 300,
+    // Headroom for reasoning models (gpt-oss) — billed only for what is generated.
+    maxTokens: 700,
     timeoutMs: 30_000,
     judgeSampleRate: 0,
     system: [
@@ -248,7 +249,7 @@ export const TASK_PROFILES: Readonly<Record<EvalTaskId, TaskProfile>> = Object.f
     vision: false,
     outputSchema: ClassifyOutput,
     criteria: { schemaGate: true, minGroundedShare: null, numericCheck: false, noFabricatedCitation: false, p95LatencyMs: 10_000, maxCostUsdPerOutput: 0.001, maxSchemaFailRate: 0.1 },
-    maxTokens: 80,
+    maxTokens: 500,
     timeoutMs: 20_000,
     judgeSampleRate: 0,
     system: [
@@ -308,9 +309,10 @@ export const TASK_PROFILES: Readonly<Record<EvalTaskId, TaskProfile>> = Object.f
     freePoolEligible: false,
     vision: true,
     outputSchema: VisionOutput,
-    criteria: { schemaGate: true, minGroundedShare: null, numericCheck: true, noFabricatedCitation: false, p95LatencyMs: 60_000, maxCostUsdPerOutput: 0.01, maxSchemaFailRate: 0.1 },
+    // SLO 90 s: Qwen3-VL-235B took 87 s on one 480×280 chart in the 2026-10-20 smoke.
+    criteria: { schemaGate: true, minGroundedShare: null, numericCheck: true, noFabricatedCitation: false, p95LatencyMs: 90_000, maxCostUsdPerOutput: 0.01, maxSchemaFailRate: 0.1 },
     maxTokens: 400,
-    timeoutMs: 90_000,
+    timeoutMs: 120_000,
     judgeSampleRate: 0,
     system: [
       "Read the bar chart in the image. Report the chart title and every bar's label and the value printed above it. Do not estimate unlabelled bars.",

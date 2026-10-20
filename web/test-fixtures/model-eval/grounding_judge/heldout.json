@@ -1,7 +1,7 @@
 {
  "task": "grounding_judge",
  "split": "heldout",
- "version": "2026-10-20.1",
+ "version": "2026-10-20.2",
  "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
  "cases": [
   {
@@ -13,54 +13,44 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$50,000 in September 2026."
+      "text": "Monthly recurring revenue was A$21,300 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "182 paying customers as of 30 September 2026."
+      "text": "318 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 84% for FY2026."
+      "text": "Gross margin was 70% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2024 in Geelong; 30 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 3.2% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$400,000 from angel investors."
+      "text": "Founded in 2023 in Darwin; 4 full-time staff today."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$50,000 [ev:e1]."
+      "text": "MRR reached A$21,300 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 236 paying customers [ev:e2]."
+      "text": "The company has 387 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 84% [ev:e3]."
+      "text": "Gross margin is 70% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$54,000 [ev:e1]."
+      "text": "MRR reached A$29,300 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2024 [ev:e9]."
+      "text": "The company was founded in 2023 [ev:e9]."
      }
     ]
    },
@@ -87,44 +77,44 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$40,200 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$91,500 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 207 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 216 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 78% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 42% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2025 tại Sydney; hiện có 17 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2020 tại Perth; hiện có 4 nhân viên toàn thời gian."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$40,200 [ev:e1]."
+      "text": "MRR đạt A$91,500 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 239 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 268 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 78% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 42% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$60,200 [ev:e1]."
+      "text": "MRR đạt A$99,500 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2025 [ev:e9]."
+      "text": "Công ty được thành lập năm 2020 [ev:e9]."
      }
     ]
    },
@@ -151,44 +141,44 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$90,300 in September 2026."
+      "text": "Monthly recurring revenue was A$79,500 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "408 paying customers as of 30 September 2026."
+      "text": "240 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 82% for FY2026."
+      "text": "Gross margin was 39% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2024 in Canberra; 12 full-time staff today."
+      "text": "Founded in 2019 in Geelong; 6 full-time staff today."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$90,300 [ev:e1]."
+      "text": "MRR reached A$79,500 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 450 paying customers [ev:e2]."
+      "text": "The company has 304 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 82% [ev:e3]."
+      "text": "Gross margin is 39% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$101,300 [ev:e1]."
+      "text": "MRR reached A$99,500 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2024 [ev:e9]."
+      "text": "The company was founded in 2019 [ev:e9]."
      }
     ]
    },
@@ -215,54 +205,54 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$68,000 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$33,900 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 421 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 160 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 84% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 72% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2019 tại Adelaide; hiện có 33 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2025 tại Melbourne; hiện có 34 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.3% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 5.8% trong quý 3/2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Đã huy động A$1,050,000 từ nhà đầu tư thiên thần."
+      "text": "Đã huy động A$1,900,000 từ nhà đầu tư thiên thần."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$68,000 [ev:e1]."
+      "text": "MRR đạt A$33,900 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 503 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 183 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 84% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 72% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$76,000 [ev:e1]."
+      "text": "MRR đạt A$38,900 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2019 [ev:e9]."
+      "text": "Công ty được thành lập năm 2025 [ev:e9]."
      }
     ]
    },
@@ -289,50 +279,40 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$85,600 in September 2026."
+      "text": "Monthly recurring revenue was A$43,000 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "474 paying customers as of 30 September 2026."
+      "text": "227 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 56% for FY2026."
+      "text": "Gross margin was 77% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2019 in Hobart; 9 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.1% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$1,100,000 from angel investors."
+      "text": "Founded in 2019 in Newcastle; 33 full-time staff today."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$85,600 [ev:e1]."
+      "text": "MRR reached A$43,000 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 509 paying customers [ev:e2]."
+      "text": "The company has 244 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 56% [ev:e3]."
+      "text": "Gross margin is 77% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$89,600 [ev:e1]."
+      "text": "MRR reached A$59,000 [ev:e1]."
      },
      {
       "id": "c5",
@@ -363,45 +343,40 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$84,600 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$82,000 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 418 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 203 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 59% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 81% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2020 tại Melbourne; hiện có 31 nhân viên toàn thời gian."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.9% trong quý 3/2026."
+      "text": "Thành lập năm 2020 tại Newcastle; hiện có 9 nhân viên toàn thời gian."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$84,600 [ev:e1]."
+      "text": "MRR đạt A$82,000 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 451 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 274 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 59% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 81% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$99,600 [ev:e1]."
+      "text": "MRR đạt A$98,000 [ev:e1]."
      },
      {
       "id": "c5",
@@ -432,54 +407,44 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$34,900 in September 2026."
+      "text": "Monthly recurring revenue was A$30,400 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "45 paying customers as of 30 September 2026."
+      "text": "257 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 65% for FY2026."
+      "text": "Gross margin was 52% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2025 in Melbourne; 9 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.2% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$500,000 from angel investors."
+      "text": "Founded in 2023 in Sydney; 22 full-time staff today."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$34,900 [ev:e1]."
+      "text": "MRR reached A$30,400 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 114 paying customers [ev:e2]."
+      "text": "The company has 307 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 65% [ev:e3]."
+      "text": "Gross margin is 52% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$40,900 [ev:e1]."
+      "text": "MRR reached A$46,400 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2025 [ev:e9]."
+      "text": "The company was founded in 2023 [ev:e9]."
      }
     ]
    },
@@ -506,54 +471,54 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$15,100 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$31,000 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 334 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 30 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 53% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 64% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Darwin; hiện có 30 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2020 tại Hobart; hiện có 5 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.3% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.7% trong quý 3/2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Đã huy động A$1,300,000 từ nhà đầu tư thiên thần."
+      "text": "Đã huy động A$1,450,000 từ nhà đầu tư thiên thần."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$15,100 [ev:e1]."
+      "text": "MRR đạt A$31,000 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 356 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 110 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 53% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 64% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$24,100 [ev:e1]."
+      "text": "MRR đạt A$46,000 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2021 [ev:e9]."
+      "text": "Công ty được thành lập năm 2020 [ev:e9]."
      }
     ]
    },
@@ -580,54 +545,49 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$47,300 in September 2026."
+      "text": "Monthly recurring revenue was A$33,400 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "400 paying customers as of 30 September 2026."
+      "text": "303 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 62% for FY2026."
+      "text": "Gross margin was 45% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2025 in Perth; 21 full-time staff today."
+      "text": "Founded in 2019 in Perth; 7 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Monthly customer churn was 5.6% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$850,000 from angel investors."
+      "text": "Monthly customer churn was 3.8% in Q3 2026."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$47,300 [ev:e1]."
+      "text": "MRR reached A$33,400 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 436 paying customers [ev:e2]."
+      "text": "The company has 341 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 62% [ev:e3]."
+      "text": "Gross margin is 45% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$67,300 [ev:e1]."
+      "text": "MRR reached A$41,400 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2025 [ev:e9]."
+      "text": "The company was founded in 2019 [ev:e9]."
      }
     ]
    },
@@ -654,49 +614,49 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$18,800 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$86,100 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 131 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 251 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 39% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 53% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Canberra; hiện có 3 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2023 tại Darwin; hiện có 25 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.0% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 5.4% trong quý 3/2026."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$18,800 [ev:e1]."
+      "text": "MRR đạt A$86,100 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 156 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 314 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 39% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 53% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$36,800 [ev:e1]."
+      "text": "MRR đạt A$106,100 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2021 [ev:e9]."
+      "text": "Công ty được thành lập năm 2023 [ev:e9]."
      }
     ]
    },
@@ -723,54 +683,54 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$30,500 in September 2026."
+      "text": "Monthly recurring revenue was A$14,600 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "27 paying customers as of 30 September 2026."
+      "text": "54 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 42% for FY2026."
+      "text": "Gross margin was 82% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2025 in Melbourne; 23 full-time staff today."
+      "text": "Founded in 2023 in Darwin; 13 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.8% in Q3 2026."
+      "text": "Monthly customer churn was 4.0% in Q3 2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Raised A$1,950,000 from angel investors."
+      "text": "Raised A$2,000,000 from angel investors."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$30,500 [ev:e1]."
+      "text": "MRR reached A$14,600 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 73 paying customers [ev:e2]."
+      "text": "The company has 127 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 42% [ev:e3]."
+      "text": "Gross margin is 82% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$45,500 [ev:e1]."
+      "text": "MRR reached A$33,600 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2025 [ev:e9]."
+      "text": "The company was founded in 2023 [ev:e9]."
      }
     ]
    },
@@ -797,54 +757,54 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$77,100 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$64,700 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 261 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 379 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 72% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 74% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2019 tại Geelong; hiện có 23 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2020 tại Geelong; hiện có 29 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 4.1% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.8% trong quý 3/2026."
      },
      {
       "id": "e6",
       "label": "Cap table",
-      "text": "Đã huy động A$1,300,000 từ nhà đầu tư thiên thần."
+      "text": "Đã huy động A$1,150,000 từ nhà đầu tư thiên thần."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$77,100 [ev:e1]."
+      "text": "MRR đạt A$64,700 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 276 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 406 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 72% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 74% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$94,100 [ev:e1]."
+      "text": "MRR đạt A$75,700 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2019 [ev:e9]."
+      "text": "Công ty được thành lập năm 2020 [ev:e9]."
      }
     ]
    },
@@ -871,49 +831,49 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$87,900 in September 2026."
+      "text": "Monthly recurring revenue was A$26,700 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "427 paying customers as of 30 September 2026."
+      "text": "218 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 50% for FY2026."
+      "text": "Gross margin was 63% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2025 in Brisbane; 18 full-time staff today."
+      "text": "Founded in 2020 in Melbourne; 26 full-time staff today."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.9% in Q3 2026."
+      "text": "Monthly customer churn was 4.8% in Q3 2026."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$87,900 [ev:e1]."
+      "text": "MRR reached A$26,700 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 474 paying customers [ev:e2]."
+      "text": "The company has 270 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 50% [ev:e3]."
+      "text": "Gross margin is 63% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$98,900 [ev:e1]."
+      "text": "MRR reached A$35,700 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2025 [ev:e9]."
+      "text": "The company was founded in 2020 [ev:e9]."
      }
     ]
    },
@@ -940,22 +900,22 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$68,000 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$45,900 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 221 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 123 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 77% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 56% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2019 tại Darwin; hiện có 14 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2024 tại Melbourne; hiện có 5 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
@@ -966,23 +926,23 @@
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$68,000 [ev:e1]."
+      "text": "MRR đạt A$45,900 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 242 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 169 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 77% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 56% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$87,000 [ev:e1]."
+      "text": "MRR đạt A$53,900 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2019 [ev:e9]."
+      "text": "Công ty được thành lập năm 2024 [ev:e9]."
      }
     ]
    },
@@ -1009,12 +969,12 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$11,700 in September 2026."
+      "text": "Monthly recurring revenue was A$20,600 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "148 paying customers as of 30 September 2026."
+      "text": "184 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
@@ -1024,17 +984,27 @@
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2023 in Adelaide; 9 full-time staff today."
+      "text": "Founded in 2020 in Perth; 18 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 5.3% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$1,800,000 from angel investors."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$11,700 [ev:e1]."
+      "text": "MRR reached A$20,600 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 212 paying customers [ev:e2]."
+      "text": "The company has 222 paying customers [ev:e2]."
      },
      {
       "id": "c3",
@@ -1042,11 +1012,11 @@
      },
      {
       "id": "c4",
-      "text": "MRR reached A$23,700 [ev:e1]."
+      "text": "MRR reached A$28,600 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2023 [ev:e9]."
+      "text": "The company was founded in 2020 [ev:e9]."
      }
     ]
    },
@@ -1073,44 +1043,49 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$71,400 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$92,300 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 86 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 184 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 64% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 54% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2021 tại Perth; hiện có 29 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2022 tại Newcastle; hiện có 32 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 6.0% trong quý 3/2026."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$71,400 [ev:e1]."
+      "text": "MRR đạt A$92,300 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 162 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 229 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 64% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 54% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$75,400 [ev:e1]."
+      "text": "MRR đạt A$104,300 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2021 [ev:e9]."
+      "text": "Công ty được thành lập năm 2022 [ev:e9]."
      }
     ]
    },
@@ -1137,44 +1112,54 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$31,800 in September 2026."
+      "text": "Monthly recurring revenue was A$89,600 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "120 paying customers as of 30 September 2026."
+      "text": "374 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 60% for FY2026."
+      "text": "Gross margin was 50% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2025 in Brisbane; 34 full-time staff today."
+      "text": "Founded in 2023 in Melbourne; 23 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 5.4% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$1,850,000 from angel investors."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$31,800 [ev:e1]."
+      "text": "MRR reached A$89,600 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 196 paying customers [ev:e2]."
+      "text": "The company has 453 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 60% [ev:e3]."
+      "text": "Gross margin is 50% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$36,800 [ev:e1]."
+      "text": "MRR reached A$92,600 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2025 [ev:e9]."
+      "text": "The company was founded in 2023 [ev:e9]."
      }
     ]
    },
@@ -1201,49 +1186,54 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$90,600 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$31,700 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 183 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 149 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 81% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 42% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2024 tại Darwin; hiện có 23 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2025 tại Canberra; hiện có 6 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.2% trong quý 3/2026."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.6% trong quý 3/2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Đã huy động A$1,550,000 từ nhà đầu tư thiên thần."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$90,600 [ev:e1]."
+      "text": "MRR đạt A$31,700 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 203 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 177 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 81% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 42% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$108,600 [ev:e1]."
+      "text": "MRR đạt A$51,700 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2024 [ev:e9]."
+      "text": "Công ty được thành lập năm 2025 [ev:e9]."
      }
     ]
    },
@@ -1270,54 +1260,44 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Monthly recurring revenue was A$46,600 in September 2026."
+      "text": "Monthly recurring revenue was A$87,900 in September 2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "274 paying customers as of 30 September 2026."
+      "text": "401 paying customers as of 30 September 2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Gross margin was 45% for FY2026."
+      "text": "Gross margin was 78% for FY2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Founded in 2024 in Geelong; 26 full-time staff today."
-     },
-     {
-      "id": "e5",
-      "label": "Billing analytics",
-      "text": "Monthly customer churn was 1.2% in Q3 2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Raised A$1,300,000 from angel investors."
+      "text": "Founded in 2019 in Brisbane; 21 full-time staff today."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR reached A$46,600 [ev:e1]."
+      "text": "MRR reached A$87,900 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "The company has 357 paying customers [ev:e2]."
+      "text": "The company has 424 paying customers [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Gross margin is 45% [ev:e3]."
+      "text": "Gross margin is 78% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR reached A$62,600 [ev:e1]."
+      "text": "MRR reached A$93,900 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "The company was founded in 2024 [ev:e9]."
+      "text": "The company was founded in 2019 [ev:e9]."
      }
     ]
    },
@@ -1344,54 +1324,49 @@
      {
       "id": "e1",
       "label": "Stripe export",
-      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$58,800 trong tháng 9/2026."
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$58,000 trong tháng 9/2026."
      },
      {
       "id": "e2",
       "label": "CRM export",
-      "text": "Có 400 khách hàng trả phí tính đến 30/9/2026."
+      "text": "Có 238 khách hàng trả phí tính đến 30/9/2026."
      },
      {
       "id": "e3",
       "label": "Management accounts",
-      "text": "Biên lợi nhuận gộp 57% trong năm tài chính 2026."
+      "text": "Biên lợi nhuận gộp 66% trong năm tài chính 2026."
      },
      {
       "id": "e4",
       "label": "Company profile",
-      "text": "Thành lập năm 2022 tại Canberra; hiện có 16 nhân viên toàn thời gian."
+      "text": "Thành lập năm 2020 tại Brisbane; hiện có 6 nhân viên toàn thời gian."
      },
      {
       "id": "e5",
       "label": "Billing analytics",
-      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.2% trong quý 3/2026."
-     },
-     {
-      "id": "e6",
-      "label": "Cap table",
-      "text": "Đã huy động A$1,000,000 từ nhà đầu tư thiên thần."
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.5% trong quý 3/2026."
      }
     ],
     "claims": [
      {
       "id": "c1",
-      "text": "MRR đạt A$58,800 [ev:e1]."
+      "text": "MRR đạt A$58,000 [ev:e1]."
      },
      {
       "id": "c2",
-      "text": "Công ty có 419 khách hàng trả phí [ev:e2]."
+      "text": "Công ty có 257 khách hàng trả phí [ev:e2]."
      },
      {
       "id": "c3",
-      "text": "Biên lợi nhuận gộp là 57% [ev:e3]."
+      "text": "Biên lợi nhuận gộp là 66% [ev:e3]."
      },
      {
       "id": "c4",
-      "text": "MRR đạt A$74,800 [ev:e1]."
+      "text": "MRR đạt A$62,000 [ev:e1]."
      },
      {
       "id": "c5",
-      "text": "Công ty được thành lập năm 2022 [ev:e9]."
+      "text": "Công ty được thành lập năm 2020 [ev:e9]."
      }
     ]
    },
