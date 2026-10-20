@@ -87,9 +87,15 @@ const renderMock = vi.fn<() => Promise<Buffer>>();
 vi.mock("@react-pdf/renderer", () => ({
   renderToBuffer: () => renderMock(),
 }));
+const summaryPdfMock = vi.hoisted(() => vi.fn((_props: unknown) => null));
 vi.mock("@/lib/pdf/svi-summary-pdf", () => ({
-  SVISummaryPDF: () => null,
+  SVISummaryPDF: (props: unknown) => summaryPdfMock(props),
 }));
+// G35 P5 — page five's upsell price follows the Pricing v5 view.
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => PAYG_OFF_VIEW };
+});
 
 import { extractSignals } from "@/lib/svi-analysis";
 
@@ -185,6 +191,8 @@ describe("the happy path", () => {
     expect(sendMock).toHaveBeenCalledTimes(1);
     expect(markSentMock).toHaveBeenCalledWith(ID);
     expect(releaseMock).not.toHaveBeenCalled();
+    // G35 P5 — the PDF is rendered with the server-read Pricing v5 view.
+    expect(summaryPdfMock.mock.calls.at(-1)?.[0]).toMatchObject({ payg: { enabled: false } });
   });
 
   it("lowercases the address before it reaches the claim or the sender", async () => {

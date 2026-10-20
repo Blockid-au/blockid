@@ -6,6 +6,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PitchDeckPDF } from "@/lib/pdf/pitch-deck-pdf";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ export async function GET(request: Request) {
     const limited = enforceRateLimit("pitch-deck-public", null, request, 20, 60 * 60 * 1000);
     if (limited) return limited;
 
-    const pdfBuffer = await renderToBuffer(PitchDeckPDF());
+    // G35 P5 — the Free rung's report line follows payg_enabled.
+    const pdfBuffer = await renderToBuffer(PitchDeckPDF({ payg: await getPaygView() }));
 
     return new Response(Buffer.from(pdfBuffer), {
       headers: {

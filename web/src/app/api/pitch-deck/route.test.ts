@@ -70,8 +70,16 @@ vi.mock("@/lib/pdf/pitch-deck-pdf", () => ({
   PitchDeckPDF: (...args: unknown[]) => pitchDeckPdfMock(...args),
 }));
 
+// G35 P5 — the Pricing v5 view the route threads into the deck.
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => (paygState.enabled ? PAYG_ON_VIEW : PAYG_OFF_VIEW) };
+});
+
 // Import AFTER the mocks so the route binds to the fakes.
 import { GET, dynamic } from "./route";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 const FAKE_PDF = Buffer.from("%PDF-1.7 fake pitch deck bytes\n");
 const FAKE_ELEMENT = { __marker: "pitch-deck-element" };
@@ -196,6 +204,18 @@ describe("happy path", () => {
     expect(pitchDeckPdfMock).toHaveBeenCalledTimes(1);
     expect(renderToBufferMock).toHaveBeenCalledTimes(1);
     expect(renderToBufferMock).toHaveBeenCalledWith(FAKE_ELEMENT);
+    // G35 P5 — flag OFF: the deck gets the OFF view (today's Free-rung line).
+    expect(pitchDeckPdfMock).toHaveBeenCalledWith({ payg: PAYG_OFF_VIEW });
+  });
+
+  it("G35 P5: payg_enabled ON → the deck is rendered with the v5 view", async () => {
+    paygState.enabled = true;
+    try {
+      await callGET();
+      expect(pitchDeckPdfMock).toHaveBeenCalledWith({ payg: PAYG_ON_VIEW });
+    } finally {
+      paygState.enabled = false;
+    }
   });
 
   it("checks the rate limiter BEFORE calling the (expensive, synchronous) PDF renderer", async () => {
