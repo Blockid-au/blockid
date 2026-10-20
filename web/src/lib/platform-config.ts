@@ -2,6 +2,8 @@
 // Defaults are in code; admin can override via Supabase `platform_config` table.
 // Cache TTL: 60s server-side so changes propagate within 1 minute.
 
+import { PAYG_CONFIG_DEFAULTS } from "@/lib/pricing/v5-payg";
+
 export interface SviWeights {
   ftv: number; // Founder-Team Viability
   mpc: number; // Market & Problem Clarity
@@ -70,6 +72,18 @@ export interface PlatformConfig {
   // A/B the display without a redeploy.
   guest_analysis_price_aud_cents: number;   // e.g. 300 = A$3.00 inc. GST
 
+  // ── Pricing v5 pay-as-you-go (G35 P1; lib/pricing/v5-payg.ts) ──────────────
+  // DISPLAY prices only (cents, GST-inclusive) — the amount charged is always
+  // the Stripe Price behind STRIPE_PRICE_REPORT_* (Stripe sync flags drift).
+  // `payg_enabled` gates the whole PAYG block + checkout (default OFF until
+  // the founder flips it in wave P5). Validated by `validatePaygConfig()`.
+  payg_enabled: boolean;               // false = PAYG hidden, checkout refused
+  payg_snapshot_cents: number;         // 1900 = A$19 Snapshot
+  payg_full_cents: number;             // 4900 = A$49 Full
+  payg_verified_cents: number;         // 14900 = A$149 Verified
+  verified_sla_business_days: number;  // 2 = Verified delivered within 2 Sydney business days (D29)
+  payg_verified_max_open: number;      // 5 = Verified hidden while ≥ 5 orders are in review (D29)
+
   // ── Referral ────────────────────────────────────────────────────────────────
   referral_credits: number;         // credits granted per referral
 
@@ -123,6 +137,14 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
   growth_plan_credits_monthly: 200,
 
   guest_analysis_price_aud_cents: 300,
+
+  // Pricing v5 PAYG (G35 P1) — single-sourced from the v5 catalogue.
+  payg_enabled: PAYG_CONFIG_DEFAULTS.payg_enabled,
+  payg_snapshot_cents: PAYG_CONFIG_DEFAULTS.payg_snapshot_cents,
+  payg_full_cents: PAYG_CONFIG_DEFAULTS.payg_full_cents,
+  payg_verified_cents: PAYG_CONFIG_DEFAULTS.payg_verified_cents,
+  verified_sla_business_days: PAYG_CONFIG_DEFAULTS.verified_sla_business_days,
+  payg_verified_max_open: PAYG_CONFIG_DEFAULTS.payg_verified_max_open,
 
   referral_credits: 2,
 

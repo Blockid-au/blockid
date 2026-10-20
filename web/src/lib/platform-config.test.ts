@@ -224,6 +224,26 @@ describe("CONFIG_DEFAULTS — canonical fixture", () => {
     }
   });
 
+  it("G35 P1: pins the Pricing v5 PAYG keys — flag OFF, display A$19 / A$49 / A$149, SLA 2 business days, Verified cap 5", () => {
+    expect(CONFIG_DEFAULTS.payg_enabled).toBe(false);
+    expect(CONFIG_DEFAULTS.payg_snapshot_cents).toBe(1900);
+    expect(CONFIG_DEFAULTS.payg_full_cents).toBe(4900);
+    expect(CONFIG_DEFAULTS.payg_verified_cents).toBe(14900);
+    expect(CONFIG_DEFAULTS.verified_sla_business_days).toBe(2);
+    expect(CONFIG_DEFAULTS.payg_verified_max_open).toBe(5);
+  });
+
+  it("G35 P1: an admin override of payg_enabled / a display price merges like any other key", async () => {
+    state.selectData = [
+      { key: "payg_enabled", value: true },
+      { key: "payg_full_cents", value: 5900 },
+    ];
+    const cfg = await getPlatformConfig();
+    expect(cfg.payg_enabled).toBe(true);
+    expect(cfg.payg_full_cents).toBe(5900);
+    expect(cfg.payg_snapshot_cents).toBe(1900);
+  });
+
   it("pins the three shipped feature flags (founding OFF post 2026-09-01 sunset, waitlist off, linkedin off)", () => {
     expect(CONFIG_DEFAULTS.founding_plan_active).toBe(false);
     expect(CONFIG_DEFAULTS.waitlist_mode).toBe(false);
