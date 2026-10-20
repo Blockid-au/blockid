@@ -264,3 +264,27 @@ describe("G16-A CLIENT_EMITTABLE_EVENTS", () => {
     expect(isClientEmittableEvent("trust_report_purchased")).toBe(false);
   });
 });
+
+describe("G35 P1 — Pricing v5 PAYG event names are typed (no emitters yet)", () => {
+  it("declares payg_tier_viewed / payg_checkout_started / payg_paid / payg_upgrade in the server union", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { parseServerEventUnion } = await import("./event-map-introspect");
+    const table = parseServerEventUnion(readFileSync(join(__dirname, "events.ts"), "utf8"));
+    expect(table.events.get("payg_tier_viewed")).toEqual(expect.arrayContaining(["tier", "sku", "surface", "amount_cents"]));
+    expect(table.events.get("payg_checkout_started")).toEqual(expect.arrayContaining(["tier", "sku", "is_upgrade", "amount_cents"]));
+    expect(table.events.get("payg_paid")).toEqual(expect.arrayContaining(["sku", "paid_via", "gross_aud_cents", "order_id"]));
+    expect(table.events.get("payg_upgrade")).toEqual(expect.arrayContaining(["from_tier", "to_tier", "sku", "upgrade_of_order_id"]));
+  });
+
+  it("compile-time: the union accepts a typed PAYG payload", () => {
+    const e: AnalyticsEvent = { name: "payg_upgrade", params: { from_tier: "snapshot", to_tier: "full", sku: "upgrade_snapshot_full", gross_aud_cents: 3000, order_id: "o2", upgrade_of_order_id: "o1" } };
+    expect(e.name).toBe("payg_upgrade");
+  });
+
+  it("none is browser-emittable until the P5 emitters ship", () => {
+    for (const n of ["payg_tier_viewed", "payg_checkout_started", "payg_paid", "payg_upgrade"]) {
+      expect(isClientEmittableEvent(n), n).toBe(false);
+    }
+  });
+});

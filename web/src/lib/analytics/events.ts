@@ -7,6 +7,7 @@
 // to Supabase analytics_events + the GA4 Measurement Protocol.
 
 import { z } from "zod";
+import type { PaygSkuId, PaygTier } from "@/lib/pricing/v5-payg";
 
 // ── Common typed payload primitives ────────────────────────────────────
 
@@ -95,6 +96,15 @@ export type AnalyticsEvent =
   // ── G19-S45 engagement twins (client-emitted today; typed here so the GA4 limits test covers both maps) ──
   | { name: "tbr_section_view"; params: { section: string; surface: "founder" | "share" | "order_page" | "demo"; tier?: string; user_id?: string } }
   | { name: "tbr_export"; params: { format: "pdf" | "docx"; surface: string; user_id?: string } }
+  // ── G35 Pricing v5 pay-as-you-go (typed in P1; emitters land with checkout/webhook W3 + copy P5) ──
+  //   payg_tier_viewed      — a PAYG tier card / review dialog was shown (client)
+  //   payg_checkout_started — the explicit Pay button on the review step was pressed (client; review-before-pay)
+  //   payg_paid             — webhook: a PAYG order is PAID (card) or redeemed with credits
+  //   payg_upgrade          — webhook: an upgrade SKU (D28) moved an existing report up a tier
+  | { name: "payg_tier_viewed"; params: { tier: PaygTier; sku: PaygSkuId; surface: string; amount_cents: number; project_id?: string; qa?: boolean } }
+  | { name: "payg_checkout_started"; params: { tier: PaygTier; sku: PaygSkuId; surface: string; amount_cents: number; is_upgrade: boolean; project_id?: string; qa?: boolean } }
+  | { name: "payg_paid"; params: { tier: PaygTier | "funding"; sku: PaygSkuId; paid_via: "card" | "credits"; gross_aud_cents: number; order_id: string; session_id?: string; user_id?: string; qa?: boolean } }
+  | { name: "payg_upgrade"; params: { from_tier: PaygTier; to_tier: PaygTier; sku: PaygSkuId; gross_aud_cents: number; order_id: string; upgrade_of_order_id: string; user_id?: string; qa?: boolean } }
   // ── G25-C free allowance (server-side; lib/analytics/funnel.ts emitFreeReport*) ──
   //   free_report_submitted — a free report was reserved for an address (sequence_no 1 | 2, source guest | account)
   //   free_report_delivered — the PDF e-mail for that report was accepted by the provider
