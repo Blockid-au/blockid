@@ -2251,13 +2251,15 @@ describe("G30 BlockID report policy", () => {
     it("free section: promoted rung first, demoted rung skipped (Groq ladder)", async () => {
       const c = await loadClient();
       const before = c.ladderFor("groq");
-      fsMock.files.set(await policyPath(), JSON.stringify({ version: 1, updated_at: new Date().toISOString(), free: { updated_at: new Date().toISOString(), reasons: [], providers: { groq: { promoted: ["openai/gpt-oss-120b"], demoted: ["openai/gpt-oss-20b"] } } } }));
+      fsMock.files.set(await policyPath(), JSON.stringify({ version: 1, updated_at: new Date().toISOString(), free: { updated_at: new Date().toISOString(), reasons: [], providers: { groq: { promoted: ["openai/gpt-oss-120b"], demoted: ["openai/gpt-oss-20b"], demoted_until: { "openai/gpt-oss-20b": new Date(Date.now() + 86_400_000).toISOString() } } } } }));
       const fresh = await loadClient();
       const after = fresh.ladderFor("groq");
       expect(before).toContain("openai/gpt-oss-20b");
       expect(after[0]).toBe("openai/gpt-oss-120b");
       expect(after).not.toContain("openai/gpt-oss-20b");
       expect(after.every((m) => before.includes(m))).toBe(true);
+      // P1-1: the coordinator reads the RAW ladder — demoted rungs stay visible to it.
+      expect(fresh.rawFreeLadder("groq")).toEqual(before);
     });
 
     it("an APPROVED paid ladder reorders the scoped DeepInfra rungs; a proposal alone does not", async () => {

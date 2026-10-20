@@ -180,12 +180,15 @@ describe("aggregateCaseScores", () => {
     expect(a.dead).toBe(false);
   });
 
-  it("dead = every call failed in transport (n ≥ 3)", () => {
-    const rows = [1, 2, 3].map((i) => s({ caseId: String(i), ok: false, schemaOk: false, quality: 0, accepted: false }));
-    const a = aggregateCaseScores(TASK_PROFILES.classify, cand, rows);
-    expect(a.dead).toBe(true);
-    expect(a.schemaFailRate).toBe(0);
-    expect(a.costPerAccepted).toBeNull();
+  it("dead = every call failed with a DEFINITIVE error (n ≥ 3); our own 429s / timeouts never make a model dead", () => {
+    const fail = (error: string) => [1, 2, 3].map((i) => s({ caseId: String(i), ok: false, schemaOk: false, quality: 0, accepted: false, error }));
+    const a = aggregateCaseScores(TASK_PROFILES.classify, cand, fail("HTTP 404: model not found"));
+    expect(a).toMatchObject({ dead: true, transientFails: 0, schemaFailRate: 0, costPerAccepted: null });
+    for (const e of ["HTTP 429: rate limit reached", "Worker timeout after 30000ms", "HTTP 503: overloaded", "empty content"]) {
+      const t = aggregateCaseScores(TASK_PROFILES.classify, cand, fail(e));
+      expect(t.dead, e).toBe(false);
+      expect(t.transientFails, e).toBe(3);
+    }
   });
 
   it("percentile is nearest-rank", () => {

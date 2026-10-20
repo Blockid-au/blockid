@@ -1,5 +1,8 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { FREE_POLICY_MAX_AGE_MS, applyFreeRoutingPolicy, approvedPaidLadder, emptyRoutingPolicy, parseRoutingPolicy, type RoutingPolicy } from "./routing-policy";
+import { FREE_DEMOTION_TTL_MS, FREE_POLICY_MAX_AGE_MS, activeDemotions, applyFreeRoutingPolicy, approvedPaidLadder, emptyRoutingPolicy, parseRoutingPolicy, readRoutingPolicyFileState, routingPolicyWriteError, type RoutingPolicy } from "./routing-policy";
 
 const NOW = Date.parse("2026-10-20T12:00:00Z");
 
@@ -7,8 +10,15 @@ function policy(over: Partial<RoutingPolicy> = {}): RoutingPolicy {
   return { ...emptyRoutingPolicy(new Date(NOW)), ...over } as RoutingPolicy;
 }
 
-const freePolicy = (providers: Record<string, { promoted?: string[]; demoted?: string[] }>, at = NOW) =>
-  policy({ free: { updated_at: new Date(at).toISOString(), reasons: [], providers: Object.fromEntries(Object.entries(providers).map(([k, v]) => [k, { promoted: v.promoted ?? [], demoted: v.demoted ?? [] }])) } });
+const UNTIL = new Date(NOW + FREE_DEMOTION_TTL_MS).toISOString();
+const freePolicy = (providers: Record<string, { promoted?: string[]; demoted?: string[]; until?: string }>, at = NOW) =>
+  policy({
+    free: {
+      updated_at: new Date(at).toISOString(),
+      reasons: [],
+      providers: Object.fromEntries(Object.entries(providers).map(([k, v]) => [k, { promoted: v.promoted ?? [], demoted: v.demoted ?? [], demoted_until: Object.fromEntries((v.demoted ?? []).map((m) => [m, v.until ?? UNTIL])) }])),
+    },
+  });
 
 const LADDER = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"];
 
@@ -44,6 +54,14 @@ describe("applyFreeRoutingPolicy", () => {
     const p = freePolicy({ groq: { demoted: LADDER } });
     expect(applyFreeRoutingPolicy("groq", LADDER, p, NOW)).toEqual(LADDER);
   });
+  it("a demotion lapses at its expiry (P1-1); one without an expiry is not honoured", () => {
+    const expired = freePolicy({ groq: { demoted: ["openai/gpt-oss-20b"], until: new Date(NOW - 1).toISOString() } });
+    expect(applyFreeRoutingPolicy("groq", LADDER, expired, NOW)).toEqual(LADDER);
+    const noExpiry = policy({ free: { updated_at: new Date(NOW).toISOString(), reasons: [], providers: { groq: { promoted: [], demoted: ["openai/gpt-oss-20b"], demoted_until: {} } } } });
+    expect(applyFreeRoutingPolicy("groq", LADDER, noExpiry, NOW)).toEqual(LADDER);
+    expect(activeDemotions({ demoted: ["a", "b"], demoted_until: { a: UNTIL, b: "nonsense" } }, NOW)).toEqual(["a"]);
+  });
+
   it("other providers are untouched", () => {
     const p = freePolicy({ groq: { demoted: ["openai/gpt-oss-20b"] } });
     expect(applyFreeRoutingPolicy("openrouter", ["a:free", "b:free"], p, NOW)).toEqual(["a:free", "b:free"]);
@@ -83,5 +101,25 @@ describe("approvedPaidLadder", () => {
     const p = withActive({ report: ["deepseek-ai/DeepSeek-V4-Flash"] });
     expect(approvedPaidLadder("synthesis", REPORT, p)).toBeNull();
     expect(approvedPaidLadder("vision", REPORT, p)).toBeNull();
+  });
+});
+
+describe("readRoutingPolicyFileState / routingPolicyWriteError (P2-1)", () => {
+  it("missing, valid and invalid files are told apart; an invalid policy is never written", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "rp-state-"));
+    try {
+      const f = path.join(dir, "ai-routing-policy.json");
+      expect(readRoutingPolicyFileState(f)).toEqual({ state: "missing" });
+      writeFileSync(f, "{ truncated");
+      expect(readRoutingPolicyFileState(f)).toMatchObject({ state: "invalid", error: "not JSON" });
+      writeFileSync(f, JSON.stringify({ version: 1, updated_at: "x", paid: { active: { report: "not-a-list" } } }));
+      expect(readRoutingPolicyFileState(f).state).toBe("invalid");
+      writeFileSync(f, JSON.stringify(emptyRoutingPolicy(new Date(NOW))));
+      expect(readRoutingPolicyFileState(f).state).toBe("ok");
+      expect(routingPolicyWriteError(emptyRoutingPolicy(new Date(NOW)))).toBeNull();
+      expect(routingPolicyWriteError({ version: 1 })).not.toBeNull();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

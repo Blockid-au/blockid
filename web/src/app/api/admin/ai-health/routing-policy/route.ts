@@ -16,7 +16,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, ADMIN_EMAIL } from "@/lib/auth";
 import { apiRoute, auditAction, auditNote } from "@/lib/audit/api-route";
 import { approveProposal, appendJsonl, dismissProposal, rollbackPaidPolicy, writeJsonAtomic } from "@/lib/ai/model-coordinator";
-import { _resetRoutingPolicyCache, readRoutingPolicyFresh, routingPolicyFile, routingPolicyHistoryFile } from "@/lib/ai/routing-policy";
+import { _resetRoutingPolicyCache, readRoutingPolicyFileState, routingPolicyFile, routingPolicyHistoryFile, routingPolicyWriteError } from "@/lib/ai/routing-policy";
+import { DEEPINFRA_MODELS_BY_CLASS } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +38,21 @@ async function POST_handler(request: Request): Promise<NextResponse> {
   }
   auditAction(`admin.ai-routing-policy.${action}`);
 
-  const current = readRoutingPolicyFresh();
+  // P2-1: never overwrite a policy file that exists but cannot be validated —
+  // it may hold the approved ladder, its rollback target and the proposal.
+  const file = routingPolicyFile();
+  const state = readRoutingPolicyFileState(file);
+  if (state.state === "invalid") {
+    return NextResponse.json({ error: `ai-routing-policy.json is invalid (${state.error}) — nothing changed; restore the file first` }, { status: 409 });
+  }
+  const current = state.state === "ok" ? state.policy : null;
   const actor = user.id;
+  const dialable = { report: DEEPINFRA_MODELS_BY_CLASS.report, synthesis: DEEPINFRA_MODELS_BY_CLASS.synthesis, classify: DEEPINFRA_MODELS_BY_CLASS.classify };
   const result =
-    action === "approve" ? approveProposal(current, proposalId, actor) : action === "dismiss" ? dismissProposal(current, proposalId, actor) : rollbackPaidPolicy(current, actor);
+    action === "approve" ? approveProposal(current, proposalId, actor, new Date(), dialable) : action === "dismiss" ? dismissProposal(current, proposalId, actor) : rollbackPaidPolicy(current, actor);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  const invalid = routingPolicyWriteError(result.policy);
+  if (invalid) return NextResponse.json({ error: `refusing to write an invalid policy (${invalid})` }, { status: 500 });
 
   writeJsonAtomic(routingPolicyFile(), result.policy);
   appendJsonl(routingPolicyHistoryFile(), [result.history]);

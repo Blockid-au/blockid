@@ -6,7 +6,8 @@
 //
 //   free   AUTO. Per free provider (groq / cerebras / sambanova / openrouter):
 //          `promoted` ids move to the head of that provider's ladder,
-//          `demoted` ids are skipped. Written by the coordinator after an
+//          `demoted` ids are skipped until their `demoted_until` expiry (a
+//          demotion without a live expiry lapses). Written by the coordinator after an
 //          eval run; ignored once older than FREE_POLICY_MAX_AGE_MS so a dead
 //          eval cron can never pin a stale ordering forever.
 //   paid   PROPOSAL ONLY. The coordinator writes `paid.proposal`; nothing
@@ -53,7 +54,22 @@ const ModelList = z.array(z.string().min(1).max(200)).max(40);
 const FreeProviderPolicy = z.object({
   promoted: ModelList.default([]),
   demoted: ModelList.default([]),
+  /** id → ISO expiry. A demotion is honoured only while its expiry is in the future (P1-1: demotions lapse). */
+  demoted_until: z.record(z.string(), z.string()).default({}),
 });
+export type FreeProviderPolicy = z.infer<typeof FreeProviderPolicy>;
+
+/** A free demotion lapses after this long unless a later complete full run renews it. */
+export const FREE_DEMOTION_TTL_MS = 14 * 24 * 60 * 60_000;
+
+/** The demoted ids still in force at `now` (each needs an unexpired `demoted_until`). Pure. */
+export function activeDemotions(p: Pick<FreeProviderPolicy, "demoted" | "demoted_until"> | undefined, now: number): string[] {
+  if (!p) return [];
+  return p.demoted.filter((m) => {
+    const until = Date.parse(p.demoted_until?.[m] ?? "");
+    return Number.isFinite(until) && until > now;
+  });
+}
 
 const PaidLadders = z.object({
   report: ModelList.optional(),
@@ -135,7 +151,7 @@ export function applyFreeRoutingPolicy(provider: string, ladder: readonly string
   const p = free.providers[provider];
   if (!p) return [...ladder];
   const inLadder = new Set(ladder);
-  const demoted = new Set(p.demoted);
+  const demoted = new Set(activeDemotions(p, now ?? Date.now()));
   const head = p.promoted.filter((m, i, a) => inLadder.has(m) && !demoted.has(m) && a.indexOf(m) === i);
   const headSet = new Set(head);
   const ordered = [...head, ...ladder.filter((m) => !headSet.has(m) && !demoted.has(m))];
@@ -189,6 +205,42 @@ export function readRoutingPolicyFresh(file: string = routingPolicyFile()): Rout
   } catch {
     return null;
   }
+}
+
+export type PolicyFileState =
+  | { state: "missing" }
+  | { state: "ok"; policy: RoutingPolicy }
+  | { state: "invalid"; error: string };
+
+/**
+ * Writers' read (P2-1): distinguishes a MISSING file (start from an empty
+ * policy) from an UNREADABLE / INVALID one (never overwrite it — an approved
+ * paid ladder, its rollback target and the pending proposal would be lost).
+ */
+export function readRoutingPolicyFileState(file: string = routingPolicyFile()): PolicyFileState {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(file, "utf-8");
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === "ENOENT") return { state: "missing" };
+    return { state: "invalid", error: `unreadable (${code ?? "error"})` };
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { state: "invalid", error: "not JSON" };
+  }
+  const parsed = RoutingPolicy.safeParse(json);
+  if (!parsed.success) return { state: "invalid", error: `schema: ${parsed.error.issues[0]?.path.join(".") ?? ""} ${parsed.error.issues[0]?.message ?? ""}`.trim() };
+  return { state: "ok", policy: parsed.data };
+}
+
+/** Validate a policy before it is written; null when valid, else the first issue. Pure. */
+export function routingPolicyWriteError(policy: unknown): string | null {
+  const parsed = RoutingPolicy.safeParse(policy);
+  return parsed.success ? null : `${parsed.error.issues[0]?.path.join(".") ?? ""} ${parsed.error.issues[0]?.message ?? "invalid"}`.trim();
 }
 
 export function _resetRoutingPolicyCache(): void {

@@ -354,6 +354,8 @@ export interface TaskModelScore {
   tier: EvalCandidate["tier"];
   n: number;
   transportFails: number;
+  /** Transport failures caused by the eval's own load (429 / rate limit / timeout / overload / cap) — never evidence a model is dead. */
+  transientFails: number;
   schemaFails: number;
   /** Schema failures ÷ answered cases (transport failures excluded — that is "dead", not "schema"). */
   schemaFailRate: number;
@@ -374,8 +376,15 @@ export interface TaskModelScore {
   /** Passes every profile gate (0 critical, schema fail ≤ max, p95 ≤ ceiling, cost/accepted ≤ ceiling, grounded ≥ min). */
   passesProfile: boolean;
   failReasons: string[];
-  /** Every call failed in transport (n ≥ 3) — the model is dead for this run. */
+  /** Every call failed in transport (n ≥ 3) with a DEFINITIVE error (404 / not found / decommissioned …), none transient. */
   dead: boolean;
+}
+
+/** Rate limits, timeouts and overloads of the eval's own calls are inconclusive, not a dead model. */
+export const TRANSIENT_FAILURE_RE = /\b(429|500|502|503|504)\b|rate.?limit|too many requests|quota|time[d ]?out|timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|abort|overload|busy|capacity|call cap|budget|refused|not configured|empty content/i;
+
+export function isTransientFailure(error: string | undefined): boolean {
+  return !error || TRANSIENT_FAILURE_RE.test(error);
 }
 
 /** Nearest-rank percentile. */
@@ -415,7 +424,9 @@ export function aggregateCaseScores(profile: TaskProfile, candidate: EvalCandida
   const criticalErrors = scores.reduce((s, c) => s + c.critical.length, 0);
   const p95 = percentile(lat, 95);
   const costPerAccepted = accepted > 0 ? Math.round((cost / accepted) * 1e8) / 1e8 : null;
-  const dead = scores.length >= 3 && answered.length === 0;
+  const failed = scores.filter((s) => !s.ok);
+  const transientFails = failed.filter((s) => isTransientFailure(s.error)).length;
+  const dead = scores.length >= 3 && answered.length === 0 && transientFails === 0;
   const failReasons: string[] = [];
   if (scores.length === 0) failReasons.push("no cases");
   if (dead) failReasons.push("dead (no answer)");
@@ -434,6 +445,7 @@ export function aggregateCaseScores(profile: TaskProfile, candidate: EvalCandida
     tier: candidate.tier,
     n: scores.length,
     transportFails: scores.length - answered.length,
+    transientFails,
     schemaFails: answered.filter((s) => !s.schemaOk).length,
     schemaFailRate: base.schemaFailRate,
     criticalErrors,

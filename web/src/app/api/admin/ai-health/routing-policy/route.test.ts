@@ -93,4 +93,26 @@ describe("POST /api/admin/ai-health/routing-policy", () => {
     expect((await post({ action: "dismiss", proposal_id: "prop-1" })).status).toBe(200);
     expect(policy().paid).toMatchObject({ active: null, proposal: null });
   });
+
+  it("P2-1: an invalid policy file is never overwritten (approve / rollback / dismiss all 409)", async () => {
+    const corrupt = '{"version":1,"paid":{"active":{"report":["x"]}';
+    writeFileSync(file("ai-routing-policy.json"), corrupt);
+    for (const body of [{ action: "approve", proposal_id: "prop-1" }, { action: "rollback" }, { action: "dismiss", proposal_id: "prop-1" }]) {
+      const res = await post(body);
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toMatch(/invalid/);
+    }
+    expect(readFileSync(file("ai-routing-policy.json"), "utf-8")).toBe(corrupt);
+    expect(history()).toEqual([]);
+  });
+
+  it("P2-2: a proposal naming only models the dispatcher does not dial cannot be approved", async () => {
+    const p = policy();
+    p.paid.proposal.ladders = { classify: ["deepseek-ai/DeepSeek-V4-Flash-0731"] };
+    writeFileSync(file("ai-routing-policy.json"), JSON.stringify(p));
+    const res = await post({ action: "approve", proposal_id: "prop-1" });
+    expect(res.status).toBe(409);
+    expect(policy().paid.active).toBeNull();
+  });
 });
+

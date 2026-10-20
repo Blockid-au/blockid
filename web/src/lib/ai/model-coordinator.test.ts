@@ -5,6 +5,7 @@ import {
   coordinate,
   demotionReasons,
   dismissProposal,
+  FREE_DEMOTION_TTL_MS,
   effectivePaidLadder,
   liveSignalsFromTbr,
   rollbackPaidPolicy,
@@ -29,7 +30,7 @@ const DEFAULTS = {
 function row(over: Partial<TaskModelScore>): TaskModelScore {
   return {
     task: "report_chapter", provider: "deepinfra", model: V32, family: "deepseek", billing: "paid", tier: "primary",
-    n: 20, transportFails: 0, schemaFails: 0, schemaFailRate: 0, criticalErrors: 0, accepted: 20, acceptRate: 1, quality: 0.9,
+    n: 20, transportFails: 0, transientFails: 0, schemaFails: 0, schemaFailRate: 0, criticalErrors: 0, accepted: 20, acceptRate: 1, quality: 0.9,
     groundedShare: 0.9, p50LatencyMs: 10_000, p95LatencyMs: 20_000, costUsd: 0.02, costPerAccepted: 0.001,
     judge: { n: 0, mean: null }, byLanguage: {}, bySection: {}, passesProfile: true, failReasons: [], dead: false, ...over,
   };
@@ -94,6 +95,7 @@ interface Spec {
   cost?: number;
   latency?: number;
   transportFail?: boolean;
+  error?: string;
 }
 
 function mkRun(runId: string, mode: "smoke" | "full", specs: Spec[], status: EvalRunState["status"] = "done"): EvalRunState {
@@ -104,7 +106,7 @@ function mkRun(runId: string, mode: "smoke" | "full", specs: Spec[], status: Eva
     (candidates[s.task] ??= []).push(cand);
     for (let i = 0; i < (s.n ?? 10); i += 1) {
       const score: CaseScore = s.transportFail
-        ? { caseId: `${i}`, lang: i % 2 ? "vi" : "en", section: "traction", ok: false, schemaOk: false, critical: [], groundedShare: null, numericOk: null, quality: 0, accepted: false, latencyMs: 0, costUsd: 0, error: "HTTP 404" }
+        ? { caseId: `${i}`, lang: i % 2 ? "vi" : "en", section: "traction", ok: false, schemaOk: false, critical: [], groundedShare: null, numericOk: null, quality: 0, accepted: false, latencyMs: 0, costUsd: 0, error: s.error ?? "HTTP 404: model not found" }
         : { caseId: `${i}`, lang: i % 2 ? "vi" : "en", section: "traction", ok: true, schemaOk: true, critical: [], groundedShare: s.task === "report_chapter" ? 0.95 : null, numericOk: true, quality: s.quality, accepted: s.quality >= 0.6, latencyMs: s.latency ?? 5_000, costUsd: s.cost ?? 0 };
       results.push({ task: s.task, provider: s.provider, model: s.model, score });
     }
@@ -194,21 +196,55 @@ describe("coordinate — paid ladder is PROPOSAL ONLY and needs 2 consecutive wi
   });
 });
 
-describe("coordinate — FREE ladders change automatically", () => {
-  const freeSpecs = (q120: number, deadSmall = false): Spec[] => [
+describe("coordinate — FREE ladders change automatically (P1-1 rules)", () => {
+  const freeSpecs = (q120: number, failSmall: false | string = false): Spec[] => [
     { task: "classify", provider: "groq", model: "qwen/qwen3.8-27b", family: "qwen", tier: "free_fallback", quality: 0.8 },
     { task: "classify", provider: "groq", model: "openai/gpt-oss-120b", family: "gpt-oss", tier: "free_fallback", quality: q120 },
-    { task: "classify", provider: "groq", model: "openai/gpt-oss-20b", family: "gpt-oss", tier: "free_fallback", quality: 0.7, transportFail: deadSmall },
+    { task: "classify", provider: "groq", model: "openai/gpt-oss-20b", family: "gpt-oss", tier: "free_fallback", quality: 0.7, transportFail: Boolean(failSmall), error: failSmall || undefined },
   ];
+  const at = (iso: string) => ({ now: new Date(iso) });
+  const demoted = (p: RoutingPolicy | null) => p?.free?.providers.groq?.demoted ?? [];
 
-  it("a dead free model is demoted at once (smoke is enough) and re-admitted after a clean full run", () => {
-    const r1 = step(mkRun("s-dead", "smoke", freeSpecs(0.8, true)), null, null);
-    expect(r1.policy.free?.providers.groq?.demoted).toEqual(["openai/gpt-oss-20b"]);
-    expect(r1.decisions).toContainEqual(expect.objectContaining({ kind: "demote", scope: "free", outcome: "applied" }));
-    expect(r1.history.some((h) => h.action === "free_auto")).toBe(true);
-    const r2 = step(mkRun("f-ok", "full", freeSpecs(0.8, false)), r1.scorecard, r1.policy);
-    expect(r2.policy.free?.providers.groq?.demoted).toEqual([]);
-    expect(r2.decisions).toContainEqual(expect.objectContaining({ kind: "readmit", scope: "free" }));
+  it("3 failed smoke calls → no demotion (smoke never demotes)", () => {
+    const r = step(mkRun("s-dead", "smoke", freeSpecs(0.8, "HTTP 404: model not found")), null, null);
+    expect(demoted(r.policy)).toEqual([]);
+    expect(r.decisions.some((d) => d.scope === "free" && d.kind === "demote")).toBe(false);
+  });
+
+  it("a definitively dead model is demoted only after 2 consecutive COMPLETE full runs, with a 14-day expiry; a clean run re-admits it", () => {
+    const r1 = step(mkRun("f-1", "full", freeSpecs(0.8, "HTTP 404: model not found")), null, null);
+    expect(demoted(r1.policy)).toEqual([]);
+    const partial = step(mkRun("f-p", "full", freeSpecs(0.8, "HTTP 404: model not found"), "budget_exhausted"), r1.scorecard, r1.policy);
+    expect(demoted(partial.policy)).toEqual([]);
+    const r2 = step(mkRun("f-2", "full", freeSpecs(0.8, "HTTP 404: model not found")), partial.scorecard, partial.policy);
+    expect(demoted(r2.policy)).toEqual(["openai/gpt-oss-20b"]);
+    expect(r2.policy.free?.providers.groq?.demoted_until["openai/gpt-oss-20b"]).toBe(new Date(Date.parse("2026-10-25T06:00:00Z") + FREE_DEMOTION_TTL_MS).toISOString());
+    expect(r2.decisions).toContainEqual(expect.objectContaining({ kind: "demote", scope: "free", outcome: "applied" }));
+    const r3 = step(mkRun("f-3", "full", freeSpecs(0.8)), r2.scorecard, r2.policy);
+    expect(demoted(r3.policy)).toEqual([]);
+    expect(r3.decisions).toContainEqual(expect.objectContaining({ kind: "readmit", scope: "free" }));
+  });
+
+  it("failures from our own load (429 / timeouts) never demote, however often", () => {
+    let prior: Scorecard | null = null;
+    let policy: RoutingPolicy | null = null;
+    for (const id of ["t1", "t2", "t3"]) {
+      const r = step(mkRun(id, "full", freeSpecs(0.8, "HTTP 429: rate limit reached")), prior, policy);
+      prior = r.scorecard;
+      policy = r.policy;
+    }
+    expect(demoted(policy)).toEqual([]);
+  });
+
+  it("a demotion lapses after its expiry (even on a smoke run) and ids that left the raw ladder are pruned", () => {
+    const r1 = step(mkRun("f-1", "full", freeSpecs(0.8, "HTTP 404: model not found")), null, null);
+    const r2 = step(mkRun("f-2", "full", freeSpecs(0.8, "HTTP 404: model not found")), r1.scorecard, r1.policy);
+    expect(demoted(r2.policy)).toEqual(["openai/gpt-oss-20b"]);
+    const later = step(mkRun("s-late", "smoke", []), r2.scorecard, r2.policy, at("2026-11-09T07:00:00Z"));
+    expect(demoted(later.policy)).toEqual([]);
+    expect(later.decisions).toContainEqual(expect.objectContaining({ kind: "readmit", reason: expect.stringMatching(/expired/) }));
+    const gone = step(mkRun("s-gone", "smoke", []), r2.scorecard, r2.policy, { freeLadders: { groq: ["qwen/qwen3.8-27b", "openai/gpt-oss-120b"] } });
+    expect(demoted(gone.policy)).toEqual([]);
   });
 
   it("a free challenger needs +0.05 over the ladder head on 2 consecutive full runs", () => {
@@ -223,9 +259,42 @@ describe("coordinate — FREE ladders change automatically", () => {
     expect(s2.policy.free?.providers.groq?.promoted ?? []).toEqual([]);
   });
 
-  it("the free section is stamped on every run (its age gates the dispatcher)", () => {
-    const r = step(mkRun("s-x", "smoke", freeSpecs(0.8)), null, null);
-    expect(r.policy.free?.updated_at).toBe("2026-10-25T06:00:00.000Z");
+  it("only a complete full run refreshes the free section's age (smoke cannot defeat the 15-day staleness)", () => {
+    const full = step(mkRun("f-age", "full", freeSpecs(0.8)), null, null, at("2026-10-01T06:00:00Z"));
+    expect(full.policy.free?.updated_at).toBe("2026-10-01T06:00:00.000Z");
+    const smoke = step(mkRun("s-age", "smoke", freeSpecs(0.8)), full.scorecard, full.policy, at("2026-10-20T06:00:00Z"));
+    expect(smoke.policy.free?.updated_at).toBe("2026-10-01T06:00:00.000Z");
+    const none = step(mkRun("s-none", "smoke", freeSpecs(0.8)), null, null);
+    expect(none.policy.free).toBeNull();
+  });
+});
+
+describe("coordinate — paid proposals only name dialable models (P2-2)", () => {
+  const GLM = "zai-org/GLM-5.3-Flash";
+  const synthSpecs = (glmQuality: number): Spec[] => [
+    { task: "ceo_synthesis", provider: "deepinfra", model: V32, family: "deepseek", tier: "primary", quality: 0.9, cost: 0.001 },
+    { task: "ceo_synthesis", provider: "deepinfra", model: GLM, family: "glm", quality: glmQuality, cost: 0.0004 },
+  ];
+
+  it("a winner outside DEEPINFRA_MODELS_BY_CLASS is shown as needs-admission, never proposed", () => {
+    const r1 = step(mkRun("full-g1", "full", synthSpecs(0.9)), null, null);
+    const r2 = step(mkRun("full-g2", "full", synthSpecs(0.9)), r1.scorecard, r1.policy);
+    expect(r2.policy.paid.proposal).toBeNull();
+    expect(r2.scorecard.needs_admission).toContainEqual(expect.objectContaining({ cls: "synthesis", model: GLM }));
+    expect(r2.decisions).toContainEqual(expect.objectContaining({ kind: "advisory_promote", model: GLM, outcome: "advisory" }));
+  });
+
+  it("effectivePaidLadder ignores approved ids the dispatcher would not dial", () => {
+    const p = { version: 1 as const, updated_at: "x", free: null, paid: { active: { report: ["openai/gpt-oss-120b", V4F] }, approved_at: null, approved_by: null, approved_proposal_id: null, previous: null, proposal: null } };
+    expect(effectivePaidLadder(p, "report", DEFAULTS)).toEqual([V4F, V32, QWEN]);
+  });
+
+  it("approve keeps only dialable ids; a proposal with none is refused", () => {
+    const withProp = (ladders: Record<string, string[]>): RoutingPolicy => ({ version: 1, updated_at: "x", free: null, paid: { active: null, approved_at: null, approved_by: null, approved_proposal_id: null, previous: null, proposal: { id: "p", proposed_at: "x", ladders, reasons: [], needs_admission: [], evidence_runs: [] } } });
+    const ok = approveProposal(withProp({ classify: ["deepseek-ai/DeepSeek-V4-Flash", "openai/gpt-oss-120b"] }), "p", "admin-1", new Date(), DEFAULTS);
+    if (!ok.ok) throw new Error(ok.error);
+    expect(ok.policy.paid.active?.classify).toEqual(["openai/gpt-oss-120b"]);
+    expect(approveProposal(withProp({ classify: ["deepseek-ai/DeepSeek-V4-Flash"] }), "p", "admin-1", new Date(), DEFAULTS)).toMatchObject({ ok: false, status: 409 });
   });
 });
 

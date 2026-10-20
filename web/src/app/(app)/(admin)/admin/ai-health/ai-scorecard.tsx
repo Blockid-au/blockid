@@ -115,7 +115,7 @@ function ScorecardCard({ sc }: { sc: Scorecard | null }) {
     return (
       <Card title="Model scorecard">
         <p className="text-sm text-ink-500">
-          No eval yet — <code>/api/cron/model-eval</code> (nightly smoke 18:53 UTC, weekly full Sun 05:00 UTC) writes <code>content/reports/{SCORECARD_FILE_NAME}</code>.
+          No eval yet — <code>/api/cron/model-eval</code> (smoke Sun–Fri 18:53 UTC, weekly full Sat 15:00 UTC) writes <code>content/reports/{SCORECARD_FILE_NAME}</code>.
         </p>
       </Card>
     );
@@ -191,6 +191,12 @@ function ScorecardCard({ sc }: { sc: Scorecard | null }) {
           {Object.entries(sc.live).map(([k, v]) => `${short(k)} ${v.share ?? "—"} (${v.grounded}/${v.sections})`).join(" · ")}
         </p>
       )}
+      {(sc.needs_admission ?? []).length > 0 && (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <p className="font-semibold">Won the eval but cannot be proposed — needs admission (founder: catalogue + price policy + dispatcher class ladder)</p>
+          <ul className="mt-1 list-disc pl-5">{sc.needs_admission.map((n) => <li key={`${n.cls}:${n.model}`}>{n.cls}: {short(n.model)} ({TASK_PROFILES[n.task]?.label ?? n.task})</li>)}</ul>
+        </div>
+      )}
       {sc.decisions.length > 0 && (
         <ul className="mt-2 space-y-0.5 text-xs text-ink-700">
           {sc.decisions.map((d, i) => (
@@ -264,7 +270,7 @@ function PolicyCard({ policy, history }: { policy: RoutingPolicy | null; history
           <ul className="mt-1 space-y-0.5 text-xs text-ink-700">
             {freeProviders.map(([p, v]) => (
               <li key={p} className="font-mono">
-                {p}: {v.promoted.length ? `promoted ${v.promoted.map(short).join(", ")}` : ""}{v.promoted.length && v.demoted.length ? " · " : ""}{v.demoted.length ? `skipped ${v.demoted.map(short).join(", ")}` : ""}
+                {p}: {v.promoted.length ? `promoted ${v.promoted.map(short).join(", ")}` : ""}{v.promoted.length && v.demoted.length ? " · " : ""}{v.demoted.length ? `skipped ${v.demoted.map((m) => `${short(m)}${v.demoted_until?.[m] ? ` (until ${v.demoted_until[m]!.slice(0, 10)})` : ""}`).join(", ")}` : ""}
               </li>
             ))}
           </ul>

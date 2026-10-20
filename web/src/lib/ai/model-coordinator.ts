@@ -36,10 +36,13 @@ import { REPORT_ADMITTED_MODELS } from "./report-admitted-models";
 import { aggregateCaseScores, type CaseScore, type TaskModelScore } from "./model-eval-scoring";
 import type { EvalRunState } from "./model-eval";
 import {
+  FREE_DEMOTION_TTL_MS,
   FREE_POLICY_PROVIDERS,
   PAID_POLICY_CLASSES,
   RoutingPolicy,
+  activeDemotions,
   emptyRoutingPolicy,
+  type FreeProviderPolicy,
   type PaidLadders,
   type PaidPolicyClass,
   type PaidProposal,
@@ -59,6 +62,11 @@ export const JUDGE_VETO_MARGIN = 0.1;
 export const DEMOTE_LIVE_GROUNDED_BELOW = 0.8;
 export const DEMOTE_LIVE_MIN_SECTIONS = 20;
 export const DEMOTE_SCHEMA_FAIL_ABOVE = 0.1;
+/** P1-1: a free model is demoted only after this many consecutive failing complete full runs. */
+export const FREE_DEMOTE_CONSECUTIVE_FAILS = 2;
+/** P1-1: when more than this share of a model's calls failed transiently (429 / timeout of OUR load), the run says nothing about it. */
+export const FREE_TRANSIENT_INCONCLUSIVE_SHARE = 0.2;
+export { FREE_DEMOTION_TTL_MS };
 /** Float tolerance for the threshold comparisons (0.91 + 0.05 must equal 0.96). */
 const EPS = 1e-9;
 
@@ -134,6 +142,8 @@ export interface Scorecard {
   /** Consecutive full-run wins: `task|provider:model` and `free|provider|model`. */
   streaks: Record<string, { wins: number; last_run: string }>;
   decisions: Decision[];
+  /** P2-2: challengers that won but are not in the dispatcher's class ladder (founder: catalogue + price policy first). */
+  needs_admission: Array<{ task: EvalTaskId; cls: string; model: string; reason: string }>;
 }
 
 export interface CoordinatorInput {
@@ -287,15 +297,29 @@ export function effectivePaidLadder(policy: RoutingPolicy | null, cls: PaidPolic
   const def = [...(defaults[cls] ?? [])];
   const active = policy?.paid.active?.[cls];
   if (!active || active.length === 0) return def;
-  const head = active.filter((m, i, a) => a.indexOf(m) === i);
+  // P2-2: only ids the dispatcher would actually dial for this class (DEEPINFRA_MODELS_BY_CLASS).
+  const head = active.filter((m, i, a) => def.includes(m) && a.indexOf(m) === i);
   return [...head, ...def.filter((m) => !head.includes(m))];
 }
 
+/** Eval-based free-model failures on one complete full run (dead = definitive errors only). Pure. */
+export function freeEvalFailures(rs: readonly TaskModelScore[]): string[] {
+  const out: string[] = [];
+  if (rs.length === 0) return out;
+  const answered = rs.reduce((s, r) => s + (r.n - r.transportFails), 0);
+  if (rs.every((r) => r.dead)) out.push("dead (every eval call failed with a definitive error)");
+  const schemaFails = rs.reduce((s, r) => s + r.schemaFails, 0);
+  if (answered > 0 && schemaFails / answered > DEMOTE_SCHEMA_FAIL_ABOVE) out.push(`schema fail ${Math.round((schemaFails / answered) * 100)}% > 10%`);
+  // A free model serves many tasks: an SLO miss counts when it misses on at least half of them.
+  const sloMisses = rs.filter((r) => r.p95LatencyMs !== null && r.p95LatencyMs > TASK_PROFILES[r.task].criteria.p95LatencyMs).length;
+  if (sloMisses * 2 >= rs.length && sloMisses > 0) out.push(`p95 over the SLO on ${sloMisses}/${rs.length} task(s)`);
+  return out;
+}
+
 /** Head of a free provider's ladder after the current free policy. */
-function freeHead(policy: RoutingPolicy, provider: string, ladder: readonly string[]): string | null {
-  const p = policy.free?.providers[provider];
-  const demoted = new Set(p?.demoted ?? []);
-  for (const m of p?.promoted ?? []) if (ladder.includes(m) && !demoted.has(m)) return m;
+function freeHead(p: FreeProviderPolicy, ladder: readonly string[], nowMs: number): string | null {
+  const demoted = new Set(activeDemotions(p, nowMs));
+  for (const m of p.promoted) if (ladder.includes(m) && !demoted.has(m)) return m;
   return ladder.find((m) => !demoted.has(m)) ?? null;
 }
 
@@ -319,6 +343,8 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
   const paidReasons: string[] = [];
   /** `${class}|${model}` already demoted in this pass. */
   const demotedKeys = new Set<string>();
+  /** P2-2: winners the dispatcher cannot dial for their class (shown, never proposed). */
+  const needsAdmission: Scorecard["needs_admission"] = [];
 
   for (const task of EVAL_TASK_IDS) {
     const profile = TASK_PROFILES[task];
@@ -375,7 +401,13 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
         bumpStreak(streaks, key, verdict.win, run.run_id);
         if (verdict.win && streaks[key]!.wins >= PROMOTE_CONSECUTIVE_WINS) {
           const reason = `${task}: ${verdict.reason} (${streaks[key]!.wins} consecutive full runs)`;
-          if (r.billing === "paid" && cls && r.provider === "deepinfra" && primary.provider === "deepinfra") {
+          if (r.billing === "paid" && cls && r.provider === "deepinfra" && primary.provider === "deepinfra" && !(input.defaultPaidLadders[cls] ?? []).includes(r.model)) {
+            // P2-2: the dispatcher would never dial it for this class — an approve could not
+            // change routing. Founder: catalogue + price policy (and the class ladder) first.
+            const why = `${reason} — not in the dispatcher's ${cls} ladder: needs admission (catalogue + price policy, founder) before it can be proposed`;
+            needsAdmission.push({ task, cls, model: r.model, reason: why });
+            decisions.push({ kind: "advisory_promote", scope: "none", task, provider: r.provider, model: r.model, reason: why, outcome: "advisory" });
+          } else if (r.billing === "paid" && cls && r.provider === "deepinfra" && primary.provider === "deepinfra") {
             const base = paidProposalLadders[cls] ?? effectivePaidLadder(input.policy, cls, input.defaultPaidLadders);
             paidProposalLadders[cls] = [r.model, ...base.filter((m) => m !== r.model)];
             paidReasons.push(`promote ${r.model} → head of ${cls} ladder: ${reason}`);
@@ -436,7 +468,9 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
     for (const cls of changed) ladders[cls] = paidProposalLadders[cls];
     const existing = policy.paid.proposal;
     if (!existing || JSON.stringify(existing.ladders) !== JSON.stringify(ladders)) {
-      const needs = new Set<string>();
+      // Ids the scoped (customer report) ladder still ignores until admitted, plus
+      // winners outside the class ladder — information only, never in `ladders`.
+      const needs = new Set<string>(needsAdmission.map((n) => n.model));
       for (const cls of changed) if (cls !== "classify") for (const m of ladders[cls] ?? []) if (!REPORT_ADMITTED_MODELS.has(m)) needs.add(m);
       const proposal: PaidProposal = {
         id: `prop-${run.run_id}`,
@@ -454,57 +488,78 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
   }
 
   // ── Free section (AUTO) ──
-  const free = policy.free ?? { updated_at: iso, providers: {}, reasons: [] };
+  // P1-1: eval-based demotions only on COMPLETE full runs and only after
+  // FREE_DEMOTE_CONSECUTIVE_FAILS consecutive failing runs; failures caused by
+  // the eval's own load (429 / timeouts) are inconclusive; live strikes are not
+  // copied (the dispatcher already skips dead rungs); every demotion expires
+  // after FREE_DEMOTION_TTL_MS; ids that left the RAW ladder are pruned.
+  // Smoke runs never demote and never refresh the section's age.
+  const nowMs = now.getTime();
+  const prevFree = policy.free;
+  const providersOut: Record<string, FreeProviderPolicy> = {};
   const freeReasons: string[] = [];
+  let freeChanged = false;
   const freeRows = new Map<string, TaskModelScore[]>();
   for (const task of EVAL_TASK_IDS) for (const r of rows[task] ?? []) if (r.billing === "free" && (FREE_POLICY_PROVIDERS as readonly string[]).includes(r.provider)) {
     const k = `${r.provider}|${r.model}`;
     freeRows.set(k, [...(freeRows.get(k) ?? []), r]);
   }
-  const freeModelsSeen = new Set<string>(freeRows.keys());
   for (const provider of FREE_POLICY_PROVIDERS) {
     const ladder = [...(input.freeLadders[provider] ?? [])];
-    for (const k of freeModelsSeen) if (k.startsWith(`${provider}|`) && !ladder.includes(k.slice(provider.length + 1))) ladder.push(k.slice(provider.length + 1));
-    if (ladder.length === 0) continue;
-    const cur = free.providers[provider] ?? { promoted: [], demoted: [] };
-    const next = { promoted: [...cur.promoted], demoted: [...cur.demoted] };
-    for (const model of ladder) {
-      const rs = freeRows.get(`${provider}|${model}`) ?? [];
-      const answered = rs.reduce((s, r) => s + (r.n - r.transportFails), 0);
-      const agg = rs.length
-        ? {
-            n: rs.reduce((s, r) => s + r.n, 0),
-            transportFails: rs.reduce((s, r) => s + r.transportFails, 0),
-            dead: rs.every((r) => r.dead),
-            schemaFailRate: answered ? rs.reduce((s, r) => s + r.schemaFails, 0) / answered : 0,
-            p95LatencyMs: null,
-          }
-        : null;
-      const reasons = demotionReasons(agg, Number.POSITIVE_INFINITY, input.live[`${provider}:${model}`], input.isDead(provider, model), { useEvalQuality: complete });
-      // A free model serves many tasks: an SLO miss counts when it misses on at least half of them.
-      const sloMisses = rs.filter((r) => r.p95LatencyMs !== null && r.p95LatencyMs > TASK_PROFILES[r.task].criteria.p95LatencyMs).length;
-      if (complete && rs.length > 0 && sloMisses * 2 >= rs.length) reasons.push(`p95 over the SLO on ${sloMisses}/${rs.length} task(s)`);
-      const isDemoted = next.demoted.includes(model);
-      if (reasons.length > 0 && !isDemoted) {
-        next.demoted.push(model);
-        next.promoted = next.promoted.filter((m) => m !== model);
-        const reason = `${provider}/${model}: ${reasons.join("; ")}`;
-        freeReasons.push(`demote ${reason}`);
-        decisions.push({ kind: "demote", scope: "free", provider, model, reason, outcome: "applied" });
-      } else if (reasons.length === 0 && isDemoted && complete && rs.length > 0 && rs.every((r) => r.passesProfile)) {
-        next.demoted = next.demoted.filter((m) => m !== model);
-        const reason = `${provider}/${model}: passes every profile on a complete full run`;
+    for (const k of freeRows.keys()) if (k.startsWith(`${provider}|`) && !ladder.includes(k.slice(provider.length + 1))) ladder.push(k.slice(provider.length + 1));
+    const cur: FreeProviderPolicy = prevFree?.providers[provider] ?? { promoted: [], demoted: [], demoted_until: {} };
+    const next: FreeProviderPolicy = { promoted: [...cur.promoted], demoted: [...cur.demoted], demoted_until: { ...(cur.demoted_until ?? {}) } };
+
+    // Prune: expired demotions lapse; ids that left the raw ladder go.
+    const live = new Set(activeDemotions(next, nowMs));
+    for (const m of [...next.demoted]) {
+      if (live.has(m) && ladder.includes(m)) continue;
+      next.demoted = next.demoted.filter((x) => x !== m);
+      if (ladder.includes(m)) {
+        const reason = `${provider}/${m}: demotion expired`;
         freeReasons.push(`readmit ${reason}`);
-        decisions.push({ kind: "readmit", scope: "free", provider, model, reason, outcome: "applied" });
+        decisions.push({ kind: "readmit", scope: "free", provider, model: m, reason, outcome: "applied" });
       }
     }
-    // Promotion: challenger vs the provider's current head, mean over the tasks both ran.
+    for (const m of Object.keys(next.demoted_until)) if (!next.demoted.includes(m)) delete next.demoted_until[m];
+    next.promoted = next.promoted.filter((m, i, a) => ladder.includes(m) && a.indexOf(m) === i);
+
     if (complete) {
-      const head = freeHead({ ...policy, free: { ...free, providers: { ...free.providers, [provider]: next } } }, provider, ladder);
-      const headRows = head ? freeRows.get(`${provider}|${head}`) ?? [] : [];
       for (const model of ladder) {
-        if (model === head || next.demoted.includes(model)) continue;
         const rs = freeRows.get(`${provider}|${model}`) ?? [];
+        if (rs.length === 0) continue;
+        const n = rs.reduce((s, r) => s + r.n, 0);
+        const transient = rs.reduce((s, r) => s + r.transientFails, 0);
+        // Mostly rate-limited / timed out by our own load: inconclusive — neither counts nor resets.
+        if (n === 0 || transient / n > FREE_TRANSIENT_INCONCLUSIVE_SHARE) continue;
+        const key = `freefail|${provider}|${model}`;
+        const reasons = freeEvalFailures(rs);
+        bumpStreak(streaks, key, reasons.length > 0, run.run_id);
+        const isDemoted = next.demoted.includes(model);
+        if (reasons.length > 0 && streaks[key]!.wins >= FREE_DEMOTE_CONSECUTIVE_FAILS) {
+          const until = new Date(nowMs + FREE_DEMOTION_TTL_MS).toISOString();
+          if (!isDemoted) next.demoted.push(model);
+          next.demoted_until[model] = until;
+          next.promoted = next.promoted.filter((m) => m !== model);
+          const reason = `${provider}/${model}: ${reasons.join("; ")} (${streaks[key]!.wins} consecutive full runs; lapses ${until.slice(0, 10)})`;
+          freeReasons.push(`${isDemoted ? "renew" : "demote"} ${reason}`);
+          decisions.push({ kind: "demote", scope: "free", provider, model, reason, outcome: "applied" });
+        } else if (reasons.length === 0 && isDemoted && rs.every((r) => r.passesProfile)) {
+          next.demoted = next.demoted.filter((m) => m !== model);
+          delete next.demoted_until[model];
+          const reason = `${provider}/${model}: passes every profile on a complete full run`;
+          freeReasons.push(`readmit ${reason}`);
+          decisions.push({ kind: "readmit", scope: "free", provider, model, reason, outcome: "applied" });
+        }
+      }
+      // Promotion: challenger vs the provider's current head, mean over the tasks both ran.
+      const head = freeHead(next, ladder, nowMs);
+      const headRows = head ? freeRows.get(`${provider}|${head}`) ?? [] : [];
+      const demotedNow = new Set(activeDemotions(next, nowMs));
+      for (const model of ladder) {
+        if (model === head || demotedNow.has(model)) continue;
+        const rs = freeRows.get(`${provider}|${model}`) ?? [];
+        if (rs.length === 0) continue;
         const key = `free|${provider}|${model}`;
         const shared = rs.filter((r) => headRows.some((h) => h.task === r.task));
         let win = false;
@@ -517,7 +572,7 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
           // Zero cost on both sides: only the "+0.05 quality" leg can win.
           win = eligible && qC >= qH + PROMOTE_QUALITY_GAIN - EPS;
           why = `mean quality ${qC.toFixed(3)} vs head ${head} ${qH.toFixed(3)} over ${shared.length} task(s)${eligible ? "" : " (fails a profile)"}`;
-        } else if (shared.length > 0 && headRows.length === 0 && rs.every((r) => r.passesProfile)) {
+        } else if (headRows.length === 0 && rs.every((r) => r.passesProfile)) {
           win = true;
           why = `head ${head} was not evaluated; challenger passes every profile`;
         }
@@ -531,16 +586,21 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
         }
       }
     }
-    if (!sameList(next.promoted, cur.promoted) || !sameList(next.demoted, cur.demoted)) {
-      free.providers[provider] = next;
+    if (!sameList(next.promoted, cur.promoted) || !sameList(next.demoted, cur.demoted) || JSON.stringify(next.demoted_until) !== JSON.stringify(cur.demoted_until ?? {})) {
+      freeChanged = true;
       history.push({ ts: iso, action: "free_auto", actor: "model-coordinator", provider, before: cur, after: next, run_id: run.run_id });
     }
+    if (next.promoted.length || next.demoted.length) providersOut[provider] = next;
   }
-  // Every coordinated run re-confirms the free section (its age gates the dispatcher).
-  free.updated_at = iso;
-  if (freeReasons.length) free.reasons = freeReasons;
-  policy.free = free;
-  policy.updated_at = iso;
+  if (complete || freeChanged || prevFree) {
+    policy.free = {
+      // Only a complete full run re-confirms the section (its age gates the dispatcher).
+      updated_at: complete ? iso : prevFree?.updated_at ?? iso,
+      providers: providersOut,
+      reasons: freeReasons.length ? freeReasons : prevFree?.reasons ?? [],
+    };
+  }
+  if (complete || freeChanged || history.length) policy.updated_at = iso;
 
   // ── Scorecard + jsonl ──
   const scorecard: Scorecard = {
@@ -553,6 +613,7 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
     live: input.live,
     streaks,
     decisions,
+    needs_admission: isFull ? needsAdmission : prior?.needs_admission ?? [],
   };
   const jsonl: Array<Record<string, unknown>> = [];
   if (isFull) {
@@ -575,14 +636,29 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
 export type PolicyActionResult = { ok: true; policy: RoutingPolicy; history: Record<string, unknown> } | { ok: false; error: string; status: number };
 
 /** Approve the pending paid proposal (must match `proposalId`). */
-export function approveProposal(current: RoutingPolicy | null, proposalId: string, actor: string, now: Date = new Date()): PolicyActionResult {
+export function approveProposal(
+  current: RoutingPolicy | null,
+  proposalId: string,
+  actor: string,
+  now: Date = new Date(),
+  /** P2-2: per class, the ids the dispatcher dials (DEEPINFRA_MODELS_BY_CLASS). Others never become `paid.active`. */
+  dialable?: Partial<Record<PaidPolicyClass, readonly string[]>>,
+): PolicyActionResult {
   const policy = RoutingPolicy.parse(JSON.parse(JSON.stringify(current ?? emptyRoutingPolicy(now))));
   const prop = policy.paid.proposal;
   if (!prop) return { ok: false, error: "No pending proposal", status: 409 };
   if (prop.id !== proposalId) return { ok: false, error: "Proposal changed — reload the page", status: 409 };
   const before = policy.paid.active;
   const active: PaidLadders = { ...(before ?? {}) };
-  for (const cls of PAID_POLICY_CLASSES) if (prop.ladders[cls]?.length) active[cls] = [...prop.ladders[cls]!];
+  let applied = 0;
+  for (const cls of PAID_POLICY_CLASSES) {
+    const ladder = (prop.ladders[cls] ?? []).filter((m, i, a) => a.indexOf(m) === i && (!dialable || (dialable[cls] ?? []).includes(m)));
+    if (ladder.length) {
+      active[cls] = ladder;
+      applied += 1;
+    }
+  }
+  if (applied === 0) return { ok: false, error: "The proposal names no model the dispatcher dials for its class — needs admission first", status: 409 };
   const iso = now.toISOString();
   policy.paid = { active, approved_at: iso, approved_by: actor, approved_proposal_id: prop.id, previous: before ?? null, proposal: null };
   policy.updated_at = iso;

@@ -277,6 +277,13 @@ export const FREE_MODELS_CONFIG = "/home/dovanlong/blockid.au/web/content/report
 let modelCfgCache: { data: Record<string, string[]>; at: number } | null = null;
 
 function getDynamicModels(provider: string, fallback: string[]): string[] {
+  // A2 (G35 §7.4): the coordinator's free routing policy reorders / skips
+  // rungs of this ladder only — no file ⇒ the ladder unchanged.
+  return freeLadderWithPolicy(provider, getRawDynamicModels(provider, fallback));
+}
+
+/** The free ladder BEFORE the routing policy (file list or curated default). */
+function getRawDynamicModels(provider: string, fallback: string[]): string[] {
   try {
     const now = Date.now();
     if (!modelCfgCache || now - modelCfgCache.at > 5 * 60 * 1000) {
@@ -287,14 +294,12 @@ function getDynamicModels(provider: string, fallback: string[]): string[] {
     if (Array.isArray(list) && list.length > 0) {
       // Use ONLY the top picks (keeps the chain short → far fewer 429 retries).
       // The curated `fallback` is the safety net when no config file exists.
-      return freeLadderWithPolicy(provider, list);
+      return list;
     }
   } catch {
     /* no config yet → curated defaults */
   }
-  // A2 (G35 §7.4): the coordinator's free routing policy reorders / skips
-  // rungs of this ladder only — no file ⇒ the ladder unchanged.
-  return freeLadderWithPolicy(provider, fallback);
+  return fallback;
 }
 
 // ── Per-model failure cooldown ────────────────────────────────────────
@@ -398,6 +403,22 @@ export function ladderFor(provider: Provider): string[] {
     case "openrouter": return getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS);
     case "deepinfra": return [...new Set([...DEEPINFRA_MODELS_BY_CLASS.report, ...DEEPINFRA_MODELS_BY_CLASS.classify])];
     case "gemini": return [...new Set([...GEMINI_MODELS_BY_CLASS.report, ...GEMINI_MODELS_BY_CLASS.classify])];
+    default: return [];
+  }
+}
+
+/**
+ * A2 (P1-1): the RAW free ladder of a provider — ai-free-models.json or the
+ * curated default — WITHOUT the routing policy applied. The model coordinator
+ * needs it so a demoted rung (Cerebras / SambaNova included) can be
+ * re-evaluated, pruned or expire.
+ */
+export function rawFreeLadder(provider: Provider): string[] {
+  switch (provider) {
+    case "groq": return [...getRawDynamicModels("groq", GROQ_DEFAULT_MODELS)];
+    case "cerebras": return [...getRawDynamicModels("cerebras", CEREBRAS_DEFAULT_MODELS)];
+    case "sambanova": return [...getRawDynamicModels("sambanova", SAMBANOVA_DEFAULT_MODELS)];
+    case "openrouter": return [...getRawDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS)];
     default: return [];
   }
 }
