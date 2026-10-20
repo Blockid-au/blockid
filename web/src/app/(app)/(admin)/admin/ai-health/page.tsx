@@ -6,6 +6,7 @@ import { readRegistry } from "@/lib/ai/registry";
 import { ArrowLeft, Shield } from "lucide-react";
 import { AIHealthClient } from "./ai-health-client";
 import { AIEconomicsCards } from "./ai-economics";
+import { AIScorecardCards } from "./ai-scorecard";
 
 export const metadata: Metadata = {
   title: "AI Model Health — Admin",
@@ -51,6 +52,7 @@ export default async function AIHealthPage() {
       </header>
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         <AIEconomicsCards now={now} />
+        <AIScorecardCards />
         <AIHealthClient initialRegistry={registry} />
       </main>
     </div>
