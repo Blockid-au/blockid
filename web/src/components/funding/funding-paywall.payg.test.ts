@@ -1,5 +1,5 @@
 // G35 D25 — Money Finder paywall price: legacy A$3 / 3 credits while PAYG is
-// off (or the display price cannot be read), A$19 / 19 credits (report_funding)
+// off, A$19 / 19 credits (report_funding)
 // when on; pay buttons stay disabled while the price loads.
 
 import { describe, expect, it } from "vitest";
@@ -10,9 +10,9 @@ describe("fundingRailPrice", () => {
     expect(fundingRailPrice({ status: "loading" })).toEqual({ ...LEGACY_FUNDING_PRICE, loading: true });
   });
 
-  it("off / error → the A$3 copy exactly as before", () => {
+  it("off → the A$3 copy exactly as before; error → buttons stay disabled (never quote an unconfirmed price)", () => {
     expect(fundingRailPrice({ status: "ready", pricing: { enabled: false } })).toEqual(LEGACY_FUNDING_PRICE);
-    expect(fundingRailPrice({ status: "error" })).toEqual(LEGACY_FUNDING_PRICE);
+    expect(fundingRailPrice({ status: "error" })).toEqual({ ...LEGACY_FUNDING_PRICE, loading: true });
     expect(LEGACY_FUNDING_PRICE).toMatchObject({ label: "A$3", credits: 3, creditFeature: "grant_match" });
   });
 

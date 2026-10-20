@@ -72,8 +72,10 @@ export const LEGACY_FUNDING_PRICE: FundingRailPrice = {
 
 /** Pure: the rail price for a /api/pricing/payg state (error → legacy copy; Stripe still shows the real price). */
 export function fundingRailPrice(state: ReturnType<typeof usePaygPricing>): FundingRailPrice {
-  if (state.status === "loading") return { ...LEGACY_FUNDING_PRICE, loading: true };
-  if (state.status === "error" || !state.pricing.enabled || !state.pricing.funding) return LEGACY_FUNDING_PRICE;
+  // Unknown price (still loading, or the display-price read failed) → keep the
+  // pay buttons disabled rather than quoting a price that may not be charged.
+  if (state.status === "loading" || state.status === "error") return { ...LEGACY_FUNDING_PRICE, loading: true };
+  if (!state.pricing.enabled || !state.pricing.funding) return LEGACY_FUNDING_PRICE;
   const f = state.pricing.funding;
   return {
     label: f.priceLabel,
