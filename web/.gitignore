@@ -148,3 +148,12 @@ content/reports/*-daily-*.md
 content/reports/*-nightly-*.md
 content/reports/nightly-digest-*.md
 content/reports/milestone-M*-v*.md
+# G35 A2 (2026-10-20): model-eval loop + coordinator runtime state (lib/ai/model-eval-cron.ts)
+content/reports/model-eval-state-*.json
+content/reports/model-eval-budget.json
+content/reports/model-eval-history.jsonl
+content/reports/ai-model-scorecard.json
+content/reports/ai-model-scorecard.jsonl
+content/reports/ai-routing-policy.json
+content/reports/ai-routing-policy-history.jsonl
+content/reports/*.json.*.tmp
