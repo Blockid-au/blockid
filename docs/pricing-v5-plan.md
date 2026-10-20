@@ -1,6 +1,6 @@
 # G35 — Pricing v5 (Pay-as-you-go 3 tier) + rà soát platform + AI cost routing
 
-**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0 + L1-1 **LIVE 20/10** (`4bd32fd88`, qa:live 212/0; SVI `76eea71`; xem SOT change log); **D25–D30 founder duyệt 20/10**; W1 + W2 đang triển khai.
+**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0, W1, W2 (P1–P5), A1/A3, O1, D30 **LIVE 20/10** (`606f0f118`); Pricing v5 code-complete sau cờ `payg_enabled` = OFF. Còn: Stripe test key → test E2E → mint live → bật cờ (founder duyệt); guest Full = report 16 section; A2 eval loop.
 
 **Nguồn:** spec founder `blockid-payg-pricing-update.md` (20/10) + yêu cầu bổ sung: *bỏ hẳn A$1 / A$3 khỏi chương trình; rà soát toàn platform; sửa bug; kiểm tra link hỏng; cơ chế đổi free model; chọn model chất lượng tốt nhất với giá thấp nhất; agent điều phối đánh giá tổng hợp + chi tiết (paid + free); cảnh báo khi model trả phí sắp hết tiền; sẵn sàng chạy lâu dài.*
 
