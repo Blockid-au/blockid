@@ -28,6 +28,13 @@ import {
 
 const SITE_URL = "https://blockid.au";
 
+/**
+ * W1 links: the "Request share package" CTA pointed at /share/request, which
+ * never existed (404). The request goes through the one contact form, tagged
+ * (G20-F1 `feature=` slug) so the founder sees it is a share-package request.
+ */
+export const SHARE_REQUEST_HREF = "/contact?topic=general&feature=share_package";
+
 const LEVEL_KEYS: Record<number, string> = {
   0: "businessIdPublic.level.0",
   1: "businessIdPublic.level.1",
@@ -545,7 +552,7 @@ function PageBody({
             ) : (
               <>
                 <Link
-                  href={`/share/request?business=${encodeURIComponent(profile.slug)}`}
+                  href={SHARE_REQUEST_HREF}
                   className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface"
                 >
                   {t(m, "businessIdPublic.share.cta")}
