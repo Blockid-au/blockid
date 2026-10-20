@@ -16,6 +16,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const BACKUP_HEALTH_FILE = path.join("content", "reports", "backup-health.jsonl");
 export const BACKUP_MAX_AGE_MS = 26 * 60 * 60 * 1000;
@@ -63,7 +64,7 @@ export function classifyBackupHealth(lines: string[], now: number = Date.now()):
   return { status: fresh ? "ok" : "stale", last_backup, last_restore_test };
 }
 
-export async function readBackupHealth(root: string = process.cwd(), now: number = Date.now()): Promise<BackupHealth> {
+export async function readBackupHealth(root: string = getRuntimeWebDir(), now: number = Date.now()): Promise<BackupHealth> {
   try {
     const raw = await fs.readFile(path.join(root, BACKUP_HEALTH_FILE), "utf8");
     const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0).slice(-400);

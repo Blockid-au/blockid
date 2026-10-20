@@ -71,6 +71,9 @@ eval "$(node -e "
 export PORT=4001
 export HOSTNAME=0.0.0.0
 export NODE_ENV=production
+# L1-3: mutable runtime state (content/reports) lives in the web checkout, not
+# the standalone copy this process runs from (src/lib/runtime-paths.ts).
+export BLOCKID_WEB_DIR="${BLOCKID_WEB_DIR:-$WEB_DIR}"
 # Standalone runs on host — use localhost instead of Docker hostname
 export SUPABASE_URL=http://127.0.0.1:8000
 export REDIS_URL=redis://127.0.0.1:6379

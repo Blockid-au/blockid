@@ -109,6 +109,10 @@ def environment(web, release, port):
             values[name] = os.environ[name]
     # These two reviewed nonsecret flags may be provided without editing .env.
     values.update(runtime_policy(os.environ))
+    # L1-3: the origin's cwd is the frozen release; mutable runtime state
+    # (content/reports) lives in the web checkout (src/lib/runtime-paths.ts).
+    # An explicit value copied from .env/environment wins.
+    values.setdefault('BLOCKID_WEB_DIR', str(web))
     snapshot = Path(values['NODE_PATH'])
     if not snapshot.is_dir() or not snapshot.resolve().is_relative_to(release):
         raise ValueError('NODE_PATH must reference the frozen release runtime')

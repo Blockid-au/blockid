@@ -16,6 +16,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { readJsonlTail, withinLast } from "./jsonl";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export type Queues = {
   email_queued: number | null;
@@ -71,7 +72,7 @@ export function emailFailedFromCron(rows: CronRow[], now: number): number | null
 }
 
 export async function readQueues(
-  root: string = process.cwd(),
+  root: string = getRuntimeWebDir(),
   now: number = Date.now(),
   deps: { db?: CountDb | null } = {},
 ): Promise<Queues> {

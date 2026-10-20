@@ -19,7 +19,7 @@
  */
 
 import { promises as fs } from "node:fs";
-import path from "node:path";
+import { releaseContentPath, runtimeReportsPath } from "@/lib/runtime-paths";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -60,10 +60,7 @@ export async function generateStaticParams(): Promise<{ slug: string }[]> {
 
 /** Optional dev-mode source: content/reports fixtures list of slugs. */
 async function safeSlugsFromDisk(): Promise<{ slug: string }[]> {
-  const candidates = [
-    path.join(process.cwd(), "web", "content", "reports"),
-    path.join(process.cwd(), "content", "reports"),
-  ];
+  const candidates = [runtimeReportsPath(), releaseContentPath("reports")]; // L1-3
   for (const dir of candidates) {
     try {
       const entries = await fs.readdir(dir);

@@ -7,7 +7,7 @@
 // See docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md.
 
 import fs from "node:fs/promises";
-import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import Link from "next/link";
 import { AlertTriangle, Activity, Users, FileText, Zap, Target, Globe2 } from "lucide-react";
 import {
@@ -16,7 +16,7 @@ import {
   type Ga4TrendPoint,
 } from "@/lib/ga4/data-api-client";
 
-const JSONL_PATH = path.join(process.cwd(), "content", "reports", "ga4-daily.jsonl");
+const JSONL_PATH = runtimeReportsPath("ga4-daily.jsonl");
 
 async function readLatestSnapshot(): Promise<Ga4Snapshot | null> {
   try {

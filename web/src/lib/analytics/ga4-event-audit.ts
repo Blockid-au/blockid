@@ -19,6 +19,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { GA4_AUDIT_EVENTS, HERO_VARIANT_DIMENSION, classifyGa4Error, type Ga4Blocked } from "./ga4-dimensions";
 import { GA4_SCOPE_READONLY, ga4PropertyId, ga4PropertyPath, ga4ServiceAccount, type Ga4Env } from "./ga4-credentials";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const GA4_EVENT_AUDIT_FILE = path.join("content", "reports", "ga4-event-audit.json");
 /** A weekly run is stale after 8 days (Mon 04:30 UTC + a day of slack). */
@@ -201,7 +202,7 @@ export async function runGa4EventAudit(opts: RunEventAuditOptions = {}): Promise
 // ── Persistence + /api/status reduction ─────────────────────────────────
 
 /** Persist the report. Never throws. */
-export async function persistGa4EventAudit(report: Ga4EventAuditReport, root: string = process.cwd()): Promise<boolean> {
+export async function persistGa4EventAudit(report: Ga4EventAuditReport, root: string = getRuntimeWebDir()): Promise<boolean> {
   try {
     const file = path.join(root, GA4_EVENT_AUDIT_FILE);
     await fs.mkdir(path.dirname(file), { recursive: true });
@@ -214,7 +215,7 @@ export async function persistGa4EventAudit(report: Ga4EventAuditReport, root: st
 }
 
 /** The last persisted report, or null. Never throws. */
-export async function readGa4EventAudit(root: string = process.cwd()): Promise<Partial<Ga4EventAuditReport> | null> {
+export async function readGa4EventAudit(root: string = getRuntimeWebDir()): Promise<Partial<Ga4EventAuditReport> | null> {
   try {
     const raw = await fs.readFile(path.join(root, GA4_EVENT_AUDIT_FILE), "utf8");
     const parsed = JSON.parse(raw) as unknown;
@@ -235,6 +236,6 @@ export function ga4EventStatusString(report: Partial<Ga4EventAuditReport> | null
   return "unknown";
 }
 
-export async function readGa4EventAuditStatus(root: string = process.cwd(), now: number = Date.now()): Promise<string> {
+export async function readGa4EventAuditStatus(root: string = getRuntimeWebDir(), now: number = Date.now()): Promise<string> {
   return ga4EventStatusString(await readGa4EventAudit(root), now);
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import fs from "node:fs";
-import path from "node:path";
+import { releaseContentPath } from "@/lib/runtime-paths";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero, Section } from "@/components/marketing/template";
@@ -322,8 +322,8 @@ function readVersion(): VersionFile | null {
     return versionCache.data;
   }
   const candidates = [
-    path.join(process.cwd(), "content", "reports", "version.json"),
-    path.join(process.cwd(), "web", "content", "reports", "version.json"),
+    // Release-bound: the version THIS build ships (L1-3 releaseContentPath).
+    releaseContentPath("reports", "version.json"),
   ];
   for (const p of candidates) {
     try {

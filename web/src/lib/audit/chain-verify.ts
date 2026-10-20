@@ -28,6 +28,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export type AuditChainStatus = "ok" | "broken" | "unknown";
 
@@ -309,7 +310,7 @@ export function applyCheckpoint(result: ChainVerifyResult, checkpoint: Checkpoin
 }
 
 /** The last persisted run, or `null` when missing / unparsable. Never throws. */
-export async function readChainState(root: string = process.cwd()): Promise<Partial<ChainVerifyState> | null> {
+export async function readChainState(root: string = getRuntimeWebDir()): Promise<Partial<ChainVerifyState> | null> {
   try {
     const raw = await fs.readFile(path.join(root, CHAIN_STATE_FILE), "utf8");
     const s = JSON.parse(raw) as unknown;
@@ -322,7 +323,7 @@ export async function readChainState(root: string = process.cwd()): Promise<Part
 /** Persist the run for /api/status + history. Never throws. */
 export async function persistChainState(
   state: ChainVerifyState,
-  root: string = process.cwd(),
+  root: string = getRuntimeWebDir(),
 ): Promise<boolean> {
   try {
     const file = path.join(root, CHAIN_STATE_FILE);
@@ -341,7 +342,7 @@ export async function persistChainState(
  * shows. `unknown` when missing, unparsable, or older than 48h.
  */
 export async function readChainStatus(
-  root: string = process.cwd(),
+  root: string = getRuntimeWebDir(),
   now: number = Date.now(),
 ): Promise<{ status: AuditChainStatus; ts: string | null; checked: number | null; first_broken_id: number | null }> {
   try {

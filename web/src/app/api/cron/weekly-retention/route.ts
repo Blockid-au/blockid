@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import {
   formatSegmentReport,
@@ -173,7 +174,7 @@ export async function GET(request: Request) {
   // ----------------------------------------------------------------------
   // Render + write one file per segment.
   // ----------------------------------------------------------------------
-  const reportDir = path.join(process.cwd(), "content", "reports");
+  const reportDir = runtimeReportsPath(); // L1-3: live checkout
   try {
     await fs.mkdir(reportDir, { recursive: true });
   } catch (err) {

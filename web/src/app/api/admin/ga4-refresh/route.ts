@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { getCurrentUser, ADMIN_EMAIL } from "@/lib/auth";
 import { fetchDailySnapshot } from "@/lib/ga4/data-api-client";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -18,7 +19,7 @@ import { apiRoute } from "@/lib/audit/api-route";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const JSONL_PATH = path.join(process.cwd(), "content", "reports", "ga4-daily.jsonl");
+const JSONL_PATH = runtimeReportsPath("ga4-daily.jsonl");
 const THROTTLE_MS = 60_000;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

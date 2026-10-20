@@ -7,6 +7,7 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { countersFromSnapshot, nonNegInt, sumCountRecord, hasSnapshotWarning } from "@/lib/traction/platform-counters";
 import { TRACTION_MAX_AGE_MS } from "@/lib/traction/status";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export interface HomeStatFigures {
   /** Stored svi_analyses rows, including reruns and potentially QA records. */
@@ -110,7 +111,7 @@ function statsCacheKey(root: string): string {
 }
 
 /** Cached per (root, file mtimes) — the page is static + ISR. */
-export function readHomeStats(root: string = process.cwd(), now: number = Date.now()): HomeStatFigures {
+export function readHomeStats(root: string = getRuntimeWebDir(), now: number = Date.now()): HomeStatFigures {
   const key = `${root}|${statsCacheKey(root)}`;
   if (cached && cached.key === key && now >= cached.at && now < cached.expires) return cached.figures;
   const figures = homeStatsFrom(

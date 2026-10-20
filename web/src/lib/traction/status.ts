@@ -12,6 +12,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const TRACTION_SNAPSHOT_FILE = path.join("content", "reports", "traction-snapshot.json");
 export const TRACTION_HISTORY_FILE = path.join("content", "reports", "traction-history.jsonl");
@@ -29,7 +30,7 @@ export function tractionStatusFrom(report: { generated_at?: unknown } | null, no
 }
 
 /** The last persisted snapshot as loose JSON, or null. Never throws. */
-export async function readTractionSnapshotRaw(root: string = process.cwd()): Promise<Record<string, unknown> | null> {
+export async function readTractionSnapshotRaw(root: string = getRuntimeWebDir()): Promise<Record<string, unknown> | null> {
   try {
     const raw = await fs.readFile(path.join(root, TRACTION_SNAPSHOT_FILE), "utf8");
     const parsed = JSON.parse(raw) as unknown;
@@ -40,7 +41,7 @@ export async function readTractionSnapshotRaw(root: string = process.cwd()): Pro
 }
 
 /** `ok | stale | missing` for /api/status. Never throws. */
-export async function readTractionStatus(root: string = process.cwd(), now: number = Date.now()): Promise<TractionStatus> {
+export async function readTractionStatus(root: string = getRuntimeWebDir(), now: number = Date.now()): Promise<TractionStatus> {
   return tractionStatusFrom(await readTractionSnapshotRaw(root), now);
 }
 

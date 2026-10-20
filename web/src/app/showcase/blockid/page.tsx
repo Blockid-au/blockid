@@ -15,7 +15,7 @@
  */
 
 import { promises as fs } from "node:fs";
-import path from "node:path";
+import { releaseContentPath, runtimeReportsPath } from "@/lib/runtime-paths";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NavV2 } from "@/components/landing/nav-v2";
@@ -90,14 +90,11 @@ export const metadata: Metadata = {
 // the edge can cache it (lib/security/public-cacheable-routes.ts).
 export const revalidate = 3600;
 
-// process.cwd() is either the repo root or the web workspace depending on
-// which server tsconfig started Next.js. Mirror the dual-candidate pattern
-// used by /guide/reports so the page never hard-codes either root.
+// L1-3: the reports are written by crons into the live checkout
+// (runtimeReportsPath); the release copy is only the fallback for a fresh
+// checkout / CI where the live dir does not exist.
 async function readReportRows(): Promise<DataRoomShowcaseRow[]> {
-  const candidates = [
-    path.join(process.cwd(), "web", "content", "reports"),
-    path.join(process.cwd(), "content", "reports"),
-  ];
+  const candidates = [runtimeReportsPath(), releaseContentPath("reports")];
   for (const dir of candidates) {
     try {
       const entries = await fs.readdir(dir);
@@ -120,10 +117,7 @@ interface MilestoneState {
 }
 
 async function readMilestoneState(): Promise<MilestoneState> {
-  const candidates = [
-    path.join(process.cwd(), "web", "content", "reports", "milestone-report-state.json"),
-    path.join(process.cwd(), "content", "reports", "milestone-report-state.json"),
-  ];
+  const candidates = [runtimeReportsPath("milestone-report-state.json"), releaseContentPath("reports", "milestone-report-state.json")];
   for (const p of candidates) {
     try {
       const raw = await fs.readFile(p, "utf8");

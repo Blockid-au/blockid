@@ -11,6 +11,7 @@ import path from "node:path";
 
 import { EXTERNAL_SIGNAL_TYPES } from "./external-signals";
 import { loadExternalSources, type ExternalSourceRow } from "./external-sources";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const EXTERNAL_SIGNALS_SUMMARY_FILE = "content/reports/external-signals-latest.json";
 export const EXTERNAL_SIGNALS_HISTORY_FILE = "content/reports/external-signals-history.jsonl";
@@ -58,7 +59,7 @@ export interface ExternalSignalsAdminData {
 type Db = { from(table: string): any };
 
 /** The last run summary as the CLI wrote it (null when absent / unparseable). */
-export function readIngestSummary(root: string = process.cwd()): { summary: IngestSummary | null; error: string | null; historyLines: number } {
+export function readIngestSummary(root: string = getRuntimeWebDir()): { summary: IngestSummary | null; error: string | null; historyLines: number } {
   const file = path.join(root, EXTERNAL_SIGNALS_SUMMARY_FILE);
   const history = path.join(root, EXTERNAL_SIGNALS_HISTORY_FILE);
   let historyLines = 0;
@@ -87,7 +88,7 @@ async function headCount(db: Db, sourceId: string, signalType: string): Promise<
   }
 }
 
-export async function loadExternalSignalsAdmin(db: Db | null | undefined, root: string = process.cwd()): Promise<ExternalSignalsAdminData> {
+export async function loadExternalSignalsAdmin(db: Db | null | undefined, root: string = getRuntimeWebDir()): Promise<ExternalSignalsAdminData> {
   const { rows, fromDb, error } = await loadExternalSources(db);
   const counts: Record<string, Record<string, number>> = {};
   let totalRows = 0;

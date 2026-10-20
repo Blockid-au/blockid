@@ -14,6 +14,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { CalibrationReport } from "./compute";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const CALIBRATION_FILE = path.join("content", "reports", "calibration-latest.json");
 export const CALIBRATION_HISTORY_FILE = path.join("content", "reports", "calibration-history.jsonl");
@@ -44,7 +45,7 @@ export function isCalibrationReport(v: unknown): v is CalibrationReport {
   );
 }
 
-export async function readCalibrationLatest(root: string = process.cwd()): Promise<CalibrationReport | null> {
+export async function readCalibrationLatest(root: string = getRuntimeWebDir()): Promise<CalibrationReport | null> {
   try {
     const raw = await fs.readFile(path.join(root, CALIBRATION_FILE), "utf8");
     const parsed = JSON.parse(raw) as unknown;
@@ -54,6 +55,6 @@ export async function readCalibrationLatest(root: string = process.cwd()): Promi
   }
 }
 
-export async function readCalibrationStatus(root: string = process.cwd(), now: number = Date.now()): Promise<CalibrationStatus> {
+export async function readCalibrationStatus(root: string = getRuntimeWebDir(), now: number = Date.now()): Promise<CalibrationStatus> {
   return calibrationStatusFrom(await readCalibrationLatest(root), now);
 }

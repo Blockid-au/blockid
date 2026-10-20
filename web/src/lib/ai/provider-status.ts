@@ -26,6 +26,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { openRouterMinCreditUsd } from "./spend-guard";
 import { parseRateLimitHeaders, markAnthropicKeyInvalid, noteAnthropicHeadroom, isAnthropicApiKeyConfigured, ANTHROPIC_NOT_CONFIGURED_DETAIL } from "./anthropic-tier";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export type ProviderStatusKind = "valid" | "invalid_key" | "unreachable" | "quota_exceeded" | "low_credit" | "not_configured";
 
@@ -69,7 +70,7 @@ export interface ProviderStatusFile {
 }
 
 export const PROVIDER_STATUS_REL = path.join("content", "reports", "ai-provider-status.json");
-export const PROVIDER_STATUS_FILE = path.join("/home/dovanlong/blockid.au/web", PROVIDER_STATUS_REL);
+export const PROVIDER_STATUS_FILE = path.join(getRuntimeWebDir(), PROVIDER_STATUS_REL);
 export const PROBE_TTL_MS = 15 * 60_000;
 const PROBE_TIMEOUT_MS = 8_000;
 
@@ -375,7 +376,7 @@ export interface AiProvidersSummary {
 }
 
 /** Trusted-payload summary: verdicts + headroom only, never key material. */
-export async function readAiProvidersSummary(root: string = process.cwd()): Promise<AiProvidersSummary> {
+export async function readAiProvidersSummary(root: string = getRuntimeWebDir()): Promise<AiProvidersSummary> {
   const file = path.join(root, PROVIDER_STATUS_REL);
   const data = fs.existsSync(file) ? readProviderStatusFile(file) : readProviderStatusFile();
   const providers: AiProvidersSummary["providers"] = {};

@@ -22,6 +22,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
@@ -60,6 +61,8 @@ export async function GET(request: Request) {
   }
   const started = Date.now();
   const dry = isDry(request);
+  // .deploy-manifest.json is release-bound (cwd); the snapshot + history are
+  // runtime state and go to the live checkout (L1-3).
   const root = process.cwd();
   try {
     const stripe = getStripe();
@@ -68,7 +71,7 @@ export async function GET(request: Request) {
       stripe: stripe ? (stripe as unknown as TractionStripe) : null,
       gitSha: await readGitSha(root),
     });
-    const persisted = dry ? false : await persistTractionSnapshot(snapshot, root);
+    const persisted = dry ? false : await persistTractionSnapshot(snapshot, getRuntimeWebDir());
     return NextResponse.json({ ok: true, dry, persisted, duration_ms: Date.now() - started, snapshot });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

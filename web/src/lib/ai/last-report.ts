@@ -10,9 +10,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const LAST_REPORT_REL = path.join("content", "reports", "ai-last-report.json");
-export const LAST_REPORT_FILE = path.join("/home/dovanlong/blockid.au/web", LAST_REPORT_REL);
+export const LAST_REPORT_FILE = path.join(getRuntimeWebDir(), LAST_REPORT_REL);
 
 export interface LastReportProvider {
   /** ISO — when the report finished. */
@@ -42,7 +43,7 @@ export function writeLastReportProvider(rec: LastReportProvider, file: string = 
 }
 
 /** Read the last record for /api/status; null when no report has finished yet. */
-export async function readLastReportProvider(root: string = process.cwd()): Promise<LastReportProvider | null> {
+export async function readLastReportProvider(root: string = getRuntimeWebDir()): Promise<LastReportProvider | null> {
   for (const file of [path.join(root, LAST_REPORT_REL), LAST_REPORT_FILE]) {
     try {
       const raw = await fs.promises.readFile(file, "utf-8");

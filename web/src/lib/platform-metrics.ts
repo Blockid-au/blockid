@@ -11,13 +11,14 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileP = promisify(execFile);
 
 const REPO_ROOT = process.cwd();
-const REPORTS_DIR = path.join(REPO_ROOT, "content", "reports");
+const REPORTS_DIR = runtimeReportsPath(); // L1-3: cron/deploy-written jsonl live in the web checkout
 
 // ---------------------------------------------------------------------------
 // Low-level tail reader

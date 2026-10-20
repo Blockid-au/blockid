@@ -33,6 +33,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import path from "node:path";
 
+// L1-3: the reports live in the runtime web dir (BLOCKID_WEB_DIR), the
+// release identity files (.deploy-manifest.json, .next/BUILD_ID) stay on cwd.
+const LIVE_WEB = vi.hoisted(() => {
+  process.env.BLOCKID_WEB_DIR = "/srv/live-web";
+  return "/srv/live-web";
+});
+
 // ─── fixture state ─────────────────────────────────────────────────────
 
 interface FsState {
@@ -159,7 +166,7 @@ import {
 
 // ─── path helpers ──────────────────────────────────────────────────────
 
-const REPORTS_DIR = path.join(process.cwd(), "content", "reports");
+const REPORTS_DIR = path.join(LIVE_WEB, "content", "reports");
 const DEPLOY_LOG = path.join(REPORTS_DIR, "deploy-log.jsonl");
 const CRON_HEALTH = path.join(REPORTS_DIR, "cron-health.jsonl");
 const LAST_GOOD_BUILD = path.join(REPORTS_DIR, "last-good-build.json");
