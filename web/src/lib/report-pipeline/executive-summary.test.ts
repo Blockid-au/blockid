@@ -205,3 +205,16 @@ it("V01 tells the CEO why no company value may be inferred", async () => {
   expect(prompt).toContain("Do not estimate business value");
   expect(prompt).not.toContain("Valuation consensus: A$");
 });
+
+describe("W1 — the executive section records the model that wrote it", () => {
+  it("the default transport passes the answering provider:model to context.sectionModels.executive", async () => {
+    const ctx = makeContext();
+    const callAI = vi.fn(async (_s: string, _u: string, _m: number, _c?: string, onMeta?: (m: Record<string, unknown>) => void) => {
+      onMeta?.({ provider: "deepinfra", model: "deepseek-ai/DeepSeek-V3.2", tokensIn: 5000, tokensOut: 900, costUsd: 0.0016 });
+      return GOOD_JSON;
+    });
+    await dispatchExecutiveSummary(ctx, callAI, { systemPrompt: "sys", resolvePromptVersionId: async () => "00000000-0000-0000-0000-000000000000" });
+    expect(callAI).toHaveBeenCalled();
+    expect(ctx.sectionModels?.executive).toBe("deepinfra:deepseek-ai/DeepSeek-V3.2");
+  });
+});

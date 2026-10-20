@@ -43,6 +43,20 @@ export const DEFAULT_PRUNE_STRIKES = 3;
 export const PRUNE_MEMORY_DAYS = 7;
 export const DEAD_RUNG_HOURS = 24;
 
+// ── W1 (pricing v5 §7.2 #3) — probe exclusion ──────────────────────────
+// 15 permanently dead models were re-probed every 30 min (~1,760 strikes
+// each) and grew ai-model-health.jsonl to 16 MB / 53k lines: the dead stamp
+// lapsed after 24 h, so the next probe re-stamped it, for ever. A model whose
+// probe answers a HARD 404 / 402 (model_not_found / model_archived /
+// payment_required), or that failed DEFAULT_PROBE_EXCLUDE_STRIKES consecutive
+// probes (48 × 30 min = 24 h), is now excluded from the health-check probe
+// for PROBE_EXCLUSION_DAYS — or until the weekly discovery (ai-model-discovery,
+// discover-models) finds it in the provider's live catalogue again and
+// re-admits it (`readmitForProbing`). A live runtime success forgets the whole
+// entry (ai-client clearDeadRung), exclusion included.
+export const DEFAULT_PROBE_EXCLUDE_STRIKES = 48;
+export const PROBE_EXCLUSION_DAYS = 7;
+
 export type DeadRungReason = "payment_required" | "model_archived" | "model_not_found";
 
 export interface StrikeEntry {
@@ -55,6 +69,9 @@ export interface StrikeEntry {
   dead_reason?: DeadRungReason;
   /** When the dead verdict was last confirmed (probe or live call). */
   dead_at?: string;
+  /** W1: the health-check probe skips this model until PROBE_EXCLUSION_DAYS after this ISO time (or a re-admission). */
+  probe_excluded_at?: string;
+  probe_excluded_reason?: "hard_dead" | "strikes";
 }
 export type StrikeFile = Record<string, StrikeEntry>;
 
@@ -112,6 +129,7 @@ export function markDeadRung(prior: StrikeFile, provider: string, model: string,
       last_status: reason,
       last_at: at,
       ...(p?.pruned_at ? { pruned_at: p.pruned_at } : {}),
+      ...(p?.probe_excluded_at ? { probe_excluded_at: p.probe_excluded_at, ...(p.probe_excluded_reason ? { probe_excluded_reason: p.probe_excluded_reason } : {}) } : {}),
       dead_until: new Date(now.getTime() + DEAD_RUNG_HOURS * 60 * 60_000).toISOString(),
       dead_reason: reason,
       dead_at: at,
@@ -218,6 +236,52 @@ export function writeStrikes(data: StrikeFile, file: string = MODEL_STRIKES_FILE
   }
 }
 
+export function probeExcludeStrikes(): number {
+  const n = Number(process.env.AI_PROBE_EXCLUDE_STRIKES ?? DEFAULT_PROBE_EXCLUDE_STRIKES);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : DEFAULT_PROBE_EXCLUDE_STRIKES;
+}
+
+function exclusionLive(entry: StrikeEntry | undefined, now: Date): boolean {
+  if (!entry?.probe_excluded_at) return false;
+  const t = new Date(entry.probe_excluded_at).getTime();
+  return Number.isFinite(t) && now.getTime() - t < PROBE_EXCLUSION_DAYS * 24 * 60 * 60_000;
+}
+
+/** W1: is `<provider>::<model>` excluded from the health-check probe right now? */
+export function isProbeExcluded(strikes: StrikeFile, provider: string, model: string, now: Date = new Date()): boolean {
+  return exclusionLive(strikes[strikeKey(provider, model)], now);
+}
+
+/**
+ * W1: weekly discovery re-admission. Every excluded model that the provider's
+ * live catalogue lists again loses its exclusion (the next health check probes
+ * it once; a hard 404 / 402 re-excludes it at once). Models the catalogue no
+ * longer lists stay excluded until the window lapses. Pure.
+ */
+export function readmitForProbing(
+  strikes: StrikeFile,
+  catalogue: Record<string, ReadonlySet<string> | readonly string[]>,
+): { strikes: StrikeFile; readmitted: Record<string, string[]> } {
+  const next: StrikeFile = { ...strikes };
+  const readmitted: Record<string, string[]> = {};
+  for (const [key, entry] of Object.entries(strikes)) {
+    if (!entry.probe_excluded_at) continue;
+    const idx = key.indexOf("::");
+    if (idx < 0) continue;
+    const provider = key.slice(0, idx);
+    const model = key.slice(idx + 2);
+    const listed = catalogue[provider];
+    const has = listed ? (Array.isArray(listed) ? listed.includes(model) : (listed as ReadonlySet<string>).has(model)) : false;
+    if (!has) continue;
+    const rest: StrikeEntry = { ...entry };
+    delete rest.probe_excluded_at;
+    delete rest.probe_excluded_reason;
+    next[key] = rest;
+    (readmitted[provider] ??= []).push(model);
+  }
+  return { strikes: next, readmitted };
+}
+
 /** A health result that counts as a strike: anything but healthy. A timeout
  *  counts too — three consecutive 5-second timeouts is not a usable model. */
 export function isStrike(r: Pick<HealthResult, "healthy">): boolean {
@@ -236,15 +300,25 @@ export function applyHealthResults(prior: StrikeFile, results: HealthResult[], n
       // a different failure inside a live dead window keeps the stamp.
       const reason = classifyDeadRung({ status: r.http_status, message: r.error });
       if (reason) {
-        next[key] = markDeadRung(next, r.provider, r.model, reason, now)[key];
+        // W1: a hard 404 / 402 also leaves the probe set (see PROBE_EXCLUSION_DAYS).
+        next[key] = {
+          ...markDeadRung(next, r.provider, r.model, reason, now)[key],
+          probe_excluded_at: p?.probe_excluded_at && exclusionLive(p, now) ? p.probe_excluded_at : at,
+          probe_excluded_reason: p?.probe_excluded_reason && exclusionLive(p, now) ? p.probe_excluded_reason : "hard_dead",
+        };
         continue;
       }
+      const strikes = (p?.strikes ?? 0) + 1;
+      const keepExclusion = p && exclusionLive(p, now);
       next[key] = {
-        strikes: (p?.strikes ?? 0) + 1,
+        strikes,
         last_status: r.status,
         last_at: at,
         ...(p?.pruned_at ? { pruned_at: p.pruned_at } : {}),
         ...(p && deadUntilMs(p, now) !== null ? { dead_until: p.dead_until, dead_reason: p.dead_reason, dead_at: p.dead_at } : {}),
+        ...(keepExclusion
+          ? { probe_excluded_at: p!.probe_excluded_at, probe_excluded_reason: p!.probe_excluded_reason }
+          : strikes >= probeExcludeStrikes() ? { probe_excluded_at: at, probe_excluded_reason: "strikes" as const } : {}),
       };
     } else if (next[key]) {
       // Recovered — forget it entirely so it can be re-listed at once.
@@ -282,7 +356,7 @@ export function pruneDeadModels(
       if (typeof model !== "string") continue;
       const key = strikeKey(provider, model);
       const s = nextStrikes[key];
-      if (s && (s.strikes >= threshold || deadUntilMs(s, now) !== null)) {
+      if (s && (s.strikes >= threshold || deadUntilMs(s, now) !== null || exclusionLive(s, now))) {
         (removed[provider] ??= []).push(model);
         nextStrikes[key] = { ...s, pruned_at: s.pruned_at ?? now.toISOString() };
       } else {
@@ -302,7 +376,8 @@ export function recentlyPruned(strikes: StrikeFile, now: Date = new Date()): Rec
   const out: Record<string, Set<string>> = {};
   const cutoff = now.getTime() - PRUNE_MEMORY_DAYS * 24 * 60 * 60_000;
   for (const [key, s] of Object.entries(strikes)) {
-    const dead = deadUntilMs(s, now) !== null;
+    // W1: a probe-excluded model is not re-listed either — it would be dialled unprobed.
+    const dead = deadUntilMs(s, now) !== null || exclusionLive(s, now);
     if (!s.pruned_at && !dead) continue;
     const t = s.pruned_at ? new Date(s.pruned_at).getTime() : NaN;
     if (!dead && (Number.isNaN(t) || t < cutoff)) continue;
@@ -320,7 +395,7 @@ export function compactStrikes(strikes: StrikeFile, now: Date = new Date()): Str
   const out: StrikeFile = {};
   for (const [key, s] of Object.entries(strikes)) {
     const t = new Date(s.pruned_at ?? s.last_at).getTime();
-    if (!Number.isNaN(t) && t < cutoff && deadUntilMs(s, now) === null) continue;
+    if (!Number.isNaN(t) && t < cutoff && deadUntilMs(s, now) === null && !exclusionLive(s, now)) continue;
     out[key] = s;
   }
   return out;

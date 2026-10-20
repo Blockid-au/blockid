@@ -112,8 +112,12 @@ function tbrSystemPrompt(dim: DimKey): string {
 const EVAL_MAX_TOKENS = 4096;
 function dispatcherTransport(agent: string) {
   return callAIToModelCaller(
-    (system, user, maxTokens) =>
-      callAI({ system, user, maxTokens, agentId: `prompt-eval:${agent}`, priority: "background", timeoutMs: 180_000 }).then((r) => r.text),
+    (system, user, maxTokens, _cls, onMeta) =>
+      callAI({ system, user, maxTokens, agentId: `prompt-eval:${agent}`, priority: "background", timeoutMs: 180_000 }).then((r) => {
+        // W1: the ai_runs row records what answered (provider / model / usage / cost).
+        onMeta?.({ provider: r.via ?? r.provider, model: r.model, costUsd: r.cost_usd, tokensIn: r.usage?.input_tokens, tokensOut: r.usage?.output_tokens });
+        return r.text;
+      }),
     EVAL_MAX_TOKENS,
   );
 }

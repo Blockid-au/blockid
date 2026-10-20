@@ -5,16 +5,20 @@ import { describe, expect, it } from "vitest";
 import type { HealthResult } from "./health-check";
 import {
   DEAD_RUNG_HOURS,
+  DEFAULT_PROBE_EXCLUDE_STRIKES,
   DEFAULT_PRUNE_STRIKES,
+  PROBE_EXCLUSION_DAYS,
   PRUNE_MEMORY_DAYS,
   applyHealthResults,
   classifyDeadRung,
   compactStrikes,
   deadRungs,
   isDeadRung,
+  isProbeExcluded,
   markDeadRung,
   providerCapacity,
   pruneDeadModels,
+  readmitForProbing,
   recentlyPruned,
   strikeKey,
   unfundedProviders,
@@ -215,5 +219,71 @@ describe("G29-A providerCapacity — the 2026-09-21 chain", () => {
     const gone = markDeadRung({}, "cerebras", "old-model", "payment_required", T1);
     expect(providerCapacity(gone, { cerebras: ["llama-3.1-8b"] }, T1).cerebras).toMatchObject({ state: "unfunded", reason: "payment_required", dead: [] });
     expect(providerCapacity(gone, { cerebras: [] }, T1)).toEqual({});
+  });
+});
+
+// ── W1 (pricing v5 §7.2 #3) — probe exclusion + weekly re-admission ──
+describe("W1 probe exclusion", () => {
+  const T2 = new Date("2026-10-20T13:00:00Z");
+  function hr(provider: string, model: string, status: HealthResult["status"], http: number, error?: string): HealthResult {
+    return { provider, model, status, healthy: status === "healthy", quota_exceeded: status === "quota_exceeded", latency_ms: 1, http_status: http, error, checked_at: "x" };
+  }
+
+  it("a hard 404 / 402 probe excludes the model from probing for 7 days; a 429 does not", () => {
+    expect(DEFAULT_PROBE_EXCLUDE_STRIKES).toBe(48);
+    expect(PROBE_EXCLUSION_DAYS).toBe(7);
+    const s = applyHealthResults({}, [
+      hr("groq", "llama-3.3-70b-versatile", "not_found", 404, '{"error":{"code":"model_not_found"}}'),
+      hr("cerebras", "gpt-oss-120b", "quota_exceeded", 402, '{"code":"payment_required"}'),
+      hr("groq", "qwen/qwen3.8-27b", "quota_exceeded", 429, "rate limit"),
+    ], T2);
+    expect(s["groq::llama-3.3-70b-versatile"]).toMatchObject({ probe_excluded_at: T2.toISOString(), probe_excluded_reason: "hard_dead", dead_reason: "model_not_found" });
+    expect(isProbeExcluded(s, "groq", "llama-3.3-70b-versatile", T2)).toBe(true);
+    expect(isProbeExcluded(s, "cerebras", "gpt-oss-120b", T2)).toBe(true);
+    expect(isProbeExcluded(s, "groq", "qwen/qwen3.8-27b", T2)).toBe(false);
+    // the dead stamp lapses after 24 h — the probe exclusion does not
+    const day2 = new Date(T2.getTime() + 25 * 60 * 60_000);
+    expect(isDeadRung(s, "groq", "llama-3.3-70b-versatile", day2)).toBe(false);
+    expect(isProbeExcluded(s, "groq", "llama-3.3-70b-versatile", day2)).toBe(true);
+    // … until the window lapses (then one probe re-decides)
+    expect(isProbeExcluded(s, "groq", "llama-3.3-70b-versatile", new Date(T2.getTime() + 7 * 24 * 60 * 60_000 + 1))).toBe(false);
+  });
+
+  it("48 consecutive soft failures (24 h of 30-min probes) also exclude; a healthy probe forgets everything", () => {
+    let s: StrikeFile = { "openrouter::m:free": { strikes: 46, last_status: "timeout", last_at: T2.toISOString() } };
+    s = applyHealthResults(s, [hr("openrouter", "m:free", "timeout", 0)], T2);
+    expect(isProbeExcluded(s, "openrouter", "m:free", T2)).toBe(false);
+    s = applyHealthResults(s, [hr("openrouter", "m:free", "timeout", 0)], T2);
+    expect(s["openrouter::m:free"]).toMatchObject({ strikes: 48, probe_excluded_reason: "strikes" });
+    expect(isProbeExcluded(s, "openrouter", "m:free", T2)).toBe(true);
+    s = applyHealthResults(s, [hr("openrouter", "m:free", "healthy", 200)], T2);
+    expect(s["openrouter::m:free"]).toBeUndefined();
+  });
+
+  it("an excluded model is pruned from the active list, kept out of discovery and survives compaction while excluded", () => {
+    const s: StrikeFile = { "groq::x-70b": { strikes: 1, last_status: "model_not_found", last_at: "2026-10-14T00:00:00.000Z", pruned_at: "2026-09-01T00:00:00.000Z", probe_excluded_at: "2026-10-19T00:00:00.000Z", probe_excluded_reason: "hard_dead" } };
+    expect(pruneDeadModels({ groq: ["x-70b", "y-70b"] }, s, 3, T2).config.groq).toEqual(["y-70b"]);
+    expect([...(recentlyPruned(s, T2).groq ?? [])]).toEqual(["x-70b"]);
+    expect(Object.keys(compactStrikes(s, T2))).toEqual(["groq::x-70b"]);
+  });
+
+  it("a runtime dead stamp keeps an existing probe exclusion", () => {
+    const s: StrikeFile = { "groq::x-70b": { strikes: 3, last_status: "model_not_found", last_at: "x", probe_excluded_at: T2.toISOString(), probe_excluded_reason: "hard_dead" } };
+    expect(markDeadRung(s, "groq", "x-70b", "model_not_found", T2)["groq::x-70b"]).toMatchObject({ probe_excluded_at: T2.toISOString(), probe_excluded_reason: "hard_dead" });
+  });
+
+  it("readmitForProbing (weekly discovery) clears the exclusion only for ids the live catalogue lists", () => {
+    const s: StrikeFile = {
+      "groq::listed-70b": { strikes: 9, last_status: "model_not_found", last_at: "x", probe_excluded_at: T2.toISOString(), probe_excluded_reason: "hard_dead" },
+      "groq::gone-70b": { strikes: 9, last_status: "model_not_found", last_at: "x", probe_excluded_at: T2.toISOString(), probe_excluded_reason: "hard_dead" },
+      "groq::plain": { strikes: 1, last_status: "timeout", last_at: "x" },
+    };
+    const out = readmitForProbing(s, { groq: new Set(["listed-70b", "plain"]) });
+    expect(out.readmitted).toEqual({ groq: ["listed-70b"] });
+    expect(isProbeExcluded(out.strikes, "groq", "listed-70b", T2)).toBe(false);
+    expect(out.strikes["groq::listed-70b"]).toMatchObject({ strikes: 9 });
+    expect(isProbeExcluded(out.strikes, "groq", "gone-70b", T2)).toBe(true);
+    expect(out.strikes["groq::plain"]).toEqual(s["groq::plain"]);
+    expect(readmitForProbing(s, { groq: ["listed-70b"] }).readmitted).toEqual({ groq: ["listed-70b"] });
   });
 });

@@ -19,7 +19,7 @@ import { isValuationAvailable } from "@/lib/report-v2/schema";
 // deterministic shell.
 
 import { z } from "zod";
-import { callStructured, type StructuredModelCaller } from "@/lib/ai/call-structured";
+import { callStructured, structuredMetaFields, type StructuredModelCaller } from "@/lib/ai/call-structured";
 import { readOrRegisterPrompt } from "@/lib/ai/prompt-registry";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import { EXECUTIVE_CAPS, type ExecutiveStructured } from "@/lib/report-v2/schema";
@@ -27,14 +27,14 @@ import { executiveThesisFromStructured, finaliseExecutiveStructured } from "@/li
 import { modelForAgent } from "./agent-model-tiers";
 import { CODE_PROMPT_VERSION } from "./version";
 import { DIM_ORDER, type DimKey } from "./dimension-owners";
-import type { ReportContext } from "./types";
+import { noteSectionModel, type AICallMeta, type AICallMetaSink, type ReportContext } from "./types";
 
 const NIL_PROMPT_VERSION_ID = "00000000-0000-0000-0000-000000000000";
 
 /** Output tokens for the structured summary — ~900 words of JSON-escaped prose + the lists. */
 export const EXECUTIVE_MAX_TOKENS = 2600;
 
-type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: "classify" | "report" | "synthesis") => Promise<string>;
+type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: "classify" | "report" | "synthesis", onMeta?: AICallMetaSink) => Promise<string>;
 
 // ── Input (hashed + audited by callStructured) ──────────────────────────────
 
@@ -261,8 +261,10 @@ export async function dispatchExecutiveSummary(context: ReportContext, callAI: A
     (async ({ system, messages }) => {
       const user = messages.map((m) => (m.role === "assistant" ? `## Your previous response (rejected)\n${m.content}` : m.content)).join("\n\n");
       try {
-        const text = await callAI(system, user, maxTokens, "synthesis");
-        return { ok: true, text, tokensIn: Math.ceil((system.length + user.length) / 4), tokensOut: Math.ceil((text ?? "").length / 4) };
+        // W1: record what answered (provider / model / usage / cost), not the label.
+        let meta: AICallMeta | null = null;
+        const text = await callAI(system, user, maxTokens, "synthesis", (m) => { meta = m; });
+        return { ok: true, text, ...structuredMetaFields(meta, system.length + user.length, text) };
       } catch (err) {
         return { ok: false, status: "model_error", reason: err instanceof Error ? err.message : String(err) };
       }
@@ -297,6 +299,7 @@ export async function dispatchExecutiveSummary(context: ReportContext, callAI: A
     modelCaller: transport,
   });
 
+  noteSectionModel(context, "executive", structured.servedBy ?? null);
   if (structured.ok) {
     try {
       const chapters = context.dimensionChapters ? DIM_ORDER.map((d) => context.dimensionChapters!.get(d)).filter((c): c is NonNullable<typeof c> => Boolean(c)) : [];

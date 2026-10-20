@@ -1,8 +1,9 @@
 // POST /api/cron/ai-health-check — every 30 min
 //
 // Pings every active + candidate model with a tiny prompt, records latency
-// and status, writes:
-//   - content/ai-model-health.jsonl (append-only log)
+// and status — except models excluded from probing (W1: hard 404 / 402 or 48
+// consecutive failures; re-admitted by the weekly discovery) — writes:
+//   - content/ai-model-health.jsonl (append-only log, rotated to 7 d / 5 MB)
 //   - content/ai-model-health.json (current snapshot)
 //   - content/ai-provider-registry.json (unified snapshot for both sites)
 //
@@ -44,7 +45,7 @@ import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { probeProviders, type ProviderStatusFile } from "@/lib/ai/provider-status";
-import { applyHealthResults, compactStrikes, pruneDeadModels, pruneThreshold, readStrikes, writeStrikes } from "@/lib/ai/model-strikes";
+import { applyHealthResults, compactStrikes, isProbeExcluded, pruneDeadModels, pruneThreshold, readStrikes, writeStrikes } from "@/lib/ai/model-strikes";
 import { REPORT_PRICE_POLICY_EXPIRES_AT } from "@/lib/ai/report-attempt-budget";
 import { maybeAlertReportPricePolicyExpiry } from "@/lib/ai/report-price-policy-alert";
 
@@ -98,16 +99,21 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Compose target set: active chain + known-good pool (dedup, only providers with keys).
   const active = readActiveTargets().filter((t) => providerHasKey(t.provider));
   const pool = poolWithKeys(providerHasKey).map((m) => ({ provider: m.provider, model: m.model }));
+  // W1: a model with a hard 404 / 402 or 48 consecutive failed probes is not
+  // re-probed until the weekly discovery re-admits it (lib/ai/model-strikes).
+  const strikesBefore = readStrikes();
   const seen = new Set<string>();
+  let probeExcluded = 0;
   const targets = [...active, ...pool].filter((t) => {
     const k = entryKey(t);
     if (seen.has(k)) return false;
     seen.add(k);
+    if (isProbeExcluded(strikesBefore, t.provider, t.model)) { probeExcluded += 1; return false; }
     return true;
   });
 
   if (targets.length === 0) {
-    return NextResponse.json({ ok: false, error: "No targets (no keys? no config?)" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "No targets (no keys? no config? every model probe-excluded?)", probe_excluded: probeExcluded }, { status: 500 });
   }
 
   // S31-A provider-level validity probe runs alongside the model pings.
@@ -247,6 +253,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     ok: true,
     updated_at: nowIso,
     checked: results.length,
+    probe_excluded: probeExcluded,
     healthy: results.filter((r) => r.healthy).length,
     quota_exceeded: results.filter((r) => r.quota_exceeded).length,
     newly_degraded: newlyDegraded.length,

@@ -1257,8 +1257,7 @@ describe("S32-C — MIN_REPORT_MODEL allow-list for report classes", () => {
   it("accepts report-grade families and rejects tiny / non-text models", async () => {
     const { isReportGradeModel } = await loadClient();
     for (const ok of [
-      "openai/gpt-oss-120b", "gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free",
-      "nvidia/nemotron-3-super-120b-a12b:free", "qwen/qwen3.6-27b", "qwen-3-32b",
+      "openai/gpt-oss-120b", "gpt-oss-120b", "qwen/qwen3.6-27b", "qwen-3-32b", "qwen/qwen3.8-27b", "qwen-3.8-27b",
       "Qwen3-235B-A22B-Instruct-2507", "qwen/qwen3-next-80b-a3b-instruct:free",
       "DeepSeek-V3.2", "deepseek-ai/DeepSeek-V4-Flash", "llama-3.3-70b-versatile",
       "Meta-Llama-3.3-70B-Instruct", "moonshotai/kimi-k2.6:free", "gemma-4-31b", "gemma-4-31B-it",
@@ -1270,16 +1269,29 @@ describe("S32-C — MIN_REPORT_MODEL allow-list for report classes", () => {
       "nvidia/nemotron-3-nano-30b-a3b:free", "nvidia/nemotron-3.5-lightning:free",
       "liquid/lfm-2.5-2.6b:free", "google/gemma-4-26b-a4b-it:free", "gemini-2.5-flash-lite",
       "deepseek-r1-distill-llama-70b", "google/lyria-3-pro-preview",
+      // W1: strong OpenRouter :free candidates are admitted for NON-report free paths only.
+      "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free",
     ]) expect(isReportGradeModel(bad), bad).toBe(false);
   });
 
-  it("modelsForClass filters for report/synthesis, keeps everything for classify, and falls back to the full list when nothing qualifies", async () => {
+  it("modelsForClass applies the capability floor to every class (W1: allam-2-7b answered classify) and never falls back below it", async () => {
     const { modelsForClass } = await loadClient();
-    const list = ["llama-3.1-8b-instant", "openai/gpt-oss-120b", "allam-2-7b", "qwen/qwen3.6-27b"];
+    const list = ["llama-3.1-8b-instant", "openai/gpt-oss-120b", "allam-2-7b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"];
     expect(modelsForClass(list, "report")).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.6-27b"]);
     expect(modelsForClass(list, "synthesis")).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.6-27b"]);
-    expect(modelsForClass(list, "classify")).toEqual(list);
-    expect(modelsForClass(["llama-3.1-8b-instant"], "report")).toEqual(["llama-3.1-8b-instant"]);
+    expect(modelsForClass(list, "classify")).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"]);
+    // report with no report-grade model -> the floor-passing list, never a sub-20B / Allam model
+    expect(modelsForClass(["openai/gpt-oss-20b", "allam-2-7b"], "report")).toEqual(["openai/gpt-oss-20b"]);
+    expect(modelsForClass(["llama-3.1-8b-instant"], "report")).toEqual([]);
+    expect(modelsForClass(["allam-2-7b", "canopylabs/orpheus-v1-english"], "classify")).toEqual([]);
+    // the W1 OpenRouter candidates serve classify but not report
+    expect(modelsForClass(["nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free"], "classify")).toEqual(["nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free"]);
+  });
+
+  it("readyModels never ranks a 0-failure Allam model above qwen3.8-27b for classify (demoteFlaky cannot resurrect it)", async () => {
+    const { readyModels, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(readyModels("groq", ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "allam-2-7b"], "classify")).not.toContain("allam-2-7b");
   });
 });
 
@@ -1303,14 +1315,16 @@ describe("S32-C — per-class models on the quality-cost providers + cost table"
     expect(GEMINI_MODELS_BY_CLASS.classify).toEqual(["gemini-2.5-flash-lite"]);
   });
 
-  it("every per-class model has a price row and usageCostUsd computes from real usage (previews billed as GA siblings)", async () => {
+  it("every per-class model has a price row and usageCostUsd computes from real usage (W1: previews carry their own Gemini prices)", async () => {
     const { DEEPINFRA_MODELS_BY_CLASS, GEMINI_MODELS_BY_CLASS, PAID_PRICING_USD_PER_1M, usageCostUsd } = await loadClient();
     for (const m of Object.values(DEEPINFRA_MODELS_BY_CLASS).flat()) expect(PAID_PRICING_USD_PER_1M[`deepinfra:${m}`], m).toBeDefined();
     for (const m of Object.values(GEMINI_MODELS_BY_CLASS).flat()) expect(PAID_PRICING_USD_PER_1M[`gemini:${m}`], m).toBeDefined();
     expect(PAID_PRICING_USD_PER_1M["deepinfra:deepseek-ai/DeepSeek-V4-Flash"]).toEqual({ in: 0.09, out: 0.18 });
     expect(PAID_PRICING_USD_PER_1M["deepinfra:openai/gpt-oss-120b"]).toEqual({ in: 0.037, out: 0.17 });
-    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3-flash-preview"]).toEqual(PAID_PRICING_USD_PER_1M["gemini:gemini-2.5-flash"]);
-    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-pro-preview"]).toEqual(PAID_PRICING_USD_PER_1M["gemini:gemini-2.5-pro"]);
+    // W1: verified on ai.google.dev/gemini-api/docs/pricing 2026-10-20 — not the 2.5 prices.
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3-flash-preview"]).toEqual({ in: 0.5, out: 3 });
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-pro-preview"]).toEqual({ in: 2, out: 12 });
+    expect(PAID_PRICING_USD_PER_1M["gemini:gemini-3.1-flash-lite"]).toEqual({ in: 0.25, out: 1.5 });
     // 1M in + 1M out on V4-Flash = $0.27
     expect(usageCostUsd("deepinfra", "deepseek-ai/DeepSeek-V4-Flash", 1_000_000, 1_000_000)).toBeCloseTo(0.27, 8);
     expect(usageCostUsd("gemini", "gemini-2.5-pro", 100_000, 10_000)).toBeCloseTo(0.225, 8);
@@ -1691,12 +1705,12 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
       "cerebras::qwen-3-32b": dead(),
       "cerebras::llama-3.3-70b": dead(),
       "cerebras::gpt-oss-120b": dead(undefined, "payment_required"),
-      "cerebras::lapsed": dead("2026-09-21T10:00:00.000Z"),
+      "cerebras::lapsed-70b": dead("2026-09-21T10:00:00.000Z"),
     }));
     const { readyModels, _resetDispatcherForTests } = await loadClient();
     _resetDispatcherForTests();
-    const ladder = ["gemma-4-31b", "gpt-oss-120b", "qwen-3-32b", "llama-3.3-70b", "llama-3.1-8b", "lapsed"];
-    expect(readyModels("cerebras", ladder, "classify", NOW)).toEqual(["llama-3.1-8b", "lapsed"]);
+    const ladder = ["gemma-4-31b", "gpt-oss-120b", "qwen-3-32b", "llama-3.3-70b", "qwen-3.8-27b", "lapsed-70b"];
+    expect(readyModels("cerebras", ladder, "classify", NOW)).toEqual(["qwen-3.8-27b", "lapsed-70b"]);
     // the same ids on another provider are untouched (keys are provider-scoped)
     expect(readyModels("groq", ["gemma-4-31b", "qwen-3-32b"], "classify", NOW)).toEqual(["gemma-4-31b", "qwen-3-32b"]);
     // every rung dead → empty, not the "attempt anyway" fallback
@@ -1720,15 +1734,15 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
   });
 
   it("a runtime stamp merges into a FRESH read of the table — a stamp the health-check cron wrote a moment ago survives the 30 s cache", async () => {
-    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::a": dead() }));
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::a-70b": dead() }));
     const { noteDeadRung, readyModels, _resetDispatcherForTests } = await loadClient();
     _resetDispatcherForTests();
-    expect(readyModels("cerebras", ["a", "b", "c"], "classify", NOW)).toEqual(["b", "c"]); // warms the cache
-    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::a": dead(), "cerebras::b": dead() })); // the cron writes b
-    noteDeadRung("cerebras", "c", 'HTTP 404: {"code":"model_not_found"}', NOW + 5_000);
+    expect(readyModels("cerebras", ["a-70b", "b-70b", "c-70b"], "classify", NOW)).toEqual(["b-70b", "c-70b"]); // warms the cache
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::a-70b": dead(), "cerebras::b-70b": dead() })); // the cron writes b
+    noteDeadRung("cerebras", "c-70b", 'HTTP 404: {"code":"model_not_found"}', NOW + 5_000);
     const written = JSON.parse(fsMock.files.get(STRIKES) ?? "{}") as Record<string, unknown>;
-    expect(Object.keys(written).sort()).toEqual(["cerebras::a", "cerebras::b", "cerebras::c"]);
-    expect(readyModels("cerebras", ["a", "b", "c", "d"], "classify", NOW + 6_000)).toEqual(["d"]);
+    expect(Object.keys(written).sort()).toEqual(["cerebras::a-70b", "cerebras::b-70b", "cerebras::c-70b"]);
+    expect(readyModels("cerebras", ["a-70b", "b-70b", "c-70b", "d-70b"], "classify", NOW + 6_000)).toEqual(["d-70b"]);
   });
 
   it("a provider whose account answered 402 is `unfunded`: blocked in the dispatcher, on the snapshot (dead_rungs + unfunded + healthy_providers), and callAI never dials it", async () => {
@@ -1736,18 +1750,18 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     process.env.CEREBRAS_API_KEY = "cb-test";
     fsMock.files.set(STRIKES, JSON.stringify({
       "sambanova::DeepSeek-V3.2": dead(undefined, "payment_required"),
-      "cerebras::gemma-4-31b": dead(undefined, "model_archived"),
+      "cerebras::qwen-3.8-27b": dead(undefined, "model_archived"),
     }));
     const { providerBlockReason, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
     _resetDispatcherForTests();
     expect(providerBlockReason("sambanova", NOW)).toBe("unfunded");
-    expect(providerBlockReason("cerebras", NOW)).toBeNull(); // one archived rung of five = degraded, still dialled
+    expect(providerBlockReason("cerebras", NOW)).toBeNull(); // one archived rung of two = degraded, still dialled
     const snap = getProviderHealthSnapshot(NOW);
     expect(snap.providers.find((p) => p.name === "sambanova")).toEqual({ name: "sambanova", state: "blocked", cooldown_until: null, reason: "unfunded" });
     expect(snap.unfunded).toEqual(["sambanova"]);
     expect(snap.healthy_providers).toBe(1);
-    expect(snap.dead_rungs.sambanova).toMatchObject({ state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 9 });
-    expect(snap.dead_rungs.cerebras).toMatchObject({ state: "degraded", dead: ["gemma-4-31b"], total: 5 });
+    expect(snap.dead_rungs.sambanova).toMatchObject({ state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 6 });
+    expect(snap.dead_rungs.cerebras).toMatchObject({ state: "degraded", dead: ["qwen-3.8-27b"], total: 2 });
     // Only SambaNova configured + unfunded → nothing usable, no dial, the blocked error (not a 402 from the wire).
     delete process.env.CEREBRAS_API_KEY;
     const { callAI, _resetDispatcherForTests: reset2 } = await loadClient();
@@ -1764,6 +1778,37 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     expect(new DeadLadderError("groq", 2).message).toMatch(/all 2 models are dead rungs/);
     expect(providerBlockReason("groq", NOW)).toBe("unfunded");
     expect(getProviderHealthSnapshot(NOW).dead_rungs.groq).toEqual({ state: "unfunded", reason: "all_rungs_dead", dead: ["a", "b"], total: 2, until: DEAD_FOREVER });
+  });
+});
+
+describe("W1 — OpenRouter credit floor exempts :free models (pricing v5 §7.2 #4)", () => {
+  const STATUS_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-provider-status.json";
+  const FREE_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-free-models.json";
+  const lowCredit = () => JSON.stringify({ updated_at: new Date().toISOString(), providers: { openrouter: { provider: "openrouter", status: "low_credit", checked_at: new Date().toISOString(), latency_ms: 1, headroom: { credits_remaining_usd: 1.55 } } } });
+
+  it("low_credit no longer blocks OpenRouter while its ladder has a :free rung; it still blocks a paid-only ladder", async () => {
+    process.env.OPENROUTER_API_KEY = "or-test";
+    fsMock.files.set(STATUS_FILE, lowCredit());
+    const { providerBlockReason, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(providerBlockReason("openrouter")).toBeNull(); // curated defaults are all :free
+    fsMock.files.set(FREE_FILE, JSON.stringify({ openrouter: ["openai/gpt-5-mini", "anthropic/claude-sonnet-5"] }));
+    const again = await loadClient();
+    again._resetDispatcherForTests();
+    expect(again.providerBlockReason("openrouter")).toBe("low_credit");
+  });
+
+  it("under the floor only :free ids are dialled; the W1 candidates are verified catalogue ids", async () => {
+    const { openRouterDialList, isOpenRouterFreeModel, ladderFor } = await loadClient();
+    const list = ["nvidia/nemotron-3-ultra-550b-a55b:free", "openai/gpt-5-mini", "google/gemma-4-31b-it:free"];
+    expect(openRouterDialList(list, true)).toEqual(["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemma-4-31b-it:free"]);
+    expect(openRouterDialList(list, false)).toEqual(list);
+    expect(isOpenRouterFreeModel("openrouter/free")).toBe(false);
+    const ladder = ladderFor("openrouter");
+    for (const id of ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free"]) expect(ladder).toContain(id);
+    expect(ladder.every(isOpenRouterFreeModel)).toBe(true);
+    // the dead 404 "unavailable for free" ids are gone from the curated list
+    for (const dead of ["deepseek/deepseek-r1:free", "qwen/qwen3-235b-a22b:free", "deepseek/deepseek-chat-v3.1:free"]) expect(ladder).not.toContain(dead);
   });
 });
 

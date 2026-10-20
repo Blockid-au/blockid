@@ -11,10 +11,10 @@ calls; the prompt-eval harness). Tables: `public.ai_runs` (0231) →
 |---|---|
 | `prompt_version_id` | the `prompt_versions` row the call ran with (see the rule below); `NULL` only on the exception path |
 | `business_id` / `user_id` | `projects.id` being analysed (set null on erasure) / requesting `app_users.id` — pseudonymised, no PII |
-| `model` | the model LABEL the caller asked for (`modelForAgent(role)`, e.g. `claude-opus-5`); **not** the provider that answered — the pipeline runs on the free chain through `modelCaller` |
+| `model` | W1 (2026-10-20): the `provider:model` that ANSWERED (e.g. `deepinfra:deepseek-ai/DeepSeek-V3.2`); a bare Claude id on the direct API-key path; the caller's LABEL only when an injected transport did not say (older rows always carry the label) |
 | `input_hash` / `output_hash` | SHA-256 of canonical JSON — reproducibility without storing prompts or answers |
-| `tokens_in` / `tokens_out` | provider usage on the direct Anthropic path; a `chars ÷ 4` estimate on the injected-transport path |
-| `cost_usd` | list price for `model` × tokens (`MODEL_PRICING_USD_PER_1M`); 0 for a label not in the table |
+| `tokens_in` / `tokens_out` | provider usage when the provider reported it (DeepInfra / Gemini / Anthropic); a `chars ÷ 4` estimate otherwise |
+| `cost_usd` | W1: the dispatcher's real cost for the answering model (usage × `lib/ai/model-prices.ts`), repair pass included; 0 for free tiers and for an unknown answering model (rows before W1 carry the label's Claude list price — an upper bound, not the bill) |
 | `latency_ms` | wall time incl. the one repair pass |
 | `status` | `ok` · `schema_fail` (Zod failed twice) · `model_error` · `rate_limited` · `rejected` (guardrail) |
 | `evidence_ids` | evidence rows the call was allowed to cite (the renderer cross-checks citations against it) |

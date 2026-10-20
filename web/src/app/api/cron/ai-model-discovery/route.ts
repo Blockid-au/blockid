@@ -4,7 +4,12 @@
 // truly free entries, ranks by (a) context length, (b) known-good family
 // membership, (c) latency from prior health checks. Writes top-10 to
 // content/ai-model-candidates.json AND auto-injects top-3 into the active
-// chain by prepending into ai-free-models.json.
+// chain by prepending into ai-free-models.json (never a pruned / dead /
+// probe-excluded model, never one below the capability floor — W1).
+//
+// W1: this weekly run is also the re-admission pass for models excluded
+// from the 30-min health probe — one the catalogue lists again is probed once
+// more (lib/ai/model-strikes readmitForProbing).
 //
 // Falls back to prior candidates list on OpenRouter 500. Throttles 1s
 // between provider requests to respect rate limits.
@@ -31,6 +36,8 @@ import {
 import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { endpointFor } from "@/lib/ai/health-check";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { passesDiscoveryFloor } from "@/lib/ai/model-capability";
+import { readStrikes, readmitForProbing, recentlyPruned, writeStrikes } from "@/lib/ai/model-strikes";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -76,7 +83,7 @@ function rankToCandidates(provider: string, models: RawModel[]): Candidate[] {
   const lat = latencyMap();
   const now = new Date().toISOString();
   return models
-    .filter((m) => !!m.id && !KNOWN_PAID.has(m.id))
+    .filter((m) => !!m.id && !KNOWN_PAID.has(m.id) && passesDiscoveryFloor(m.id))
     .map((m) => {
       const family = familyFor(m.id);
       const known = KNOWN_GOOD_FAMILIES.includes(family);
@@ -119,11 +126,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   const allCandidates: Candidate[] = [];
   const perProvider: Record<string, number> = {};
   const errors: Record<string, string> = {};
+  // W1: every id each provider's live catalogue lists — the re-admission set
+  // for models excluded from the 30-min probe (lib/ai/model-strikes).
+  const catalogue: Record<string, Set<string>> = {};
 
   // OpenRouter — public catalogue, no auth needed
   try {
     const raw = await fetchJson("https://openrouter.ai/api/v1/models");
     const free = filterFreeOpenRouter(raw);
+    if (free.length > 0) catalogue.openrouter = new Set(free.map((m) => m.id));
     const c = rankToCandidates("openrouter", free);
     allCandidates.push(...c);
     perProvider.openrouter = c.length;
@@ -143,6 +154,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!key) { errors[provider] = `no ${envKey}`; continue; }
     try {
       const raw = await fetchJson(url, { Authorization: `Bearer ${key}` });
+      if (raw.length > 0) catalogue[provider] = new Set(raw.map((m) => m.id));
       const c = rankToCandidates(provider, raw);
       allCandidates.push(...c);
       perProvider[provider] = c.length;
@@ -175,10 +187,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.error("[ai-model-discovery] candidates write failed", err);
   }
 
-  // Auto-inject top-3 fresh (dedup against existing chain).
+  // W1: weekly re-admission — an excluded model the catalogue lists again is
+  // probed once more by the next health check (a hard 404 / 402 re-excludes it).
+  const readmit = readmitForProbing(readStrikes(), catalogue);
+  const readmittedCount = Object.values(readmit.readmitted).reduce((n, ms) => n + ms.length, 0);
+  if (readmittedCount > 0) writeStrikes(readmit.strikes);
+
+  // Auto-inject top-3 fresh (dedup against existing chain). Never a dead,
+  // pruned or probe-excluded model (it would be dialled unprobed).
   let injected = 0;
   if (!usePrior && allCandidates.length > 0) {
-    injected = injectTop(allCandidates.slice(0, AUTO_INJECT));
+    const blocked = recentlyPruned(readmit.strikes);
+    injected = injectTop(allCandidates.filter((c) => !blocked[c.provider]?.has(c.model)).slice(0, AUTO_INJECT));
   }
 
   // Update registry candidates_discovered field.
@@ -198,6 +218,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     provider_counts: perProvider,
     top_candidates: top.slice(0, 5).map((c) => "model" in c ? `${c.provider}/${c.model}` : ""),
     auto_injected: injected,
+    probe_readmitted: readmit.readmitted,
     fallback_used: usePrior,
     errors,
   });

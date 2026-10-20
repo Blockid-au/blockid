@@ -45,6 +45,7 @@
 // `getAnthropicHeadroom()` so the dispatcher ranks Anthropic by REAL
 // remaining requests / tokens instead of a static RPM guess.
 
+import { ANTHROPIC_PRICING_USD_PER_1M } from "./model-prices";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AICallOptions } from "@/lib/ai-client";
 
@@ -78,12 +79,9 @@ export const ANTHROPIC_MODEL_BY_CLASS: Record<AITaskClass, string> = {
 };
 
 /** USD per 1M tokens — Anthropic first-party list price (Sep 2026). Cache
- *  reads are billed at 10 % of the input price, cache writes at 125 %. */
-export const ANTHROPIC_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
-  "claude-haiku-4-5": { in: 1, out: 5 },
-  "claude-sonnet-5": { in: 2, out: 10 },
-  "claude-opus-5": { in: 5, out: 25 },
-};
+ *  reads are billed at 10 % of the input price, cache writes at 125 %.
+ *  W1: the table lives in lib/ai/model-prices (the one price module). */
+export { ANTHROPIC_PRICING_USD_PER_1M };
 export const CACHE_READ_MULTIPLIER = 0.1;
 export const CACHE_WRITE_MULTIPLIER = 1.25;
 

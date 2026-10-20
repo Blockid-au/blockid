@@ -64,6 +64,8 @@ import * as path from "path";
 import { AITransportError, inprocessFetch, inprocessStreamChat, type AITransportDiagnostics } from "@/lib/ai/http-transport";
 import { beginModelCall, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "@/lib/ai/model-throughput";
 import { REPORT_ADMITTED_MODELS } from "@/lib/ai/report-admitted-models";
+import { meetsCapabilityFloor } from "@/lib/ai/model-capability";
+import { PAID_PRICING_USD_PER_1M, usageCostUsd } from "@/lib/ai/model-prices";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -330,20 +332,38 @@ const REPORT_MODEL_DENY: RegExp[] = [
   /nemotron-3(\.\d+)?-nano|lightning|:mini|-mini\b|\bmini\b|distill/i,
 ];
 
+/** W1 (pricing v5 §7.2 #4): strong OpenRouter `:free` candidates admitted for
+ *  NON-report free paths only (classify, unscoped chat). Report-scoped calls
+ *  are DeepInfra-only (G30) and these stay out of the free report fallback
+ *  until they pass report qualification — Nemotron-3-Super returned invalid
+ *  JSON / 0 citations on the G30 chapter benchmark. */
+export const FREE_NON_REPORT_ONLY_MODELS: ReadonlySet<string> = new Set([
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "google/gemma-4-31b-it:free",
+]);
+
 /** True when a model id looks strong enough to write a report section. */
 export function isReportGradeModel(model: string): boolean {
+  if (FREE_NON_REPORT_ONLY_MODELS.has(model)) return false;
+  if (!meetsCapabilityFloor(model)) return false;
   if (REPORT_MODEL_DENY.some((re) => re.test(model))) return false;
   return REPORT_MODEL_ALLOW.some((re) => re.test(model));
 }
 
-/** Filter a free-tier model list for the task class: `report` / `synthesis`
- *  keep report-grade models only (falling back to the full list when the
- *  filter would leave nothing — a weak answer beats no answer, and the
- *  grounding validator still checks it); `classify` keeps every model. */
+/** Filter a free-tier model list for the task class. Every class first
+ *  applies the capability floor (lib/ai/model-capability.ts — W1: classify
+ *  was answered by Groq `allam-2-7b`): no speech / safety / Arabic-only
+ *  checkpoints, and ≥ 20B or an allow-listed family. `report` / `synthesis`
+ *  then keep report-grade models only, falling back to the floor-passing
+ *  list when none qualifies (the grounding validator still checks it) —
+ *  never to a model below the floor. An empty result means "this provider
+ *  has no capable model": the caller skips the provider without a call. */
 export function modelsForClass(models: string[], cls: AITaskClass): string[] {
-  if (cls === "classify") return models;
-  const strong = models.filter(isReportGradeModel);
-  return strong.length > 0 ? strong : models;
+  const capable = models.filter(meetsCapabilityFloor);
+  if (cls === "classify") return capable;
+  const strong = capable.filter(isReportGradeModel);
+  return strong.length > 0 ? strong : capable;
 }
 
 // ── G29-A dead rungs (runtime side) ──────────────────────────────────
@@ -427,12 +447,23 @@ function clearDeadRung(provider: Provider, model: string, now: number = Date.now
   }, now);
 }
 
-/** Thrown by a ladder whose every rung is dead — no call was made. */
+/** Thrown by a ladder whose every rung is dead — or (W1) whose live rungs all
+ *  fall below the capability floor for the class — no call was made. */
 export class DeadLadderError extends Error {
-  constructor(readonly provider: Provider, readonly total: number) {
-    super(`${provider}: all ${total} models are dead rungs (402 / 404 in the last 24 h) — skipped without a call; see /api/status ai.dead_rungs`);
+  constructor(readonly provider: Provider, readonly total: number, readonly reason: "dead" | "no_capable_model" = "dead") {
+    super(reason === "no_capable_model"
+      ? `${provider}: none of the ${total} listed models clears the capability floor for this task class (lib/ai/model-capability.ts) — skipped without a call`
+      : `${provider}: all ${total} models are dead rungs (402 / 404 in the last 24 h) — skipped without a call; see /api/status ai.dead_rungs`);
     this.name = "DeadLadderError";
   }
+}
+
+/** The DeadLadderError for an empty free ladder: dead rungs vs no capable model. */
+function emptyLadderError(provider: Provider, models: string[], now: number = Date.now()): DeadLadderError {
+  const strikes = currentStrikes(now);
+  const at = new Date(now);
+  const alive = models.filter((m) => !isDeadRung(strikes, provider, m, at));
+  return new DeadLadderError(provider, models.length, alive.length > 0 ? "no_capable_model" : "dead");
 }
 
 /** Order a model list with dead rungs (G29-A) and cooled-down models
@@ -631,9 +662,11 @@ const COST_PER_1K: Record<string, number> = {
   "gemini-2.5-flash": 0.0014,        // $0.30 in / $2.50 out per 1M averaged
   "gemini-2.5-flash-lite": 0.00025,  // $0.10 / $0.40
   "gemini-2.5-pro": 0.0056,          // $1.25 / $10
-  "gemini-3-flash-preview": 0.0014,  // preview — billed as 2.5 Flash
-  "gemini-3.1-pro-preview": 0.0056,  // preview — billed as 2.5 Pro
-  "gemini-3.1-flash-lite": 0.00025,  // billed as 2.5 Flash-Lite
+  // W1: the 3.x previews have their own (higher) prices — model-prices.ts.
+  // Estimate only; Gemini calls report usage and are priced exactly.
+  "gemini-3-flash-preview": 0.00175, // $0.50 / $3.00
+  "gemini-3.1-pro-preview": 0.007,   // $2 / $12
+  "gemini-3.1-flash-lite": 0.000875, // $0.25 / $1.50
   // DeepInfra (PAID, quality-cost tier — prices verified on the box 2026-09-15)
   "deepseek-ai/DeepSeek-V4-Flash": 0.000135,           // $0.09 / $0.18, 1M ctx
   "deepseek-ai/DeepSeek-V3.2": 0.00032,                // $0.26 / $0.38, 164k ctx
@@ -732,38 +765,10 @@ const COST_PER_1K: Record<string, number> = {
   "x-ai/grok-imagine-image-quality": 0.05,
 };
 
-/** USD per 1M tokens for the quality-cost providers, keyed `provider:model`
- *  (a model id like `openai/gpt-oss-120b` exists on both Groq (free) and
- *  DeepInfra (paid), so the provider is part of the key). Used to turn the
- *  provider's real `usage` into the exact cost recorded in the daily ledger. */
-export const PAID_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
-  // DeepInfra — verified 2026-09-15
-  "deepinfra:deepseek-ai/DeepSeek-V4-Flash": { in: 0.09, out: 0.18 },
-  "deepinfra:deepseek-ai/DeepSeek-V3.2": { in: 0.26, out: 0.38 },
-  "deepinfra:Qwen/Qwen3-VL-235B-A22B-Instruct": { in: 0.20, out: 0.88 },
-  "deepinfra:Qwen/Qwen3-235B-A22B-Instruct-2507": { in: 0.09, out: 0.55 },
-  "deepinfra:openai/gpt-oss-120b": { in: 0.037, out: 0.17 },
-  "deepinfra:meta-llama/Llama-3.3-70B-Instruct-Turbo": { in: 0.10, out: 0.32 },
-  "deepinfra:moonshotai/Kimi-K2.6": { in: 0.75, out: 3.50 },
-  "deepinfra:deepseek-ai/DeepSeek-V4-Pro": { in: 1.30, out: 2.60 },
-  // Gemini — list prices; previews billed as their GA sibling
-  "gemini:gemini-2.5-flash": { in: 0.30, out: 2.50 },
-  "gemini:gemini-2.5-flash-lite": { in: 0.10, out: 0.40 },
-  "gemini:gemini-2.5-pro": { in: 1.25, out: 10 },
-  "gemini:gemini-3-flash-preview": { in: 0.30, out: 2.50 },
-  "gemini:gemini-3.1-pro-preview": { in: 1.25, out: 10 },
-  "gemini:gemini-3.1-flash-lite": { in: 0.10, out: 0.40 },
-};
-
-/** Exact USD for a call from the provider's reported usage; null when the
- *  model has no price row (the caller then falls back to the COST_PER_1K
- *  estimate). */
-export function usageCostUsd(provider: string, model: string, inputTokens: number, outputTokens: number): number | null {
-  const price = PAID_PRICING_USD_PER_1M[`${provider}:${model}`];
-  if (!price) return null;
-  const usd = (inputTokens / 1_000_000) * price.in + (outputTokens / 1_000_000) * price.out;
-  return Math.round(usd * 1e8) / 1e8;
-}
+/** USD per 1M tokens for the quality-cost providers, keyed `provider:model`,
+ *  and the exact-cost helper — W1: both live in lib/ai/model-prices (the one
+ *  price module every ledger imports); re-exported for existing callers. */
+export { PAID_PRICING_USD_PER_1M, usageCostUsd };
 
 interface BudgetData {
   month: string; // "2026-05"
@@ -1265,11 +1270,12 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
 // llama-3.3-70b-versatile re-added — Groq's own docs list it as production-grade
 // (280 t/s, 131K ctx). Kept below qwen3.6 while cooldown/health prove it out again.
 const GROQ_DEFAULT_MODELS: string[] = [
-  "qwen/qwen3.6-27b",          // A-tier: Qwen3 27B, top of Aug 2026 discovery
-  "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality when available
-  "llama-3.3-70b-versatile",   // B-tier: 70B, 280 t/s — re-verified in Groq docs (Sep 2026)
-  "llama-3.1-8b-instant",      // C-tier: 8B, 560 t/s — most reliable in prod (76 ok)
-  "openai/gpt-oss-20b",        // C-tier: 20B, fast fallback
+  // W1 (2026-10-20): only ids that answered the 30-min health probe. Groq's
+  // llama-3.3-70b-versatile / llama-3.1-8b-instant now answer 404 (enterprise
+  // only) and mixtral / gemma2 are decommissioned — 1,700+ strikes each.
+  "qwen/qwen3.8-27b",          // A-tier: Qwen3.8 27B (443 healthy probes / 448)
+  "openai/gpt-oss-120b",       // A-tier: 117B MoE
+  "openai/gpt-oss-20b",        // B-tier: 20B, fast fallback (meets the 20B floor)
 ];
 
 async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
@@ -1280,7 +1286,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
 
   let lastErr: Error | null = null;
   const groqRungs = readyModels("groq", GROQ_MODELS, cls);
-  if (groqRungs.length === 0) throw new DeadLadderError("groq", GROQ_MODELS.length);
+  if (groqRungs.length === 0) throw emptyLadderError("groq", GROQ_MODELS);
   for (const model of groqRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "groq")) { lastErr = lastErr ?? runStruckError(opts, "groq"); break; }
@@ -1329,11 +1335,12 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
 // llama-3.3-70b 404 model_not_found and gpt-oss-120b 402 payment_required —
 // the dead-rung table skips them for 24 h after each such answer.
 const CEREBRAS_DEFAULT_MODELS: string[] = [
-  "gemma-4-31b",             // B-tier: 1424 prod successes — most reliable on Cerebras
-  "gpt-oss-120b",            // A-tier: 117B MoE, high throughput when available (ok:506)
-  "qwen-3-32b",              // B-tier: Qwen 3 32B, 2000 t/s, Vietnamese-friendly (Sep 2026 add)
-  "llama-3.3-70b",           // B-tier: 70B, legacy compat
-  "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
+  // W1 (2026-10-20): the Cerebras catalogue (inference-docs.cerebras.ai
+  // models/overview) lists ONLY these two; gemma-4-31b / qwen-3-32b /
+  // llama-3.3-70b / llama3.1-8b answer 404. The account answered 402 on
+  // completions — founder item: Cerebras billing.
+  "gpt-oss-120b",            // A-tier: 117B MoE
+  "qwen-3.8-27b",            // A-tier: Qwen3.8 27B
 ];
 
 async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
@@ -1344,7 +1351,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
 
   let lastErr: Error | null = null;
   const cerebrasRungs = readyModels("cerebras", CEREBRAS_MODELS, cls);
-  if (cerebrasRungs.length === 0) throw new DeadLadderError("cerebras", CEREBRAS_MODELS.length);
+  if (cerebrasRungs.length === 0) throw emptyLadderError("cerebras", CEREBRAS_MODELS);
   for (const model of cerebrasRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "cerebras")) { lastErr = lastErr ?? runStruckError(opts, "cerebras"); break; }
@@ -1391,15 +1398,15 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
 // G29-A: on 2026-09-21 every rung answered 402 PAYMENT_METHOD_REQUIRED
 // (balance_units 0) or 404 model_not_found → the provider shows `unfunded`.
 const SAMBANOVA_DEFAULT_MODELS: string[] = [
-  "DeepSeek-R1",                    // S-tier: strongest free reasoning model on SambaNova
-  "Qwen3-235B-A22B-Instruct-2507",  // S-tier: 235B MoE, competes with Claude (Sep 2026 add)
-  "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
-  "DeepSeek-V3.1",                  // S-tier: previous DeepSeek V3 checkpoint
-  "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight on SambaNova
-  "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
+  // W1 (2026-10-20): the public catalogue (api.sambanova.ai/v1/models) —
+  // DeepSeek-R1 / Llama-3.1-405B / Qwen3-235B / DeepSeek-V3-0324 are gone.
+  // Every completion currently answers 401 (wrong key — founder item).
+  "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 checkpoint (32K ctx)
+  "DeepSeek-V3.1",                  // S-tier: 131K ctx
+  "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight
+  "MiniMax-M3",                     // A-tier
   "Meta-Llama-3.3-70B-Instruct",    // B-tier: Llama 3.3 70B, reliable general
-  "Meta-Llama-3.1-8B-Instruct",     // C-tier: Llama 3.1 8B, fast fallback
-  "DeepSeek-V3-0324",               // S-tier: legacy ID — may still be aliased on SambaNova
+  "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct
 ];
 
 async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
@@ -1410,7 +1417,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
 
   let lastErr: Error | null = null;
   const sambaRungs = readyModels("sambanova", SAMBANOVA_MODELS, cls);
-  if (sambaRungs.length === 0) throw new DeadLadderError("sambanova", SAMBANOVA_MODELS.length);
+  if (sambaRungs.length === 0) throw emptyLadderError("sambanova", SAMBANOVA_MODELS);
   for (const model of sambaRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "sambanova")) { lastErr = lastErr ?? runStruckError(opts, "sambanova"); break; }
@@ -1721,37 +1728,45 @@ async function callClaudeHaikuDirect(opts: AICallOptions): Promise<AICallResult>
 // Last updated: 2026-08-13 — daily refresh writes to ai-free-models.json.
 // Hardcoded list is fallback if file is missing/stale (getDynamicModels prefers file).
 const OPENROUTER_DEFAULT_MODELS: string[] = [
-  // ── S-tier: Frontier-class free models ──────────────────────────
-  "google/gemini-2.5-flash:free",                        // Google Gemini 2.5 Flash — fastest frontier model
-  "deepseek/deepseek-r1:free",                           // DeepSeek R1 reasoning — strongest free reasoning
-  "deepseek/deepseek-chat-v3.1:free",                    // DeepSeek V3.1 chat — S-tier reasoning (Sep 2026 add)
-  "deepseek/deepseek-v3:free",                           // DeepSeek V3 — top-tier general + coding
-  "meta-llama/llama-4-maverick:free",                    // Llama 4 Maverick — Meta's best free MoE
-  "qwen/qwen3-235b-a22b:free",                           // Qwen3 235B MoE — Alibaba flagship free
-  "moonshotai/kimi-k2:free",                             // Kimi K2 — 1T MoE, strong agentic tasks
-
-  // ── A-tier: Strong general-purpose ──────────────────────────────
-  "meta-llama/llama-4-scout:free",                       // Llama 4 Scout — Meta efficient MoE
-  "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",        // NVIDIA Nemotron 253B — large reasoning
-  "microsoft/phi-4-reasoning-plus:free",                 // Phi-4 Reasoning Plus — strong for size
-  "tngtech/deepseek-r1t-chimera:free",                   // DeepSeek R1T Chimera — hybrid reasoning
-  "inclusionai/ling-3.0-flash-fin:free",                 // Ling 3.0 Fin — 124B MoE, 262K ctx, finance-tuned (BlockID domain fit)
-
-  // ── B-tier: Solid quality, reliable ─────────────────────────────
-  "google/gemma-3-27b-it:free",                          // Gemma 3 27B — Google efficient instruct
-  "mistralai/mistral-small-3.2-24b-instruct:free",       // Mistral Small 3.2 — reliable European model
-  "liquid/lfm-2.5-2.6b:free",                            // Liquid LFM 2.5 2.6B — 65K ctx, ultra-fast small fallback
+  // W1 (2026-10-20): ids verified on the public catalogue
+  // (openrouter.ai/api/v1/models, pricing 0). The previous list — gemini-2.5-
+  // flash:free, deepseek-r1:free, deepseek-chat-v3.1:free, qwen3-235b:free,
+  // kimi-k2:free … — answers 404 "unavailable for free". The first three are
+  // the stronger W1 candidates: admitted for NON-report free paths only
+  // (FREE_NON_REPORT_ONLY_MODELS — report-scoped calls stay DeepInfra-only).
+  "nvidia/nemotron-3-ultra-550b-a55b:free",              // 550B MoE, 1M ctx
+  "nvidia/nemotron-3-super-120b-a12b:free",              // 120B MoE, 262K ctx
+  "google/gemma-4-31b-it:free",                          // Gemma 4 31B, 262K ctx
+  "minimax/minimax-m3.1-flash:free",                     // MiniMax M3.1 Flash, 1M ctx (healthy on the probe)
+  "nvidia/nemotron-3.5-super-vl:free",                   // Nemotron 3.5 Super, 1M ctx (healthy on the probe)
 ];
+
+/** W1: an OpenRouter model billed at zero (the `:free` variant) — exempt from the credit floor. */
+export function isOpenRouterFreeModel(model: string): boolean {
+  return model.endsWith(":free");
+}
+
+/** W1: the OpenRouter ids to dial — `:free` only while credits are under the floor. Pure; exported for tests. */
+export function openRouterDialList(models: string[], lowCredit: boolean): string[] {
+  return lowCredit ? models.filter(isOpenRouterFreeModel) : models;
+}
+
+/** W1: true while the last probe says OpenRouter credits are under the floor. */
+function openRouterLowCredit(now: number = Date.now()): boolean {
+  const st = cachedProviderStatus("openrouter");
+  return Boolean(st && st.status === "low_credit" && now - new Date(st.checked_at).getTime() < PROBE_TTL_MS);
+}
 
 async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  const FREE_MODELS = getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS);
+  // W1: under the credit floor only `:free` ids are dialled (no credit spend).
+  const FREE_MODELS = openRouterDialList(getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS), openRouterLowCredit());
 
   let lastErr: Error | null = null;
   const openrouterRungs = readyModels("openrouter", FREE_MODELS, cls);
-  if (openrouterRungs.length === 0) throw new DeadLadderError("openrouter", FREE_MODELS.length);
+  if (openrouterRungs.length === 0) throw emptyLadderError("openrouter", FREE_MODELS);
   for (const model of openrouterRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "openrouter")) { lastErr = lastErr ?? runStruckError(opts, "openrouter"); break; }
@@ -2170,7 +2185,12 @@ export function providerBlockReason(p: Provider, now: number = Date.now()): stri
     if (st && now - new Date(st.checked_at).getTime() < PROBE_TTL_MS) {
       if (st.status === "invalid_key") return "invalid_key";
       if (st.status === "quota_exceeded") return "quota_exceeded";
-      if (st.status === "low_credit") return "low_credit";
+      // W1 (pricing v5 §7.2 #4): the credit floor protects PAID OpenRouter
+      // spend only. `:free` models cost no credit (free requests stay
+      // available — 964/1000 left on 2026-10-20 at US$1.55), so the provider
+      // stays dialable while its ladder has a `:free` rung; callOpenRouter
+      // then dials `:free` ids only.
+      if (st.status === "low_credit" && !(p === "openrouter" && ladderFor("openrouter").some(isOpenRouterFreeModel))) return "low_credit";
       if (st.status === "unreachable" && p === "claude-proxy") return "unreachable";
     }
   }

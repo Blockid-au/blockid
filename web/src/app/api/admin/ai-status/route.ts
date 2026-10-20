@@ -85,7 +85,8 @@ export async function GET() {
     id: "openai-apikey",
     name: "OpenAI API Key",
     status: openaiKey ? "configured" : "missing",
-    detail: openaiKey ? `Key: ${openaiKey.slice(0, 8)}...${openaiKey.slice(-4)}` : "OPENAI_API_KEY not set",
+    // W1 (pricing v5 §7.2 #6): set / unset only — never a key fragment.
+    detail: openaiKey ? "OPENAI_API_KEY set" : "OPENAI_API_KEY not set",
   });
 
   // 5. Google Gemini
@@ -94,7 +95,7 @@ export async function GET() {
     id: "gemini",
     name: "Google Gemini",
     status: geminiKey ? "configured" : "missing",
-    detail: geminiKey ? `Key: ${geminiKey.slice(0, 10)}...${geminiKey.slice(-4)}` : "GOOGLE_GEMINI_API_KEY not set",
+    detail: geminiKey ? "GOOGLE_GEMINI_API_KEY set" : "GOOGLE_GEMINI_API_KEY not set",
   });
 
   const activeCount = providers.filter((p) => p.status === "active").length;

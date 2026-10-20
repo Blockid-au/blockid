@@ -6,7 +6,7 @@
 // straight into pricing + report length + tier gating.
 
 import { describe, expect, it } from "vitest";
-import { AGENT_ROLES, REPORT_TIER_CONFIG } from "./types";
+import { AGENT_ROLES, REPORT_TIER_CONFIG, noteSectionModel } from "./types";
 
 const CANONICAL_ROLES = [
   "ceo",
@@ -243,5 +243,17 @@ describe("AGENT_ROLES × REPORT_TIER_CONFIG cross-checks", () => {
       const combined = REPORT_TIER_CONFIG[tier].maxTokensPerAgent * AGENT_ROLES.length;
       expect(combined).toBeLessThanOrEqual(100_000);
     }
+  });
+});
+
+describe("W1 noteSectionModel", () => {
+  it("records provider:model (or a bare label) per section, last writer wins, ignores empty input", () => {
+    const ctx: { sectionModels?: Record<string, string> } = {};
+    noteSectionModel(ctx, "dim:tre", { provider: "deepinfra", model: "deepseek-ai/DeepSeek-V3.2" });
+    noteSectionModel(ctx, "executive", { model: "claude-sonnet-5" });
+    noteSectionModel(ctx, "problem", null);
+    noteSectionModel(ctx, "dim:mpc", "cache");
+    noteSectionModel(ctx, "dim:tre", "deterministic");
+    expect(ctx.sectionModels).toEqual({ "dim:tre": "deterministic", executive: "claude-sonnet-5", "dim:mpc": "cache" });
   });
 });

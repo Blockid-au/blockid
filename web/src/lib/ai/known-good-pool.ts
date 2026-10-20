@@ -4,8 +4,9 @@
 // which provider keys the runtime actually has.
 //
 // Keep entries here to models that have been verified free-tier reliable in
-// production. If a model here goes paid or is removed, `verify-models` will
-// catch it during the weekly ping and it'll drop out of the live chain.
+// production. A model here that starts answering a hard 404 / 402 (or fails
+// 48 probes in a row) is excluded from the probe until the weekly discovery
+// re-admits it (lib/ai/model-strikes) — but remove it here as well.
 
 export interface KnownModel {
   provider: "groq" | "sambanova" | "cerebras" | "openrouter" | "chutes" | "cloudflare";
@@ -15,28 +16,29 @@ export interface KnownModel {
 }
 
 export const KNOWN_GOOD_FREE_MODELS: readonly KnownModel[] = [
-  // Groq — 400 RPM free tier, ~500 t/s
-  { provider: "groq", model: "llama-3.3-70b-versatile", family: "llama-3.3", contextWindow: 128_000 },
-  { provider: "groq", model: "llama-3.1-8b-instant", family: "llama-3.1", contextWindow: 128_000 },
-  { provider: "groq", model: "mixtral-8x7b-32768", family: "mixtral", contextWindow: 32_768 },
-  { provider: "groq", model: "gemma2-9b-it", family: "gemma-2", contextWindow: 8_192 },
+  // W1 (pricing v5 §7.2 #3, 2026-10-20): the 15 entries that had answered
+  // 404 / decommissioned on every 30-min probe since September (~1,760 strikes
+  // each) are gone — Groq llama-3.3-70b-versatile (enterprise-only),
+  // llama-3.1-8b-instant, mixtral-8x7b-32768, gemma2-9b-it; SambaNova
+  // Meta-Llama-3.3-70B-Instruct (key 401), Llama-3.1-405B, DeepSeek-R1;
+  // Cerebras llama-3.3-70b, llama3.1-8b, qwen-3-32b; OpenRouter
+  // llama-3.3-70b / deepseek-r1 / qwen-2.5-72b / gemma-2-9b / mistral-7b :free.
+  // Only ids that answered the probe (or the live catalogue lists) stay.
+  // Cerebras (402 payment_required) and SambaNova (401 invalid key) have no
+  // entry until the founder fixes billing / the key — their curated ladders in
+  // ai-client still carry the live catalogue ids.
 
-  // SambaNova — free tier, 294 TPS
-  { provider: "sambanova", model: "Meta-Llama-3.3-70B-Instruct", family: "llama-3.3", contextWindow: 128_000 },
-  { provider: "sambanova", model: "Meta-Llama-3.1-405B-Instruct", family: "llama-3.1", contextWindow: 16_000 },
-  { provider: "sambanova", model: "DeepSeek-R1", family: "deepseek-r1", contextWindow: 32_000 },
+  // Groq — ~500 t/s
+  { provider: "groq", model: "qwen/qwen3.8-27b", family: "qwen-3", contextWindow: 131_072 },
+  { provider: "groq", model: "openai/gpt-oss-120b", family: "gpt-oss", contextWindow: 131_072 },
+  { provider: "groq", model: "openai/gpt-oss-20b", family: "gpt-oss", contextWindow: 131_072 },
 
-  // Cerebras — ultra-fast 2000 t/s
-  { provider: "cerebras", model: "llama-3.3-70b", family: "llama-3.3", contextWindow: 128_000 },
-  { provider: "cerebras", model: "llama3.1-8b", family: "llama-3.1", contextWindow: 128_000 },
-  { provider: "cerebras", model: "qwen-3-32b", family: "qwen-2.5", contextWindow: 32_000 },
-
-  // OpenRouter free
-  { provider: "openrouter", model: "meta-llama/llama-3.3-70b-instruct:free", family: "llama-3.3", contextWindow: 128_000 },
-  { provider: "openrouter", model: "deepseek/deepseek-r1:free", family: "deepseek-r1", contextWindow: 128_000 },
-  { provider: "openrouter", model: "qwen/qwen-2.5-72b-instruct:free", family: "qwen-2.5", contextWindow: 32_000 },
-  { provider: "openrouter", model: "google/gemma-2-9b-it:free", family: "gemma-2", contextWindow: 8_192 },
-  { provider: "openrouter", model: "mistralai/mistral-7b-instruct:free", family: "mistral", contextWindow: 32_768 },
+  // OpenRouter :free — W1 (§7.2 #4) stronger candidates, verified on the public
+  // catalogue 2026-10-20. NON-report free paths only (ai-client
+  // FREE_NON_REPORT_ONLY_MODELS); exempt from the OpenRouter credit floor.
+  { provider: "openrouter", model: "nvidia/nemotron-3-ultra-550b-a55b:free", family: "nemotron-3", contextWindow: 1_000_000 },
+  { provider: "openrouter", model: "nvidia/nemotron-3-super-120b-a12b:free", family: "nemotron-3", contextWindow: 262_144 },
+  { provider: "openrouter", model: "google/gemma-4-31b-it:free", family: "gemma-4", contextWindow: 262_144 },
 
   // Chutes — awaits key wiring
   { provider: "chutes", model: "unsloth/Llama-3.3-70B-Instruct", family: "llama-3.3", contextWindow: 128_000 },
@@ -49,13 +51,16 @@ export const KNOWN_GOOD_FREE_MODELS: readonly KnownModel[] = [
 
 /** Families we bias discovery toward when ranking newly-found free models. */
 export const KNOWN_GOOD_FAMILIES: readonly string[] = [
+  // W1: families that answer today; mixtral / gemma-2 / llama-3.1 / mistral
+  // (all sub-20B or decommissioned) no longer earn a ranking bonus.
+  "qwen3",
+  "gpt-oss",
+  "deepseek",
+  "nemotron-3",
+  "gemma-4",
   "llama-3.3",
-  "qwen-2.5",
-  "deepseek-r1",
-  "mixtral",
-  "gemma-2",
-  "llama-3.1",
-  "mistral",
+  "kimi",
+  "minimax",
 ];
 
 /** Return the subset of the pool whose provider has an active key at runtime. */

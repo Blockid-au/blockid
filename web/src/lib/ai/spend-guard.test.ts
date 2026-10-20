@@ -14,9 +14,10 @@ const fsMock = vi.hoisted(() => {
       return v;
     },
     writeFileSync: (p: string, c: string) => { files.set(p, c); },
+    appendFileSync: (p: string, c: string) => { files.set(p, (files.get(p) ?? "") + c); },
   };
 });
-vi.mock("fs", () => ({ default: fsMock, readFileSync: fsMock.readFileSync, writeFileSync: fsMock.writeFileSync }));
+vi.mock("fs", () => ({ default: fsMock, readFileSync: fsMock.readFileSync, writeFileSync: fsMock.writeFileSync, appendFileSync: fsMock.appendFileSync }));
 
 const notif = vi.hoisted(() => ({ insert: vi.fn(async () => true), telegram: vi.fn(async () => true) }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: notif.insert }));
@@ -30,6 +31,7 @@ vi.mock("@/lib/supabase", () => ({
 import {
   DEFAULT_DAILY_CAP_AUD,
   DEFAULT_OPENROUTER_MIN_CREDIT_USD,
+  SPEND_HISTORY_FILE,
   SPEND_LEDGER_FILE,
   _resetSpendGuardForTests,
   dailyCapAud,
@@ -92,6 +94,27 @@ describe("ledger", () => {
     expect(isDailyCapReached(DAY1)).toBe(true);
     expect(isDailyCapReached(DAY2)).toBe(false);
     expect(readDailySpend(DAY2).spent_usd).toBe(0);
+  });
+
+  it("W1: the first read on a new day appends the closed day to ai-spend-history.jsonl exactly once", () => {
+    recordPaidSpend("deepinfra", 0.03, DAY1);
+    recordReportSpend("standard", 0.023, 22, DAY1);
+    expect(fsMock.files.get(SPEND_HISTORY_FILE)).toBeUndefined();
+    _resetSpendGuardForTests();
+    expect(readDailySpend(DAY2).spent_usd).toBe(0);
+    recordPaidSpend("deepinfra", 0.01, DAY2); // persists DAY2 — DAY1 is now only in the history
+    _resetSpendGuardForTests();
+    readDailySpend(DAY2);
+    const lines = (fsMock.files.get(SPEND_HISTORY_FILE) ?? "").trim().split("\n");
+    expect(lines).toHaveLength(1);
+    const row = JSON.parse(lines[0]!);
+    expect(row).toMatchObject({ day: "2026-09-13", calls: 1, by_provider: { deepinfra: 0.03 }, reports: { standard: { count: 1 } } });
+    expect(row.spent_usd).toBeCloseTo(0.03, 8);
+    // a second process reading the same stale ledger does not duplicate the day
+    fsMock.files.set(SPEND_LEDGER_FILE, JSON.stringify({ day: "2026-09-13", spent_usd: 0.03, calls: 1, by_provider: {} }));
+    _resetSpendGuardForTests();
+    readDailySpend(DAY2);
+    expect((fsMock.files.get(SPEND_HISTORY_FILE) ?? "").trim().split("\n")).toHaveLength(1);
   });
 
   it("ignores a negative / NaN cost", () => {

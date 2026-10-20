@@ -158,7 +158,7 @@ export function makeReportCaller(analysisId: string, _userId: string | null): Re
       taskClass,
       runStrikes,
     });
-    return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model };
+    return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model, tokensIn: r.usage?.input_tokens, tokensOut: r.usage?.output_tokens };
   };
 }
 
@@ -624,6 +624,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       budgetOverruns: stats?.budgetOverruns ?? 0,
       verdictTrimmed: stats?.verdictTrimmed ?? 0,
       autoCited: stats?.autoCited ?? 0,
+      ...(stats?.sectionModels ? { sectionModels: stats.sectionModels } : {}),
     }),
     deps.qualityWriter,
   ).catch(() => undefined);
