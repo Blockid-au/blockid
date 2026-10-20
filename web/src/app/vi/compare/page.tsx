@@ -8,6 +8,7 @@ import { getMessages } from "@/lib/i18n/t";
 import { buildCompareProps } from "../../(marketing)/compare/compare-content";
 import { buildCompareMetadata } from "../../(marketing)/compare/compare-metadata";
 import { ComparePage } from "../../(marketing)/compare/compare-page";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const revalidate = 3600;
 
@@ -17,5 +18,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ViComparePage() {
   const m = await getMessages("vi");
-  return <ComparePage {...buildCompareProps(m, "all", "vi")} />;
+  return <ComparePage {...buildCompareProps(m, "all", "vi", await getPaygView())} />;
 }

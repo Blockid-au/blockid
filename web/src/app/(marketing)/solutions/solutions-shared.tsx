@@ -69,7 +69,8 @@ import {
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { cn } from "@/lib/utils";
-import { fillPrices } from "./solutions-pricing";
+import { fillPrices as fillCatalogPrices } from "./solutions-pricing";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 
 /**
  * Trust badges surfaced on `/solutions/investor`, and reusable on any persona
@@ -225,6 +226,12 @@ export interface SolutionPageProps {
    * its own from lane P0-C and opts out until then.
    */
   showTrustBand?: boolean;
+  /**
+   * Pricing v5 P5 — the server-read `platform_config.payg_enabled` view
+   * (`getPaygView()` in each page). Selects the `{reportPrice}` token
+   * ("from A$19" when ON); omitted = flag OFF, today's copy.
+   */
+  payg?: PaygView;
 }
 
 /**
@@ -392,7 +399,11 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     closingTitle,
     closingSub,
     showTrustBand = TRUST_BAND_DEFAULT_SLUGS.has(slug),
+    payg = PAYG_OFF_VIEW,
   } = props;
+  // Every string below goes through this one filler (Pricing v5 P5: view +
+  // language aware; flag OFF = the pre-v5 `fillPrices`).
+  const fillPrices = (text: string): string => fillCatalogPrices(text, payg, lang);
 
   // S8-A: the visible FAQ below is the page's FAQPage (one per page — the
   // marketing layout no longer emits an invisible one); prices are filled

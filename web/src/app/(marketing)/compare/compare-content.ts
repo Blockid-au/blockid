@@ -28,6 +28,7 @@
 
 import { t, type Messages } from "@/lib/i18n/t";
 import { fillPrices } from "../solutions/solutions-pricing";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import { EVALUATOR_PRICING_HREF } from "../solutions/solutions-shared";
 
 /**
@@ -130,12 +131,18 @@ export const COMPARE_PROOF_HREFS = [
   "/guide",
 ] as const;
 
-/** Reads a key and substitutes every `{token}` from the catalogue. */
-function tp(m: Messages, key: string): string {
-  return fillPrices(t(m, key));
+type Tp = (m: Messages, key: string) => string;
+
+/**
+ * Reads a key and substitutes every `{token}` from the catalogue. Pricing v5
+ * P5: the PaygView (default flag OFF = the pre-v5 output) and the language
+ * pick the `{reportPrice}` token.
+ */
+function makeTp(view: PaygView = PAYG_OFF_VIEW, lang: "en" | "vi" = "en"): Tp {
+  return (m, key) => fillPrices(t(m, key), view, lang);
 }
 
-function rows(m: Messages): CompareRow[] {
+function rows(m: Messages, tp: Tp): CompareRow[] {
   return COMPARE_ROW_KEYS.map((key) => ({
     key,
     label: tp(m, `compare.table.row.${key}.label`),
@@ -145,7 +152,7 @@ function rows(m: Messages): CompareRow[] {
   }));
 }
 
-function cards(m: Messages): CompareCard[] {
+function cards(m: Messages, tp: Tp): CompareCard[] {
   return COMPARE_PROOF_HREFS.map((href, i) => ({
     title: tp(m, `compare.diff.${i + 1}.title`),
     body: tp(m, `compare.diff.${i + 1}.body`),
@@ -154,7 +161,7 @@ function cards(m: Messages): CompareCard[] {
   }));
 }
 
-function faqs(m: Messages): CompareFaq[] {
+function faqs(m: Messages, tp: Tp): CompareFaq[] {
   return [
     // §4b — the approved paragraph, shared with the three evaluator pages.
     { q: tp(m, "solutions.faq.chatgpt.q"), a: tp(m, "solutions.faq.chatgpt.a") },
@@ -168,6 +175,7 @@ function breadcrumb(
   m: Messages,
   variant: CompareVariant,
   lang: "en" | "vi",
+  tp: Tp,
 ): { name: string; href: string }[] {
   const trail = [
     { name: tp(m, "compare.breadcrumb.home"), href: lang === "vi" ? "/vi" : "/" },
@@ -183,7 +191,9 @@ export function buildCompareProps(
   m: Messages,
   variant: CompareVariant = "all",
   lang: "en" | "vi" = "en",
+  payg: PaygView = PAYG_OFF_VIEW,
 ): ComparePageProps {
+  const tp = makeTp(payg, lang);
   return {
     variant,
     lang,
@@ -206,7 +216,7 @@ export function buildCompareProps(
         chatgpt: tp(m, "compare.table.col.chatgpt"),
         valuer: tp(m, "compare.table.col.valuer"),
       },
-      rows: rows(m),
+      rows: rows(m, tp),
     },
     pullquote: {
       kicker: tp(m, "compare.pullquote.kicker"),
@@ -225,22 +235,28 @@ export function buildCompareProps(
     diff: {
       kicker: tp(m, "compare.diff.kicker"),
       title: tp(m, "compare.diff.title"),
-      cards: cards(m),
+      cards: cards(m, tp),
     },
     faqTitle: tp(m, "compare.faq.title"),
-    faqs: faqs(m),
+    faqs: faqs(m, tp),
     sources: {
       title: tp(m, "compare.sources.title"),
       intro: tp(m, "compare.sources.intro"),
       items: [1, 2, 3, 4, 5].map((i) => tp(m, `compare.sources.${i}`)),
       prices: tp(m, "compare.sources.prices"),
     },
-    breadcrumb: breadcrumb(m, variant, lang),
+    breadcrumb: breadcrumb(m, variant, lang, tp),
   };
 }
 
 /** `<title>` / description per variant, tokens filled. */
-export function compareMeta(m: Messages, variant: CompareVariant): { title: string; description: string } {
+export function compareMeta(
+  m: Messages,
+  variant: CompareVariant,
+  payg: PaygView = PAYG_OFF_VIEW,
+  lang: "en" | "vi" = "en",
+): { title: string; description: string } {
+  const tp = makeTp(payg, lang);
   return {
     title: tp(m, `meta.compare.${variant}.title`),
     description: tp(m, `meta.compare.${variant}.description`),

@@ -17,6 +17,7 @@ import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 import { buildAcceleratorProps } from "../evaluator-page-props";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const PATH = "/solutions/accelerator";
 const VI_PATH = "/vi/solutions/accelerator";
@@ -38,5 +39,5 @@ export const revalidate = 3600;
 
 export default async function SolutionsAcceleratorPage() {
   const m = await getMessages("en");
-  return <SolutionsPageShell {...buildAcceleratorProps(m, "en")} />;
+  return <SolutionsPageShell {...buildAcceleratorProps(m, "en", await getPaygView())} />;
 }
