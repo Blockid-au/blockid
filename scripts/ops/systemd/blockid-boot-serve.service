@@ -1,0 +1,38 @@
+# L1-4 (2026-10-20): reboot must not be an outage. G30 origins are transient
+# `g30-origin-*` units (Restart=no, lost on reboot); this unit starts the
+# ACTIVE release recorded in web/content/reports/g30-serving-state.json on its
+# recorded port at boot, rebinds PID/startTicks in serving state, verifies
+# nginx routing, and falls back to the previous release through the canonical
+# warm rollback. No-op when the active origin is already healthy.
+# Runbook: web/scripts/g30-boot-serve.md
+#
+# Install (root):
+#   sudo install -m 0644 scripts/ops/systemd/blockid-boot-serve.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable blockid-boot-serve.service
+[Unit]
+Description=BlockID boot path: start the recorded G30 serving origin (L1-4)
+Wants=network-online.target
+After=network-online.target local-fs.target docker.service nginx.service
+RequiresMountsFor=/data /home/dovanlong/blockid.au/web/node_modules
+ConditionPathExists=/home/dovanlong/blockid.au/web/content/reports/g30-serving-state.json
+
+[Service]
+# simple, not oneshot: never hold multi-user.target while Supabase warms up.
+Type=simple
+User=dovanlong
+Group=dovanlong
+WorkingDirectory=/home/dovanlong/blockid.au/web
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/bin/bash /home/dovanlong/blockid.au/web/scripts/g30-boot-serve.sh
+# The launcher needs `sudo -n systemd-run`; do not set NoNewPrivileges.
+# Origins run in their own g30-origin-* cgroups, so this unit exiting (or
+# being stopped) never touches them. Lock wait 900 s + deps 600 s + 2 x 240 s
+# health + warm rollback fits inside the cap.
+RuntimeMaxSec=45min
+Restart=no
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

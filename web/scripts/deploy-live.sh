@@ -407,29 +407,9 @@ fail() {
   exit 1
 }
 
-load_env() {
-  eval "$(node -e "
-    const fs = require('fs');
-    const lines = fs.readFileSync('$WEB_DIR/.env', 'utf8').split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const idx = trimmed.indexOf('=');
-      if (idx < 1) continue;
-      const key = trimmed.slice(0, idx);
-      let val = trimmed.slice(idx + 1);
-      if ((val.startsWith('\"') && val.endsWith('\"')) || (val.startsWith(\"'\") && val.endsWith(\"'\"))) {
-        val = val.slice(1, -1);
-      }
-      const escaped = val.replace(/'/g, \"'\\\\\\\"'\\\\\\\"'\");
-      console.log('export ' + key + \"='\" + escaped + \"'\");
-    }
-  ")"
-  export NODE_ENV=production
-  export HOSTNAME=0.0.0.0
-  export SUPABASE_URL=http://127.0.0.1:8000
-  export REDIS_URL=redis://127.0.0.1:6379
-}
+# load_env lives in lib/load-env.sh (shared with the L1-4 boot path g30-boot-serve.sh).
+# shellcheck source=lib/load-env.sh
+source "$SCRIPT_DIR/lib/load-env.sh"
 
 # Keep only the newest $RELEASES_KEEP release dirs. NEVER delete the dir the
 # live server is currently running from (CURRENT_LINK) or the rollback target
