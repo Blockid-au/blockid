@@ -91,6 +91,7 @@ export const KIND_META: Record<string, { icon: typeof Bell; color: string; label
   ai_capacity: { icon: Bell, color: "text-red-600", label: "AI capacity" },
   intro_requested: { icon: Users, color: "text-emerald-600", label: "Intro requested" },
   access_requested: { icon: Eye, color: "text-amber-600", label: "Access requested" },
+  verified_review_sla: { icon: Bell, color: "text-amber-600", label: "Verified review SLA" },
 };
 
 function timeAgo(iso: string): string {
