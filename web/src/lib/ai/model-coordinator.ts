@@ -59,6 +59,8 @@ export const JUDGE_VETO_MARGIN = 0.1;
 export const DEMOTE_LIVE_GROUNDED_BELOW = 0.8;
 export const DEMOTE_LIVE_MIN_SECTIONS = 20;
 export const DEMOTE_SCHEMA_FAIL_ABOVE = 0.1;
+/** Float tolerance for the threshold comparisons (0.91 + 0.05 must equal 0.96). */
+const EPS = 1e-9;
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -198,11 +200,11 @@ export function challengerWins(ch: TaskModelScore, pr: TaskModelScore): { win: b
   }
   const cC = cpa(ch);
   const cP = cpa(pr);
-  const cheaper = Number.isFinite(cC) && cC < cP && cC <= PROMOTE_COST_RATIO * cP;
-  if (ch.quality >= pr.quality - PROMOTE_QUALITY_TOLERANCE && cheaper) {
+  const cheaper = Number.isFinite(cC) && cC < cP && cC <= PROMOTE_COST_RATIO * cP + EPS;
+  if (ch.quality >= pr.quality - PROMOTE_QUALITY_TOLERANCE - EPS && cheaper) {
     return { win: true, reason: `quality ${ch.quality} ≥ ${pr.quality} − ${PROMOTE_QUALITY_TOLERANCE} at ≤ ${PROMOTE_COST_RATIO * 100}% cost/accepted` };
   }
-  if (ch.quality >= pr.quality + PROMOTE_QUALITY_GAIN && Number.isFinite(cC) && (cC <= PROMOTE_GAIN_COST_RATIO * cP || !Number.isFinite(cP))) {
+  if (ch.quality >= pr.quality + PROMOTE_QUALITY_GAIN - EPS && Number.isFinite(cC) && (cC <= PROMOTE_GAIN_COST_RATIO * cP + EPS || !Number.isFinite(cP))) {
     return { win: true, reason: `quality ${ch.quality} ≥ ${pr.quality} + ${PROMOTE_QUALITY_GAIN} at ≤ ${PROMOTE_GAIN_COST_RATIO}× cost/accepted` };
   }
   return { win: false, reason: `quality ${ch.quality} vs ${pr.quality}, cost/accepted ${Number.isFinite(cC) ? cC.toFixed(5) : "—"} vs ${Number.isFinite(cP) ? cP.toFixed(5) : "—"}` };
@@ -315,6 +317,8 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
   const tasks: Partial<Record<EvalTaskId, TaskCard>> = { ...(prior?.tasks ?? {}) };
   const paidProposalLadders: PaidLadders = {};
   const paidReasons: string[] = [];
+  /** `${class}|${model}` already demoted in this pass. */
+  const demotedKeys = new Set<string>();
 
   for (const task of EVAL_TASK_IDS) {
     const profile = TASK_PROFILES[task];
@@ -401,6 +405,7 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
         const ladder = paidProposalLadders[cls] ?? start;
         if (reasons.length === 0 || ladder[ladder.length - 1] === m) continue;
         paidProposalLadders[cls] = [...ladder.filter((x) => x !== m), m];
+        demotedKeys.add(`${cls}|${m}`);
         const reason = `${task}: ${reasons.join("; ")}`;
         paidReasons.push(`demote ${m} → back of ${cls} ladder: ${reason}`);
         decisions.push({ kind: "demote", scope: "paid", task, provider: "deepinfra", model: m, reason, outcome: "proposed" });
@@ -413,11 +418,12 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
   for (const cls of ["report", "synthesis"] as const) {
     const start = paidProposalLadders[cls] ?? effectivePaidLadder(input.policy, cls, input.defaultPaidLadders);
     for (const m of start) {
-      if (decisions.some((d) => d.scope === "paid" && d.model === m && d.kind === "demote")) continue;
+      if (demotedKeys.has(`${cls}|${m}`)) continue;
       const reasons = demotionReasons(null, Number.POSITIVE_INFINITY, input.live[`deepinfra:${m}`], false);
       const ladder = paidProposalLadders[cls] ?? start;
       if (reasons.length === 0 || ladder[ladder.length - 1] === m) continue;
       paidProposalLadders[cls] = [...ladder.filter((x) => x !== m), m];
+      demotedKeys.add(`${cls}|${m}`);
       paidReasons.push(`demote ${m} → back of ${cls} ladder: ${reasons.join("; ")}`);
       decisions.push({ kind: "demote", scope: "paid", provider: "deepinfra", model: m, reason: `${cls}: ${reasons.join("; ")}`, outcome: "proposed" });
     }
@@ -509,7 +515,7 @@ export function coordinate(input: CoordinatorInput): CoordinatorOutput {
           const qH = hs.reduce((s, r) => s + r.quality, 0) / hs.length;
           const eligible = shared.every((r) => r.passesProfile && r.criticalErrors === 0);
           // Zero cost on both sides: only the "+0.05 quality" leg can win.
-          win = eligible && qC >= qH + PROMOTE_QUALITY_GAIN;
+          win = eligible && qC >= qH + PROMOTE_QUALITY_GAIN - EPS;
           why = `mean quality ${qC.toFixed(3)} vs head ${head} ${qH.toFixed(3)} over ${shared.length} task(s)${eligible ? "" : " (fails a profile)"}`;
         } else if (shared.length > 0 && headRows.length === 0 && rs.every((r) => r.passesProfile)) {
           win = true;
