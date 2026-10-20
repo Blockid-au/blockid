@@ -120,9 +120,10 @@ describe("/legal/privacy v2.2 — Money Finder + Evaluator data (S14-A)", () => 
     expect(html).toMatch(/never shown to an investor or\s+evaluator/);
   });
 
-  it("covers guest A$3 purchases: email + Stripe, no card number, tokenised link", async () => {
+  it("covers guest purchases (price-neutral since G35): email + Stripe, no card number, tokenised link", async () => {
     const html = await render("privacy");
-    expect(html).toMatch(/report for A\$3 without an\s+account/);
+    expect(html).toMatch(/Money Finder report \(at the price shown\s+before you pay\) without an account/);
+    expect(html).not.toMatch(/report for A\$3 without an\s+account/);
     expect(html).toMatch(/do <strong[^>]*>not<\/strong> store your card number/);
     expect(html).toMatch(/random access token/);
   });
@@ -171,7 +172,7 @@ describe("/legal/privacy v2.2 — Money Finder + Evaluator data (S14-A)", () => 
       "Investor preferences and discoverability flag",
       "Calendar-feed token",
       "Dashboard layout and notification preferences",
-      "Money Finder reports (guest, A$3)",
+      "Money Finder reports (guest purchase)",
     ]) {
       expect(html, cell).toContain(cell);
     }
@@ -215,11 +216,12 @@ describe("/legal/privacy v2.2 — Money Finder + Evaluator data (S14-A)", () => 
 // policy. The legacy short-form /terms page (cooling-off + unused-credit
 // refund) is deleted and 301s here; the pricing FAQ promise ("7-day
 // money-back, no questions asked") is now the Terms clause 3A.
-describe("/legal/terms v2.1 — the one refund policy (QA-3)", () => {
-  it("renders version 2.1, effective 12 September 2026, and retires /terms", async () => {
+describe("/legal/terms v2.2 — the one refund policy (QA-3, Pricing v5 G35)", () => {
+  it("renders version 2.2, effective 20 October 2026, and retires /terms", async () => {
     const html = await render("terms");
-    expect(html).toContain("This version 2.1 takes effect on");
-    expect(html).toContain("12 September 2026");
+    expect(html).toContain("This version 2.2 takes effect on");
+    expect(html).toContain("20 October 2026");
+    expect(html).not.toContain("This version 2.1 takes effect on");
     expect(html).not.toContain("This version 2.0 replaces");
     expect(html).toMatch(/previously\s+published at <code[^>]*>\/terms<\/code>/);
   });
@@ -241,6 +243,12 @@ describe("/legal/terms v2.1 — the one refund policy (QA-3)", () => {
     expect(html).toMatch(/non-refundable once\s+delivered/);
     expect(html).toMatch(/except where the ACL requires/);
     expect(html).toMatch(/Australian Consumer Law guarantees are never excluded/);
+    // v2.2 (G35): flag-neutral — no fixed one-off price, and a reviewed
+    // (Verified) report still in review is refunded in full on request.
+    expect(html).toMatch(/price shown on the review step before you\s+pay/);
+    expect(html).toMatch(/full refund at any time while that report is still in review/);
+    const clause3A = html.slice(html.indexOf("3A. Cancellation and refunds"), html.indexOf('id="changelog"'));
+    expect(clause3A).not.toContain("A$3");
     // The v2.0 "refunds only where the ACL requires" sentence is gone.
     expect(html).not.toMatch(/provided only where required\s+by the non-excludable/);
   });
@@ -258,6 +266,7 @@ describe("/legal/terms v2.1 — the one refund policy (QA-3)", () => {
     const html = await render("terms");
     expect(html).toContain("Auschain PTY LTD");
     expect(html).toContain("ABN 79 659 615 111");
+    expect(html).toMatch(/v2\.2 — effective 20 October 2026/);
     expect(html).toMatch(/v2\.1 — effective 12 September 2026/);
     expect(html).toMatch(/v2\.0 — effective 30 July 2026/);
   });

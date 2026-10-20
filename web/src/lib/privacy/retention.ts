@@ -80,9 +80,9 @@ export const RETENTION_RULES: readonly RetentionRule[] = Object.freeze([
     days: 365,
     mode: "anonymise",
     where: "user_id is null and guest_email is not null",
-    policyRow: "Money Finder reports (guest, A$3)",
+    policyRow: "Money Finder reports (guest purchase)",
     note:
-      "Guest A$3 report: 12 months from purchase the access link is disabled (access_token → null) and the email removed (guest_email → null). stripe_session_id / meta payment ids, intake, and narrative stay for the 7-year financial period. Member rows (user_id set) never age out.",
+      "Guest Money Finder report: 12 months from purchase the access link is disabled (access_token → null) and the email removed (guest_email → null). stripe_session_id / meta payment ids, intake, and narrative stay for the 7-year financial period. Member rows (user_id set) never age out.",
   },
   {
     id: "radar_matches",

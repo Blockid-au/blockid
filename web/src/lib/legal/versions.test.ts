@@ -68,16 +68,34 @@ describe("DISCLAIMER_VERSIONS registry integrity", () => {
     }
   });
 
-  it("tos v2.1 (QA-3 refund policy, 2026-09-12); privacy moved on to v2.4 (APP 1.7, 2026-09-26)", () => {
-    // tos and privacy shared "v2.0-2026-07-16" until the privacy policy was
-    // consolidated (v2.1 T0275, v2.2 S14-A, v2.3 S21-A review). tos moved to
-    // v2.1 on 2026-09-12 when the one refund policy (clause 3A) landed and
-    // the legacy /terms page was retired. Only step-trial records the tos
-    // version; existing consent rows are untouched.
-    expect(DISCLAIMER_VERSIONS.tos).toBe("v2.1-2026-09-12");
+  it("tos v2.2 (G35 Pricing v5, flag-neutral clause 3A, 2026-10-20) is newer than privacy v2.4", () => {
+    expect(DISCLAIMER_VERSIONS.tos).toBe("v2.2-2026-10-20");
     expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.4-2026-09-26");
-    expect(DISCLAIMER_VERSIONS.privacy > DISCLAIMER_VERSIONS.tos).toBe(true);
+    // Version strings share the v2.x-<date> shape, so the date decides.
+    expect(DISCLAIMER_VERSIONS.tos.slice(-10) > DISCLAIMER_VERSIONS.privacy.slice(-10)).toBe(true);
   });
+
+  it("tos v2.2 has its registry row written (pending-authority, applied with the cut-over)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const sql = readFileSync(join(process.cwd(), "supabase", "pending-authority", "0477_terms_v2_2_registry.sql"), "utf8");
+    expect(sql).toContain("'tos_au_v2_2'");
+    expect(sql).toContain("'2.2'");
+    expect(sql).toContain("on conflict (id) do nothing");
+    expect(sql).not.toContain("A$3");
+    expect(sql).toMatch(/Australian Consumer Law guarantees are not excluded/);
+    expect(sql).toMatch(/refunded in full on request while it is still in review/);
+  });
+
+  it("history: tos v2.1 (QA-3 refund policy, 2026-09-12) preceded privacy v2.4 (APP 1.7, 2026-09-26)", () => {
+    const TOS_V2_1 = "v2.1-2026-09-12";
+    expect(DISCLAIMER_VERSIONS.privacy > TOS_V2_1).toBe(true);
+  });
+  // tos and privacy shared "v2.0-2026-07-16" until the privacy policy was
+  // consolidated (v2.1 T0275, v2.2 S14-A, v2.3 S21-A review). tos moved to
+  // v2.1 on 2026-09-12 (one refund policy, clause 3A) and to v2.2 on
+  // 2026-10-20 (G35). Only step-trial records the tos version; existing
+  // consent rows are untouched.
 });
 
 describe("getCurrentVersion", () => {
@@ -163,21 +181,22 @@ describe("registry / guard cross-invariants", () => {
     }
   });
 
-  it("shipped release train: tos v2.1 (2026-09-12), privacy v2.4 (2026-09-26, APP 1.7 / 0471), the other 5 kinds on v1.0", () => {
+  it("shipped release train: tos v2.2 (2026-10-20, G35 / 0477), privacy v2.4 (2026-09-26, APP 1.7 / 0471), the other 5 kinds on v1.0", () => {
     // The 2026-07-16 bulk release stamped tos/privacy at v2.0 and the five
     // AFSL/consent kinds at v1.0; T0275 moved privacy alone to v2.1, S14-A
     // to v2.2 (registry row 0328), the S21-A review to v2.3 (0342); the
-    // QA-3 commercial audit moved tos to v2.1 (0343, one refund policy).
+    // QA-3 commercial audit moved tos to v2.1 (0343, one refund policy);
+    // G35 Pricing v5 moved tos to v2.2 (0477, flag-neutral clause 3A).
     // Pin the distinct-string count so an accidental copy of one group's
     // version into another fires here instead of silently reusing a
     // body_md hash in consent_events.
     const versions = Object.values(DISCLAIMER_VERSIONS);
     const unique = new Set(versions);
     expect(unique.size).toBe(3);
-    expect(unique.has("v2.1-2026-09-12")).toBe(true);
+    expect(unique.has("v2.2-2026-10-20")).toBe(true);
     expect(unique.has("v2.4-2026-09-26")).toBe(true);
     expect(unique.has("v1.0-2026-07-16")).toBe(true);
-    expect(DISCLAIMER_VERSIONS.tos).toBe("v2.1-2026-09-12");
+    expect(DISCLAIMER_VERSIONS.tos).toBe("v2.2-2026-10-20");
     expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.4-2026-09-26");
     for (const kind of [
       "general_advice_warning",

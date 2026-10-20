@@ -25,18 +25,28 @@ export const DISCLAIMER_VERSIONS: Record<DisclaimerKind, string> = {
   // v2.1 (QA-3 commercial audit, 2026-09-12): one canonical Terms at
   // /legal/terms (legacy /terms 301s there); new clause 3A {#refunds} —
   // 7-day money-back on the first monthly payment, annual pro-rata within
-  // 14 days, A$3 reports + credit packs non-refundable once delivered
+  // 14 days, one-off reports + credit packs non-refundable once delivered
   // except where the ACL requires, ACL guarantees never excluded; clause 3
   // trial length per plan (7 days founder/evaluator, 14 days Cohort).
   // Registry row: supabase/migrations/0346_terms_v2_1_registry.sql.
-  tos: "v2.1-2026-09-12",
+  // v2.2 (G35 Pricing v5 P5, 2026-10-20): clause 3A describes one-off
+  // reports by the price shown on the review step (no fixed amount), adds a
+  // full refund on request for a reviewed (Verified) report still in review,
+  // keeps "ACL guarantees are never excluded". FLAG-NEUTRAL on purpose: the
+  // text is true with `payg_enabled` off (legacy single report, Money
+  // Finder) and on (Snapshot / Full / Verified — the in-review right is
+  // worded "where we offer"), so ONE version is current regardless of the
+  // flag and consent rows never depend on a runtime switch.
+  // Registry row: supabase/pending-authority/0477_terms_v2_2_registry.sql
+  // (written, NOT applied — founder applies it with the P5 cut-over).
+  tos: "v2.2-2026-10-20",
   // v2.1 (T0275, 2026-09-10): one canonical policy at /legal/privacy; AI
   // provider chain listed as actually run (groq → cerebras → sambanova →
   // deepinfra → anthropic → ollama → openrouter); founder-approved data
   // principle added; the "never train third-party models" sentence removed.
   // Registry row: supabase/migrations/0313_privacy_v2_1_registry.sql.
   // v2.2 (S14-A, 2026-09-11): Money Finder intake + optional demographic
-  // flags (eligibility only), guest A$3 purchases, Founder Radar emails
+  // flags (eligibility only), guest one-off purchases, Founder Radar emails
   // (money_radar opt-out) + calendar tokens, evaluator-entered startup data
   // (claim, consent tiers, founder removal route), investor discoverability,
   // per-table retention. Registry row: 0328_privacy_v2_2_registry.sql.

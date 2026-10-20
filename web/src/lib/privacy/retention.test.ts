@@ -90,7 +90,7 @@ describe("RETENTION_RULES ↔ privacy-v2.mdx clause 4 parity", () => {
 
   it("parses the policy table (sanity: the guest-report and radar rows are there)", () => {
     expect(policy.length).toBeGreaterThanOrEqual(14);
-    expect(policy.find((r) => r.dataClass.includes("Money Finder reports (guest, A$3)"))?.days).toBe(365);
+    expect(policy.find((r) => r.dataClass.includes("Money Finder reports (guest purchase)"))?.days).toBe(365);
     expect(policy.find((r) => r.dataClass.includes("Founder Radar matches"))?.days).toBe(90);
   });
 
