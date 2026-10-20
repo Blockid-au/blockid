@@ -304,7 +304,7 @@ test.describe("Post-deploy hydrated smoke", () => {
     await expect(page.getByTestId("signup-account-type")).toBeVisible({ timeout: PAGE_TIMEOUT });
   });
 
-  test("/funding/report/demo — sample banner, >= 3 grant cards, Gantt, A$3 CTA", async ({
+  test("/funding/report/demo — sample banner, >= 3 grant cards, Gantt, build-mine CTA", async ({
     page,
   }) => {
     test.setTimeout(15_000);
