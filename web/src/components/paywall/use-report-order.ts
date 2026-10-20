@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
+import { isPaygTier, type PaygTier } from "@/lib/pricing/v5-payg";
 
 export interface OrderMeta {
   orderId: string;
@@ -46,6 +47,8 @@ interface ApiResponse {
   message?: string;
   order?: OrderMeta;
   report?: ReportPayload;
+  /** G35 D26 follow-up: present only on a Pricing v5 (PAYG) order. */
+  paygTier?: string;
   retryInSeconds?: number;
   refunded?: boolean;
   regenerable?: boolean;
@@ -56,7 +59,13 @@ export type ReportOrderState =
   | { phase: "idle" }
   | { phase: "loading" }
   | { phase: "pending"; message: string; status: string }
-  | { phase: "ready"; order: OrderMeta; report: ReportPayload }
+  | {
+      phase: "ready";
+      order: OrderMeta;
+      report: ReportPayload;
+      /** The tier to label a Pricing v5 order with; null on a legacy A$3 / credits order (no label). */
+      paygTier: PaygTier | null;
+    }
   | {
       phase: "blocked";
       httpStatus: number;
@@ -67,6 +76,12 @@ export type ReportOrderState =
     };
 
 export const DEFAULT_RETRY_SECONDS = 15;
+
+/** The PAYG tier label a 200 body carries (G35 D26 follow-up) — null when absent or not a tier (legacy order). Pure. */
+export function orderPaygTier(body: { paygTier?: unknown } | null | undefined): PaygTier | null {
+  const tier = body?.paygTier;
+  return isPaygTier(tier) ? tier : null;
+}
 
 export function useReportOrder(orderId: string | null | undefined): ReportOrderState {
   const [state, setState] = useState<ReportOrderState>(orderId ? { phase: "loading" } : { phase: "idle" });
@@ -85,7 +100,7 @@ export function useReportOrder(orderId: string | null | undefined): ReportOrderS
     if (!liveRef.current) return null;
 
     if (res.status === 200 && data.ok && data.report && data.order) {
-      setState({ phase: "ready", order: data.order, report: data.report });
+      setState({ phase: "ready", order: data.order, report: data.report, paygTier: orderPaygTier(data) });
       return null;
     }
 
