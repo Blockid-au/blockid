@@ -79,12 +79,10 @@ import { VERIFIED_FULL_MESSAGE, paygTierLabel, resolveUpgradeSource, verifiedCap
 import { countOpenVerifiedOrders, inFlightOrderFor, listBuyerOrders } from "@/lib/pricing/payg-orders";
 import { assertProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
-import {
-  EVALUATOR_BUYER_ROLE,
-  QUOTA_AVAILABLE_MESSAGE,
-  authoriseEvaluatorBuyer,
-  evaluatorQuotaCoversFull,
-} from "@/lib/evaluations/payg-buyer";
+
+// The evaluator-buyer helpers (lib/evaluations/payg-buyer.ts) load lazily —
+// only a body with `evaluationId` (flag ON) needs the evaluations graph.
+const EVALUATOR_BUYER_ROLE = "evaluator";
 
 interface CheckoutBody {
   businessId?: unknown;
@@ -550,8 +548,10 @@ async function paygCheckout(
   // an evaluator through their `evaluations` row (deal flow), anyone else
   // through project scope (owner / member).
   let evaluatorEvaluationId: string | null = null;
+  let evaluatorLib: typeof import("@/lib/evaluations/payg-buyer") | null = null;
   if (body.evaluationId !== undefined && body.evaluationId !== null) {
-    const buyer = await authoriseEvaluatorBuyer(user.id, body.evaluationId, businessId);
+    evaluatorLib = await import("@/lib/evaluations/payg-buyer");
+    const buyer = await evaluatorLib.authoriseEvaluatorBuyer(user.id, body.evaluationId, businessId);
     if (!buyer.ok) return paygError(buyer.status, buyer.code, buyer.reason);
     evaluatorEvaluationId = buyer.evaluationId;
   } else {
@@ -583,9 +583,9 @@ async function paygCheckout(
   // An included report never costs money (plan §6.4.6): while the evaluator's
   // plan / trial still includes a Full report, a card Snapshot / Full is
   // refused. Verified (human review, never included) and upgrades are not.
-  if (evaluatorEvaluationId && !target.upgradeOfOrderId && target.tier !== "verified") {
-    if (await evaluatorQuotaCoversFull(user)) {
-      return paygError(409, "quota_available", QUOTA_AVAILABLE_MESSAGE);
+  if (evaluatorLib && evaluatorEvaluationId && !target.upgradeOfOrderId && target.tier !== "verified") {
+    if (await evaluatorLib.evaluatorQuotaCoversFull(user)) {
+      return paygError(409, "quota_available", evaluatorLib.QUOTA_AVAILABLE_MESSAGE);
     }
   }
 
