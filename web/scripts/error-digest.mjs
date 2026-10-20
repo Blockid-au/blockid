@@ -6,9 +6,24 @@
 //   node scripts/error-digest.mjs --log /path/to/file --window 10 --json
 //
 // What it does each run:
-//   1. Reads the log from the byte offset stored in /data/logs/.error-digest.offset
-//      (offset > size ⇒ the file was rotated / truncated ⇒ restart at 0), so no
-//      line is counted twice and a partial trailing line waits for the next run.
+//   1. L1-2 (2026-10-20): resolves WHICH logs to read from the G30 serving state
+//      (content/reports/g30-serving-state.json). Since 22/09 the live server is a
+//      systemd origin unit whose stdout/stderr go to
+//      ~/.local/state/blockid-runtime/g30-origin-<port>-<sha256(release)[:10]>-<tag>.service.log
+//      (scripts/g30-supervised-launch.py) — the legacy /data/logs/blockid-production.log
+//      is no longer written, so reading it made errors_1h a fake 0. The digest
+//      now reads the ACTIVE origin's log plus the PREVIOUS origin's log (the
+//      switch window; in-flight work may still log there) and fast-forwards the
+//      offsets of the other retained origins so a rollback never re-reads their
+//      history. Origin logs have no timestamps, so the "window" is a per-log
+//      byte offset kept in /data/logs/.error-digest.offsets.json (each run reads
+//      only the bytes appended since the previous run; offset > size ⇒ the file
+//      was truncated ⇒ restart at 0; a partial trailing line waits for the next
+//      run; first ever run seeds every log at its current size). The legacy
+//      single-file path (+ /data/logs/.error-digest.offset) is used only when no
+//      serving state exists, or when --log is passed explicitly. A run that can
+//      read none of the resolved origin logs appends NO row (blind ≠ zero
+//      errors), so /api/status.errors_1h shows windows=0 instead of total=0.
 //   2. Groups error lines by [tag] + normalised message (lib/error-digest-core.mjs).
 //   3. Appends {ts, window_min, total, classes} to content/reports/error-digest.jsonl.
 //   4. Keeps a 7-day class memory in content/reports/error-digest-state.json.
@@ -28,7 +43,9 @@
 // Lock: /tmp/blockid-error-digest.lock (pid file, stale-safe). Exit 0 always
 // except a genuine crash (exit 1) so cron-health stays readable.
 
-import { closeSync, existsSync, openSync, readSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { closeSync, existsSync, openSync, readdirSync, readSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -37,6 +54,9 @@ import { computeReadStart, digestLines, emptyAiCapacityState, emptyState, emptyT
 
 const DEFAULT_LOG = existsSync("/data/logs/blockid-production.log") ? "/data/logs/blockid-production.log" : "/tmp/blockid-production.log";
 const DEFAULT_OFFSET = "/data/logs/.error-digest.offset";
+const DEFAULT_OFFSETS = "/data/logs/.error-digest.offsets.json";
+const SERVING_STATE = path.join(WEB_DIR, "content", "reports", "g30-serving-state.json");
+const RUNTIME_DIR = process.env.BLOCKID_RUNTIME_DIR || path.join(os.userInfo().homedir, ".local", "state", "blockid-runtime");
 const REPORT = path.join(WEB_DIR, "content", "reports", "error-digest.jsonl");
 const STATE = path.join(WEB_DIR, "content", "reports", "error-digest-state.json");
 const LOCK = "/tmp/blockid-error-digest.lock";
@@ -83,13 +103,28 @@ export async function readAiCapacity(opts = {}) {
 }
 
 export function parseArgs(argv) {
-  const out = { dryRun: false, json: false, log: DEFAULT_LOG, offsetFile: DEFAULT_OFFSET, windowMin: WINDOW_MIN };
+  const out = {
+    dryRun: false,
+    json: false,
+    log: DEFAULT_LOG,
+    explicitLog: false,
+    offsetFile: DEFAULT_OFFSET,
+    offsetsFile: DEFAULT_OFFSETS,
+    servingState: SERVING_STATE,
+    runtimeDir: RUNTIME_DIR,
+    windowMin: WINDOW_MIN,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--dry-run") out.dryRun = true;
     else if (a === "--json") out.json = true;
-    else if (a === "--log") out.log = argv[++i];
-    else if (a === "--offset-file") out.offsetFile = argv[++i];
+    else if (a === "--log") {
+      out.log = argv[++i];
+      out.explicitLog = true;
+    } else if (a === "--offset-file") out.offsetFile = argv[++i];
+    else if (a === "--offsets-file") out.offsetsFile = argv[++i];
+    else if (a === "--serving-state") out.servingState = argv[++i];
+    else if (a === "--runtime-dir") out.runtimeDir = argv[++i];
     else if (a === "--window") out.windowMin = Number(argv[++i]) || WINDOW_MIN;
   }
   return out;
@@ -127,6 +162,157 @@ export function readWindow(logFile, offset) {
   return { lines, nextOffset, start, size };
 }
 
+/**
+ * L1-2: the service log of one G30 serving-state entry. The unit name (and so
+ * the log name) is `g30-origin-<port>-<sha256(releasePath)[:10]>-<tag>` —
+ * scripts/g30-supervised-launch.py — so the log is found from the state alone,
+ * without sudo/systemctl. A relaunch of the same release on the same port gets
+ * a new tag; the most recently written log wins. null when none exists (e.g.
+ * the 4001 bootstrap origin, which predates supervised units).
+ */
+export function originLogFor(entry, runtimeDir, { readdirImpl = readdirSync, statImpl = statSync } = {}) {
+  if (!entry || typeof entry !== "object" || !Number.isInteger(entry.port) || typeof entry.releasePath !== "string") return null;
+  const hash = createHash("sha256").update(entry.releasePath).digest("hex").slice(0, 10);
+  const prefix = `g30-origin-${entry.port}-${hash}-`;
+  let names;
+  try {
+    names = readdirImpl(runtimeDir);
+  } catch {
+    return null;
+  }
+  let best = null;
+  for (const name of names) {
+    if (typeof name !== "string" || !name.startsWith(prefix) || !name.endsWith(".service.log")) continue;
+    const file = path.join(runtimeDir, name);
+    let mtime = 0;
+    try {
+      mtime = statImpl(file).mtimeMs;
+    } catch {
+      continue;
+    }
+    if (!best || mtime > best.mtime) best = { file, mtime };
+  }
+  return best ? best.file : null;
+}
+
+/**
+ * L1-2: which logs this run reads. Returns
+ *   { mode: "origin", read: [{ role, port, log }], track: [log...] }  — serving state present
+ *   { mode: "legacy", log, reason }                                    — no / unreadable state
+ * `read` = active (+ previous when distinct); `track` = the other retained
+ * origins' logs, whose offsets are fast-forwarded without counting so a later
+ * rollback to one of them starts at "now", not at its whole history.
+ * A present-but-malformed state falls back to legacy with
+ * reason=state_unreadable so the summary says why.
+ */
+export function resolveLogSources({ servingState = SERVING_STATE, runtimeDir = RUNTIME_DIR, legacyLog = DEFAULT_LOG, readFileImpl = readFileSync, readdirImpl, statImpl } = {}) {
+  let raw;
+  try {
+    raw = readFileImpl(servingState, "utf8");
+  } catch {
+    return { mode: "legacy", log: legacyLog, reason: "no_serving_state" };
+  }
+  let state;
+  try {
+    state = JSON.parse(raw);
+  } catch {
+    return { mode: "legacy", log: legacyLog, reason: "state_unreadable" };
+  }
+  if (!state || typeof state !== "object" || !state.active || typeof state.active !== "object") {
+    return { mode: "legacy", log: legacyLog, reason: "state_unreadable" };
+  }
+  const fsOpts = {};
+  if (readdirImpl) fsOpts.readdirImpl = readdirImpl;
+  if (statImpl) fsOpts.statImpl = statImpl;
+  const read = [];
+  const seen = new Set();
+  for (const role of ["active", "previous"]) {
+    const entry = state[role];
+    if (!entry || typeof entry !== "object") continue;
+    const log = originLogFor(entry, runtimeDir, fsOpts);
+    if (log && seen.has(log)) continue;
+    if (log) seen.add(log);
+    read.push({ role, port: entry.port ?? null, log });
+  }
+  const track = [];
+  for (const entry of Array.isArray(state.retained) ? state.retained : []) {
+    const log = originLogFor(entry, runtimeDir, fsOpts);
+    if (log && !seen.has(log)) {
+      seen.add(log);
+      track.push(log);
+    }
+  }
+  return { mode: "origin", read, track, phase: typeof state.phase === "string" ? state.phase : null };
+}
+
+/** { version: 1, logs: { "<abs path>": byteOffset } } or null when absent / unreadable. */
+export function readOffsets(file) {
+  try {
+    const data = JSON.parse(readFileSync(file, "utf8"));
+    if (!data || typeof data !== "object" || !data.logs || typeof data.logs !== "object") return null;
+    const logs = {};
+    for (const [k, v] of Object.entries(data.logs)) if (Number.isFinite(v) && v >= 0) logs[k] = Math.floor(v);
+    return { version: 1, logs };
+  } catch {
+    return null;
+  }
+}
+
+function fileSize(file) {
+  try {
+    return statSync(file).size;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * L1-2: read the unconsumed tail of every `read` log and fast-forward every
+ * `track` log. Offset policy for a log with no stored offset:
+ *   - offsets file absent (first run on origin logs) → seed at current size,
+ *     count nothing (no backlog of weeks-old lines on cut-over);
+ *   - offsets file present → the log belongs to an origin launched since the
+ *     last run → read from 0 (bounded by MAX_READ_BYTES in readWindow).
+ * Logs no longer resolved are dropped from the offsets file (it stays small).
+ * Returns { lines, sources, nextOffsets, blind } — blind when there was at
+ * least one origin to read and none of their logs exists.
+ */
+export function readOriginWindows(resolved, prevOffsets) {
+  const seeding = prevOffsets === null;
+  const prev = prevOffsets?.logs ?? {};
+  const nextOffsets = { version: 1, logs: {} };
+  const lines = [];
+  const sources = [];
+  for (const src of resolved.read) {
+    const size = src.log ? fileSize(src.log) : null;
+    if (size === null) {
+      sources.push({ role: src.role, port: src.port, log: src.log, missing: true, lines: 0 });
+      continue;
+    }
+    const known = Object.prototype.hasOwnProperty.call(prev, src.log);
+    const offset = known ? prev[src.log] : seeding ? size : 0;
+    const win = readWindow(src.log, offset);
+    lines.push(...win.lines);
+    nextOffsets.logs[src.log] = win.nextOffset;
+    sources.push({
+      role: src.role,
+      port: src.port,
+      log: src.log,
+      read_from: win.start,
+      read_to: win.nextOffset,
+      truncated: known && offset > win.size,
+      seeded: !known && seeding,
+      lines: win.lines.length,
+    });
+  }
+  for (const log of resolved.track) {
+    const size = fileSize(log);
+    if (size !== null) nextOffsets.logs[log] = size;
+  }
+  const blind = resolved.read.length === 0 || sources.every((x) => x.missing);
+  return { lines, sources, nextOffsets, blind };
+}
+
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const args = parseArgs(argv);
   const now = deps.now ?? Date.now();
@@ -140,8 +326,24 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   }
   try {
     const stateFile = deps.stateFile ?? STATE;
-    const offset = readOffset(args.offsetFile);
-    const win = readWindow(args.log, offset);
+    // L1-2: origin logs from the serving state; the legacy single file only
+    // when --log is explicit or no serving state exists.
+    const resolved = args.explicitLog
+      ? { mode: "legacy", log: args.log, reason: "explicit_log" }
+      : resolveLogSources({ servingState: args.servingState, runtimeDir: args.runtimeDir, legacyLog: args.log });
+    let win;
+    let originRead = null;
+    let rotated = false;
+    if (resolved.mode === "origin") {
+      originRead = readOriginWindows(resolved, readOffsets(args.offsetsFile));
+      const active = originRead.sources.find((x) => x.role === "active") ?? {};
+      win = { lines: originRead.lines, start: active.read_from ?? 0, nextOffset: active.read_to ?? 0, missing: originRead.blind };
+      rotated = originRead.sources.some((x) => x.truncated);
+    } else {
+      const offset = readOffset(args.offsetFile);
+      win = readWindow(resolved.log, offset);
+      rotated = offset > win.size;
+    }
     const digest = digestLines(win.lines, nowIso);
     const seeding = !existsSync(stateFile); // first run: remember classes, do not alert "new" on all of them
     const prevState = readJson(stateFile, emptyState());
@@ -163,10 +365,14 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     const summary = {
       ts: nowIso,
       dry_run: args.dryRun,
-      log: args.log,
+      source: resolved.mode,
+      source_reason: resolved.reason ?? null,
+      log: originRead ? (originRead.sources.find((x) => x.role === "active")?.log ?? null) : resolved.log,
+      sources: originRead ? originRead.sources : null,
+      blind: originRead ? originRead.blind : false,
       read_from: win.start,
       read_to: win.nextOffset,
-      rotated: offset > win.size,
+      rotated,
       seeding,
       lines: win.lines.length,
       total: digest.total,
@@ -189,10 +395,14 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     };
 
     if (!args.dryRun) {
-      appendJsonl(deps.reportFile ?? REPORT, row);
+      // Blind (no origin log readable) ⇒ no row: /api/status.errors_1h must
+      // show windows=0, never a fake total=0. The state file still carries
+      // the tbr/ai watches.
+      if (!summary.blind) appendJsonl(deps.reportFile ?? REPORT, row);
       writeJsonAtomic(stateFile, state);
       try {
-        writeFileSync(args.offsetFile, String(win.nextOffset));
+        if (originRead) writeJsonAtomic(args.offsetsFile, originRead.nextOffsets);
+        else writeFileSync(args.offsetFile, String(win.nextOffset));
       } catch (err) {
         log(`[error-digest] offset file not writable (${err.code ?? err.message}) — next run re-reads the window`);
       }
@@ -208,7 +418,12 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     }
     if (args.json) log(JSON.stringify(summary));
     else {
-      log(`[error-digest] ${nowIso}${args.dryRun ? " (dry-run)" : ""} ${win.lines.length} lines → ${digest.total} error lines in ${digest.classes.length} classes; alerts=${alerts.length}${win.missing ? " (log missing)" : ""}${summary.rotated ? " (rotation detected)" : ""}`);
+      log(`[error-digest] ${nowIso}${args.dryRun ? " (dry-run)" : ""} ${win.lines.length} lines → ${digest.total} error lines in ${digest.classes.length} classes; alerts=${alerts.length}${win.missing ? (summary.blind ? " (BLIND: no origin log readable — no row written)" : " (log missing)") : ""}${summary.rotated ? " (rotation detected)" : ""}`);
+      if (originRead) {
+        for (const x of originRead.sources) {
+          log(`  source ${x.role}:${x.port ?? "?"} ${x.log ?? "(no log found)"}${x.missing ? " MISSING" : ` bytes ${x.read_from}→${x.read_to} (${x.lines} lines)${x.seeded ? " seeded" : ""}${x.truncated ? " truncated" : ""}`}`);
+        }
+      } else log(`  source legacy ${resolved.log} (${resolved.reason})`);
       for (const c of digest.classes.slice(0, 10)) log(`  ×${c.count} [${c.tag}] ${c.msg}`);
       for (const a of alerts) log(`  ALERT ${a.rules.join("+")} [${a.tag}] ×${a.count}`);
       if (summary.telegram) log(`  telegram: ${summary.telegram.sent ? "sent" : `not sent (${summary.telegram.reason})`}`);

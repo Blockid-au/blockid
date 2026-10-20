@@ -9,7 +9,8 @@
 //     read again;
 //   - the 30-min debounce or the 7-day memory disappearing.
 
-import { mkdtempSync, writeFileSync, appendFileSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, readFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -34,7 +35,7 @@ import {
   toReportRow,
   TBR_QUALITY_NOT_OK_HOURS,
 } from "./lib/error-digest-core.mjs";
-import { main, readAiCapacity, readStatusBody, readTbrQuality, readWindow, parseArgs } from "./error-digest.mjs";
+import { main, originLogFor, readAiCapacity, readOriginWindows, readStatusBody, readTbrQuality, readWindow, parseArgs, resolveLogSources } from "./error-digest.mjs";
 
 const FIXTURE = [
   "▲ Next.js 16.3.5",
@@ -400,5 +401,151 @@ describe("ai_capacity watch (G29-A)", () => {
     const s4 = await main(args, { now: base + 3 * H, log: () => {}, sendTelegram, readAiCapacity: async () => fine, stateFile, reportFile, lockFile });
     expect(s4.ai_capacity).toEqual({ healthy: 3, unfunded: [], low_since: null, alert: null, telegram: null });
     expect(sent).toHaveLength(1);
+  });
+});
+
+// ---------- L1-2: read the live G30 origin service logs, not the dead legacy file ----------
+
+describe("origin log resolution (L1-2)", () => {
+  // Same naming as scripts/g30-supervised-launch.py:
+  // g30-origin-<port>-<sha256(releasePath)[:10]>-<tag>.service.log
+  const unitLog = (dir, port, release, tag) =>
+    join(dir, `g30-origin-${port}-${createHash("sha256").update(release).digest("hex").slice(0, 10)}-${tag}.service.log`);
+  const entry = (port, releasePath) => ({ port, pid: 100 + port, startTicks: "1", releasePath, sha: "a".repeat(40), schemaDigest: "b".repeat(64) });
+  function fixture() {
+    const dir = mkdtempSync(join(tmpdir(), "digest-origin-"));
+    const runtime = join(dir, "runtime");
+    mkdirSync(runtime);
+    const active = entry(4100, "/data/releases/A");
+    const prev = entry(4167, "/data/releases/B");
+    const old = entry(4163, "/data/releases/C");
+    const state = { version: 1, phase: "stable", active, previous: prev, retained: [old, prev, active], verifiedGood: [4100], quarantined: [] };
+    const servingState = join(dir, "g30-serving-state.json");
+    writeFileSync(servingState, JSON.stringify(state));
+    const logs = {
+      active: unitLog(runtime, 4100, "/data/releases/A", "aaaaaaaaaaaa"),
+      previous: unitLog(runtime, 4167, "/data/releases/B", "bbbbbbbbbbbb"),
+      old: unitLog(runtime, 4163, "/data/releases/C", "cccccccccccc"),
+    };
+    writeFileSync(logs.active, "▲ Next.js\n[svi] createProject failed: boom\n");
+    writeFileSync(logs.previous, "[ai-client] Gateway unavailable (ECONNREFUSED)\n");
+    writeFileSync(logs.old, "[cron] EACCES: permission denied, open '/x'\n".repeat(50));
+    // A different release on the same port must never be picked up.
+    writeFileSync(unitLog(runtime, 4100, "/data/releases/OTHER", "dddddddddddd"), "[x] error from another release\n");
+    return { dir, runtime, servingState, logs };
+  }
+
+  it("originLogFor matches the unit log of that port+release and prefers the newest relaunch", () => {
+    const { runtime, logs } = fixture();
+    expect(originLogFor(entry(4100, "/data/releases/A"), runtime)).toBe(logs.active);
+    const relaunch = unitLog(runtime, 4100, "/data/releases/A", "eeeeeeeeeeee");
+    writeFileSync(relaunch, "");
+    utimesSync(logs.active, new Date(1_000_000), new Date(1_000_000));
+    expect(originLogFor(entry(4100, "/data/releases/A"), runtime)).toBe(relaunch);
+    expect(originLogFor(entry(4001, "/data/releases/A"), runtime)).toBeNull(); // bootstrap origin: no unit
+    expect(originLogFor(entry(4100, "/data/releases/A"), join(runtime, "absent"))).toBeNull();
+    expect(originLogFor(null, runtime)).toBeNull();
+  });
+
+  it("the hash matches the Python launcher's unit naming for a real release path", () => {
+    // Pinned from the live host: g30-origin-4100-7e12bd0c90-….service.log
+    expect(createHash("sha256").update("/data/releases/w5RTJPLdSYJaT-qXHRzMe").digest("hex").slice(0, 10)).toBe("7e12bd0c90");
+  });
+
+  it("resolveLogSources: active + previous are read, other retained logs only tracked; legacy only without a state", () => {
+    const { dir, runtime, servingState, logs } = fixture();
+    const r = resolveLogSources({ servingState, runtimeDir: runtime, legacyLog: "/legacy.log" });
+    expect(r.mode).toBe("origin");
+    expect(r.read).toEqual([
+      { role: "active", port: 4100, log: logs.active },
+      { role: "previous", port: 4167, log: logs.previous },
+    ]);
+    expect(r.track).toEqual([logs.old]);
+    expect(resolveLogSources({ servingState: join(dir, "missing.json"), runtimeDir: runtime, legacyLog: "/legacy.log" })).toEqual({
+      mode: "legacy",
+      log: "/legacy.log",
+      reason: "no_serving_state",
+    });
+    writeFileSync(join(dir, "bad.json"), "{not json");
+    expect(resolveLogSources({ servingState: join(dir, "bad.json"), runtimeDir: runtime, legacyLog: "/legacy.log" }).reason).toBe("state_unreadable");
+  });
+
+  it("readOriginWindows: first run seeds at EOF; then only appended bytes; a new origin from 0; truncation restarts at 0", () => {
+    const { runtime, servingState, logs } = fixture();
+    const r = resolveLogSources({ servingState, runtimeDir: runtime });
+    const first = readOriginWindows(r, null);
+    expect(first.lines).toEqual([]);
+    expect(first.sources.every((s) => s.seeded)).toBe(true);
+    expect(first.nextOffsets.logs[logs.old]).toBeGreaterThan(0); // tracked, fast-forwarded
+    appendFileSync(logs.active, "[svi] createProject failed: again\npartial");
+    appendFileSync(logs.previous, "[ai-client] still failing\n");
+    appendFileSync(logs.old, "[cron] EACCES: permission denied, open '/y'\n");
+    const second = readOriginWindows(r, first.nextOffsets);
+    // the old retained origin is not counted; the partial line waits
+    expect(second.lines).toEqual(["[svi] createProject failed: again", "[ai-client] still failing"]);
+    expect(second.blind).toBe(false);
+    // A newly promoted origin (unknown log, offsets file present) is read from byte 0.
+    const fresh = unitLog(runtime, 4101, "/data/releases/D", "ffffffffffff");
+    writeFileSync(fresh, "[report-pipeline] fully_degraded reason=x\n");
+    const promoted = { mode: "origin", read: [{ role: "active", port: 4101, log: fresh }, { role: "previous", port: 4100, log: logs.active }], track: [] };
+    const third = readOriginWindows(promoted, second.nextOffsets);
+    expect(third.lines).toEqual(["[report-pipeline] fully_degraded reason=x"]);
+    expect(Object.keys(third.nextOffsets.logs).sort()).toEqual([fresh, logs.active].sort()); // unresolved logs pruned
+    writeFileSync(fresh, "[x] error after truncate\n");
+    const fourth = readOriginWindows(promoted, { version: 1, logs: { ...third.nextOffsets.logs, [fresh]: 10_000 } });
+    expect(fourth.lines).toContain("[x] error after truncate");
+    expect(fourth.sources[0].truncated).toBe(true);
+  });
+
+  it("readOriginWindows is blind (never a fake zero) when no resolved origin log exists", () => {
+    const blind = readOriginWindows({ mode: "origin", read: [{ role: "active", port: 4100, log: null }], track: [] }, null);
+    expect(blind.blind).toBe(true);
+    expect(blind.sources[0].missing).toBe(true);
+  });
+
+  it("main(): reads the origin logs via the serving state, persists per-log offsets, writes no row when blind", async () => {
+    const { dir, runtime, servingState, logs } = fixture();
+    const offsets = join(dir, "offsets.json");
+    writeFileSync(offsets, JSON.stringify({ version: 1, logs: {} })); // not a first run → unseen logs read from 0
+    const stateFile = join(dir, "state.json");
+    const reportFile = join(dir, "digest.jsonl");
+    const deps = {
+      now: Date.parse("2026-10-20T13:00:00Z"),
+      log: () => {},
+      sendTelegram: async () => ({ sent: false, reason: "test" }),
+      readStatusBody: async () => null,
+      stateFile,
+      reportFile,
+      lockFile: join(dir, "lock"),
+    };
+    const args = ["--json", "--serving-state", servingState, "--runtime-dir", runtime, "--offsets-file", offsets];
+    const s1 = await main(args, deps);
+    expect(s1.source).toBe("origin");
+    expect(s1.log).toBe(logs.active);
+    expect(s1.total).toBe(2); // svi + ai-client; the old retained origin's 50 lines are not counted
+    expect(JSON.parse(readFileSync(offsets, "utf8")).logs[logs.active]).toBe(readFileSync(logs.active).length);
+    const rows1 = readFileSync(reportFile, "utf8").trim().split("\n");
+    expect(rows1).toHaveLength(1);
+    expect(JSON.parse(rows1[0])).toMatchObject({ window_min: 10, total: 2 }); // output contract unchanged
+    // Second run: nothing new → a real zero row.
+    const s2 = await main(args, { ...deps, now: deps.now + 600_000 });
+    expect(s2.total).toBe(0);
+    expect(readFileSync(reportFile, "utf8").trim().split("\n")).toHaveLength(2);
+    // Blind: the active/previous logs vanish → no row appended.
+    rmSync(logs.active);
+    rmSync(logs.previous);
+    const s3 = await main(args, { ...deps, now: deps.now + 1_200_000 });
+    expect(s3.blind).toBe(true);
+    expect(readFileSync(reportFile, "utf8").trim().split("\n")).toHaveLength(2);
+  });
+
+  it("parseArgs: --log selects the explicit legacy mode; origin flags are parsed", () => {
+    expect(parseArgs([]).explicitLog).toBe(false);
+    expect(parseArgs(["--log", "/x"]).explicitLog).toBe(true);
+    expect(parseArgs(["--serving-state", "/s", "--runtime-dir", "/r", "--offsets-file", "/o"])).toMatchObject({
+      servingState: "/s",
+      runtimeDir: "/r",
+      offsetsFile: "/o",
+    });
   });
 });
