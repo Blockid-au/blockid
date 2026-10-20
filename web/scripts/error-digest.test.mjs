@@ -34,6 +34,7 @@ import {
   splitComplete,
   toReportRow,
   TBR_QUALITY_NOT_OK_HOURS,
+  warningKind,
 } from "./lib/error-digest-core.mjs";
 import { main, originLogFor, readAiCapacity, readOriginWindows, readStatusBody, readTbrQuality, readWindow, parseArgs, resolveLogSources } from "./error-digest.mjs";
 
@@ -113,6 +114,49 @@ describe("digestLines", () => {
     expect(row).toMatchObject({ ts: "2026-09-18T05:00:00.000Z", window_min: 10, total: 10 });
     expect(row.classes[0]).not.toHaveProperty("sample");
     expect(row.classes.find((c) => c.tag === "report-pipeline")?.critical).toBe(true);
+  });
+});
+
+describe("stale Server Action noise → counted warning (L1-13)", () => {
+  const NOISE = [
+    'Error: The Server Reference ID did not match the expected format. Received "x".',
+    "Read more: https://nextjs.org/docs/messages/failed-to-find-server-action",
+    "    at ignore-listed frames",
+    'Error: The Server Reference ID did not match the expected format. Received "r2s".',
+    "Read more: https://nextjs.org/docs/messages/failed-to-find-server-action",
+    "Error: Failed to find Server Action. This request might be from an older or newer deployment.",
+    ' ⨯ Error: Failed to find Server Action "7f3a". This request might be from an older or newer deployment.',
+  ];
+  it("classifies both messages (any prefix) as the stale_server_action warning", () => {
+    expect(warningKind(NOISE[0])).toBe("stale_server_action");
+    expect(warningKind(NOISE[5])).toBe("stale_server_action");
+    expect(warningKind(NOISE[6])).toBe("stale_server_action");
+    expect(classifyLine(NOISE[0])).toMatchObject({ warning: "stale_server_action", critical: false });
+    expect(warningKind("[svi] createProject failed")).toBeNull();
+  });
+  it("counts one warning per occurrence and no error class / total", () => {
+    const d = digestLines(NOISE, "t");
+    expect(d.total).toBe(0);
+    expect(d.classes).toEqual([]);
+    expect(d.warnings).toEqual({ stale_server_action: 4 });
+  });
+  it("real errors still stand out next to the noise", () => {
+    const d = digestLines([...NOISE, ...FIXTURE], "t");
+    expect(d.total).toBe(digestLines(FIXTURE, "t").total);
+    expect(d.classes.some((c) => /Server Reference|Server Action/.test(c.msg))).toBe(false);
+    const row = toReportRow(d, "2026-10-20T00:00:00.000Z");
+    expect(row.warnings).toEqual({ stale_server_action: 4 });
+  });
+  it("never alerts on the warning, even as a brand-new spike", () => {
+    const d = digestLines(Array.from({ length: 200 }, () => NOISE[0]), "t");
+    const { alerts } = evaluate(emptyState(), d, Date.parse("2026-10-20T00:00:00Z"));
+    expect(alerts).toEqual([]);
+  });
+  it("a critical pattern on the same line still wins", () => {
+    expect(classifyLine("Error: Failed to find Server Action — permission denied")?.critical).toBe(true);
+  });
+  it("rows without warnings keep their old shape", () => {
+    expect(toReportRow(digestLines(FIXTURE, "t"), "t")).not.toHaveProperty("warnings");
   });
 });
 

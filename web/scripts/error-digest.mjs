@@ -25,6 +25,8 @@
 //      read none of the resolved origin logs appends NO row (blind ≠ zero
 //      errors), so /api/status.errors_1h shows windows=0 instead of total=0.
 //   2. Groups error lines by [tag] + normalised message (lib/error-digest-core.mjs).
+//      L1-13: stale Server Action noise (old tab / bot) is a counted WARNING
+//      (`warnings.stale_server_action` in the row), not an error class.
 //   3. Appends {ts, window_min, total, classes} to content/reports/error-digest.jsonl.
 //   4. Keeps a 7-day class memory in content/reports/error-digest-state.json.
 //   5. Telegram (same bot/chat as cron-runner.sh, 30-min debounce per class) on:
@@ -376,6 +378,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       seeding,
       lines: win.lines.length,
       total: digest.total,
+      warnings: digest.warnings ?? {},
       classes: digest.classes.length,
       alerts: alerts.map((a) => ({ rule: a.rules.join("+"), tag: a.tag, count: a.count, msg: a.msg })),
       telegram: null,
@@ -425,6 +428,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         }
       } else log(`  source legacy ${resolved.log} (${resolved.reason})`);
       for (const c of digest.classes.slice(0, 10)) log(`  ×${c.count} [${c.tag}] ${c.msg}`);
+      for (const [k, n] of Object.entries(digest.warnings ?? {})) log(`  warning ×${n} ${k} (counted, not an error)`);
       for (const a of alerts) log(`  ALERT ${a.rules.join("+")} [${a.tag}] ×${a.count}`);
       if (summary.telegram) log(`  telegram: ${summary.telegram.sent ? "sent" : `not sent (${summary.telegram.reason})`}`);
       if (tbr.alert) log(`  ALERT ${tbr.alert}${summary.tbr_quality.telegram ? ` — ${summary.tbr_quality.telegram.sent ? "sent" : `not sent (${summary.tbr_quality.telegram.reason})`}` : ""}`);

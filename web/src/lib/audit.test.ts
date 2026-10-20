@@ -21,9 +21,9 @@ import { createHmac } from "node:crypto";
 //   - appendAudit: no-admin → throw, missing/short secret → throw
 //     BEFORE any insert, insert-error / no-row → throw, successful
 //     insert populates {curr_hash: ""} placeholder + defaults for
-//     nullable inputs, subsequent update stamps hmac_signature keyed
-//     on the returned id, update-error is non-fatal (returns row,
-//     warns), id coerced to BigInt on return
+//     nullable inputs, NO follow-up UPDATE (audit_events is append-only
+//     since 0338 — the old hmac_signature UPDATE was always refused),
+//     id coerced to BigInt on return
 //
 // Fake `SupabaseClient` scripts per-call {data,error} shapes off a FIFO
 // queue so the two-step insert-then-update flow can be scripted
@@ -111,7 +111,7 @@ vi.mock("./supabase", () => ({
   },
 }));
 
-// Silence console.warn from the non-fatal update-failed branch.
+// Spy on console.warn to pin that appendAudit no longer warns.
 const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
 const SECRET_ORIG = process.env.AUDIT_HMAC_SECRET;
@@ -377,7 +377,6 @@ describe("audit — appendAudit", () => {
 
   it("inserts into audit_events table with correct selectCols/terminal", async () => {
     state.queue.push({ data: { id: 1, curr_hash: "abcd" } });
-    state.queue.push({}); // update ok
     const { appendAudit } = await import("./audit");
     await appendAudit({ ...baseParams });
     const insert = state.calls.find((c) => c.op === "insert");
@@ -388,7 +387,6 @@ describe("audit — appendAudit", () => {
 
   it("insert payload defaults user_id/resource_id → null and detail → {}", async () => {
     state.queue.push({ data: { id: 2, curr_hash: "beef" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     await appendAudit({ ...baseParams });
     const insert = state.calls.find((c) => c.op === "insert")!;
@@ -401,7 +399,6 @@ describe("audit — appendAudit", () => {
 
   it("insert payload passes actor/action/resource_type through unchanged", async () => {
     state.queue.push({ data: { id: 3, curr_hash: "aaaa" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     await appendAudit({
       actor: "webhook:stripe",
@@ -418,7 +415,6 @@ describe("audit — appendAudit", () => {
 
   it("insert payload sets curr_hash placeholder to empty string (trigger overwrites)", async () => {
     state.queue.push({ data: { id: 4, curr_hash: "abcd" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     await appendAudit({ ...baseParams });
     const insert = state.calls.find((c) => c.op === "insert")!;
@@ -427,7 +423,6 @@ describe("audit — appendAudit", () => {
 
   it("provided detail is preserved in insert payload", async () => {
     state.queue.push({ data: { id: 5, curr_hash: "5555" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     await appendAudit({
       ...baseParams,
@@ -442,7 +437,6 @@ describe("audit — appendAudit", () => {
 
   it("provided user_id + resource_id preserved (not coerced)", async () => {
     state.queue.push({ data: { id: 6, curr_hash: "6666" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     await appendAudit({
       ...baseParams,
@@ -474,7 +468,6 @@ describe("audit — appendAudit", () => {
 
   it("success path returns { id: bigint, curr_hash }", async () => {
     state.queue.push({ data: { id: 42, curr_hash: "abcd1234" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     const out = await appendAudit({ ...baseParams });
     expect(out.curr_hash).toBe("abcd1234");
@@ -482,54 +475,35 @@ describe("audit — appendAudit", () => {
     expect(out.id).toBe(42n);
   });
 
-  it("update stamps hmac_signature keyed on returned id", async () => {
+  it("never issues an UPDATE (audit_events is append-only since 0338)", async () => {
     state.queue.push({ data: { id: 77, curr_hash: "cafebabe" } });
-    state.queue.push({});
-    const { appendAudit, signAuditHash } = await import("./audit");
-    await appendAudit({ ...baseParams });
-    const update = state.calls.find((c) => c.op === "update")!;
-    expect(update.table).toBe("audit_events");
-    expect(update.updatePayload).toEqual({
-      hmac_signature: signAuditHash("cafebabe"),
-    });
-    expect(update.eqCalls).toEqual([{ col: "id", val: 77 }]);
-  });
-
-  it("update error is non-fatal — still returns and warns", async () => {
-    state.queue.push({ data: { id: 8, curr_hash: "8888" } });
-    state.queue.push({ error: { message: "update blocked" } });
     const { appendAudit } = await import("./audit");
     const out = await appendAudit({ ...baseParams });
-    expect(out.id).toBe(8n);
-    expect(out.curr_hash).toBe("8888");
-    expect(warnSpy).toHaveBeenCalled();
+    expect(out.id).toBe(77n);
+    expect(state.calls.filter((c) => c.op === "update")).toHaveLength(0);
+    expect(state.calls.some((c) => c.updatePayload && "hmac_signature" in c.updatePayload)).toBe(false);
   });
 
-  it("update error warning includes the id", async () => {
+  it("does not log the old 'hmac_signature update failed' noise", async () => {
     state.queue.push({ data: { id: 9, curr_hash: "9999" } });
-    state.queue.push({ error: { message: "boom" } });
     const { appendAudit } = await import("./audit");
     await appendAudit({ ...baseParams });
-    const calledWith = warnSpy.mock.calls[0];
-    expect(calledWith).toBeDefined();
-    // console.warn("[audit] hmac_signature update failed for id=", id, msg)
-    expect(calledWith?.some((a) => a === 9)).toBe(true);
+    await appendAudit({ ...baseParams }).catch(() => undefined);
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it("makes exactly one insert + one update call in success path", async () => {
+  it("makes exactly one insert call and nothing else in success path", async () => {
     state.queue.push({ data: { id: 10, curr_hash: "aabb" } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     await appendAudit({ ...baseParams });
     expect(state.calls.filter((c) => c.op === "insert")).toHaveLength(1);
-    expect(state.calls.filter((c) => c.op === "update")).toHaveLength(1);
+    expect(state.calls).toHaveLength(1);
   });
 
   it("curr_hash returned by DB is coerced to string on read", async () => {
     // Simulate trigger returning a numeric-looking value; String(...) applied
     // before it flows into the HMAC signer (must remain valid hex).
     state.queue.push({ data: { id: 11, curr_hash: 1234 } });
-    state.queue.push({});
     const { appendAudit } = await import("./audit");
     const out = await appendAudit({ ...baseParams });
     expect(out.curr_hash).toBe("1234");
