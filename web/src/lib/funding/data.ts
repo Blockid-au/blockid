@@ -27,6 +27,17 @@
 //     "incrementalCache missing" invariant before calling the reader; the
 //     wrapper falls back to a direct read so behaviour there is unchanged.
 //
+// ISR pages (L0-5, 2026-10-20): the degrade-to-[]/null contract is right for
+// dynamic views and agents, but wrong for an ISR page — an empty catalogue
+// rendered during a background revalidation becomes the cached page for an
+// hour, and a `null` grant/program becomes a cached 404 for a real row. ISR
+// pages therefore pass `{ throwOnUnavailable: true }`: a degraded read throws
+// `FundingCatalogueUnavailableError`, Next keeps serving the last good page
+// (response-cache re-sets the previous entry with a short retry window) and
+// `notFound()` is reserved for a row that genuinely does not exist. During
+// `next build` the strict flag is ignored (a DB blip must not fail a deploy;
+// the build-time page is replaced on the first revalidation).
+//
 // Colocated tests: data.test.ts.
 
 import "server-only";
@@ -53,7 +64,18 @@ export interface AuProgram extends AuProgramRow {
   updated_at: string;
 }
 
-export interface ListGrantsOptions {
+/** Per-call read mode. */
+export interface CatalogueReadOptions {
+  /**
+   * Throw `FundingCatalogueUnavailableError` instead of returning the
+   * [] / null fallback when the catalogue cannot be read (no admin client,
+   * DB error, timeout). Use on ISR pages so a transient failure never
+   * becomes a cached empty page or a cached 404. Ignored during `next build`.
+   */
+  throwOnUnavailable?: boolean;
+}
+
+export interface ListGrantsOptions extends CatalogueReadOptions {
   state?: string | null;
   status?: FundingStatus | null;
   /** Drop rows flagged exclude_from_matching (registry / council-only rows). Default true. */
@@ -61,7 +83,7 @@ export interface ListGrantsOptions {
   limit?: number;
 }
 
-export interface ListProgramsOptions {
+export interface ListProgramsOptions extends CatalogueReadOptions {
   capital?: Capital | string | null;
   status?: FundingStatus | null;
   limit?: number;
@@ -89,6 +111,24 @@ class CatalogueUnavailable extends Error {
   }
 }
 
+/**
+ * Public error an ISR page lets propagate (see `throwOnUnavailable`). Thrown
+ * only for a degraded read — a row that does not exist is still `null`.
+ */
+export class FundingCatalogueUnavailableError extends Error {
+  readonly scope: string;
+  constructor(scope: string) {
+    super(`funding catalogue unavailable: ${scope}`);
+    this.name = "FundingCatalogueUnavailableError";
+    this.scope = scope;
+  }
+}
+
+/** `next build` — never fail a static prerender on a transient DB blip. */
+function isBuildPhase(): boolean {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
 /** `unstable_cache` outside a Next request / build (vitest, node scripts). */
 function isOutsideNextRuntime(err: unknown): boolean {
   return err instanceof Error && /incrementalCache missing/.test(err.message);
@@ -103,27 +143,37 @@ function errorOf(err: unknown): { message: string } {
  * string (serialised options / row id) so both `unstable_cache` and
  * `React.cache` dedupe on value rather than object identity.
  */
-function cachedRead<T>(scope: string, reader: (key: string) => Promise<T>, fallback: () => T): (key: string) => Promise<T> {
+function cachedRead<T>(
+  scope: string,
+  reader: (key: string) => Promise<T>,
+  fallback: () => T,
+): (key: string, strict?: boolean) => Promise<T> {
   const viaDataCache = unstable_cache(reader, [`au-funding:${scope}`], {
     tags: [AU_FUNDING_CACHE_TAG],
     revalidate: AU_FUNDING_CACHE_SECONDS,
   });
-  return cache(async (key: string): Promise<T> => {
+  return cache(async (key: string, strict = false): Promise<T> => {
+    // Degraded outcome: the documented fallback, or — for an ISR page at
+    // runtime — a throw so Next keeps the last good cached page.
+    const degraded = (): T => {
+      if (strict && !isBuildPhase()) throw new FundingCatalogueUnavailableError(scope);
+      return fallback();
+    };
     try {
       return await viaDataCache(key);
     } catch (err) {
-      if (err instanceof CatalogueUnavailable) return fallback();
+      if (err instanceof CatalogueUnavailable) return degraded();
       if (isOutsideNextRuntime(err)) {
         try {
           return await reader(key);
         } catch (inner) {
-          if (inner instanceof CatalogueUnavailable) return fallback();
+          if (inner instanceof CatalogueUnavailable) return degraded();
           warn(scope, errorOf(inner));
-          return fallback();
+          return degraded();
         }
       }
       warn(scope, errorOf(err));
-      return fallback();
+      return degraded();
     }
   });
 }
@@ -237,22 +287,24 @@ const cachedProgram = cachedRead<AuProgram | null>("getProgram", readProgram, ()
  * alongside a specific state so federal schemes show on every state page).
  */
 export function listGrants(opts: ListGrantsOptions = {}): Promise<AuGrant[]> {
-  return cachedGrants(grantsKey(opts));
+  return cachedGrants(grantsKey(opts), opts.throwOnUnavailable === true);
 }
 
 /** Programs, optionally narrowed to one capital page (Sydney, Brisbane, …, Remote). */
 export function listPrograms(opts: ListProgramsOptions = {}): Promise<AuProgram[]> {
-  return cachedPrograms(programsKey(opts));
+  return cachedPrograms(programsKey(opts), opts.throwOnUnavailable === true);
 }
 
-export async function getGrant(id: string): Promise<AuGrant | null> {
+/** One grant; `null` = no such row (or degraded read unless `throwOnUnavailable`). */
+export async function getGrant(id: string, opts: CatalogueReadOptions = {}): Promise<AuGrant | null> {
   if (!id) return null;
-  return cachedGrant(id);
+  return cachedGrant(id, opts.throwOnUnavailable === true);
 }
 
-export async function getProgram(id: string): Promise<AuProgram | null> {
+/** One program; `null` = no such row (or degraded read unless `throwOnUnavailable`). */
+export async function getProgram(id: string, opts: CatalogueReadOptions = {}): Promise<AuProgram | null> {
   if (!id) return null;
-  return cachedProgram(id);
+  return cachedProgram(id, opts.throwOnUnavailable === true);
 }
 
 /**

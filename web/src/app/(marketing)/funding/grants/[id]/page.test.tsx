@@ -85,9 +85,21 @@ const kickStart: AuGrant = {
   ],
 };
 
+// `outage` simulates a catalogue read failure: the real getGrant throws
+// FundingCatalogueUnavailableError only when the page asks for a strict read.
+const outage = { on: false };
+const readOpts: unknown[] = [];
+class FakeUnavailable extends Error {}
 vi.mock("@/lib/funding/data", () => ({
   listGrants: async () => [esic, kickStart],
-  getGrant: async (id: string) => (id === "esic" ? esic : id === "csiro-kick-start" ? kickStart : null),
+  getGrant: async (id: string, opts?: { throwOnUnavailable?: boolean }) => {
+    readOpts.push(opts);
+    if (outage.on) {
+      if (opts?.throwOnUnavailable) throw new FakeUnavailable("funding catalogue unavailable: getGrant");
+      return null;
+    }
+    return id === "esic" ? esic : id === "csiro-kick-start" ? kickStart : null;
+  },
   listPrograms: async () => [],
 }));
 
@@ -125,6 +137,20 @@ describe("/funding/grants/[id] — params and metadata", () => {
   it("404s an unknown id", async () => {
     await expect(render("nope")).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFoundSpy).toHaveBeenCalled();
+  });
+
+  it("L0-5: a catalogue outage throws (ISR keeps the last good page) instead of caching a 404 for a real grant", async () => {
+    notFoundSpy.mockClear();
+    readOpts.length = 0;
+    outage.on = true;
+    try {
+      await expect(render("esic")).rejects.toBeInstanceOf(FakeUnavailable);
+      await expect(generateMetadata({ params: Promise.resolve({ id: "esic" }) })).rejects.toBeInstanceOf(FakeUnavailable);
+    } finally {
+      outage.on = false;
+    }
+    expect(notFoundSpy).not.toHaveBeenCalled();
+    expect(readOpts).toEqual([{ throwOnUnavailable: true }, { throwOnUnavailable: true }]);
   });
 });
 

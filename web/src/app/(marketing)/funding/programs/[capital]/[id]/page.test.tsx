@@ -132,9 +132,17 @@ const grants: AuGrant[] = [
   grant({ id: "closed", name: "Closed Grant", status: "closed", application_window: "one_off" }),
 ];
 
+const outage = { on: false };
+class FakeUnavailable extends Error {}
 vi.mock("@/lib/funding/data", () => ({
   listPrograms: async (opts?: { capital?: string }) => (opts?.capital ? rows.filter((r) => r.capital === opts.capital) : rows),
-  getProgram: async (id: string) => rows.find((r) => r.id === id) ?? null,
+  getProgram: async (id: string, opts?: { throwOnUnavailable?: boolean }) => {
+    if (outage.on) {
+      if (opts?.throwOnUnavailable) throw new FakeUnavailable("funding catalogue unavailable: getProgram");
+      return null;
+    }
+    return rows.find((r) => r.id === id) ?? null;
+  },
   listGrants: async () => grants,
 }));
 
@@ -180,6 +188,15 @@ describe("/funding/programs/[capital]/[id] — params and metadata", () => {
   it("404s an unknown id and a row requested under the wrong capital", async () => {
     await expect(render("sydney", "nope")).rejects.toThrow("NEXT_NOT_FOUND");
     await expect(render("melbourne", "sydney-ai-accelerator")).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("L0-5: a catalogue outage throws (ISR keeps the last good page) instead of caching a 404 for a real program", async () => {
+    outage.on = true;
+    try {
+      await expect(render("sydney", "sydney-ai-accelerator")).rejects.toBeInstanceOf(FakeUnavailable);
+    } finally {
+      outage.on = false;
+    }
   });
 });
 

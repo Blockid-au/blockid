@@ -1,7 +1,8 @@
 // Colocated vitest for the server-only funding read helpers (T0239).
 // Pins the Supabase chain each helper issues (table, filters, terminator)
 // and the degrade-to-empty contract: null admin client, 42P01 (migration
-// 0311 not applied) and thrown errors all yield [] / null, never a throw.
+// 0311 not applied) and thrown errors all yield [] / null, never a throw —
+// unless the caller (an ISR page) asks for `throwOnUnavailable` (L0-5).
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,7 +67,7 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-import { capitalForCity, getGrant, getProgram, listGrants, listPrograms } from "./data";
+import { capitalForCity, FundingCatalogueUnavailableError, getGrant, getProgram, listGrants, listPrograms } from "./data";
 
 const GRANT = { id: "rdti", name: "R&DTI", state: "national", status: "open", exclude_from_matching: false };
 const PROGRAM = { id: "syd-startmate-accelerator", name: "Startmate", capital: "Sydney", status: "open" };
@@ -174,6 +175,60 @@ describe("funding/data", () => {
       expect(await getGrant("nope")).toBeNull();
       state.adminNull = true;
       expect(await getProgram("x")).toBeNull();
+    });
+  });
+
+  // L0-5: ISR pages must never turn a transient outage into a cached empty
+  // page or a cached 404 for a real row — they read with throwOnUnavailable,
+  // so Next keeps serving the last good page while the read fails.
+  describe("throwOnUnavailable (ISR pages)", () => {
+    const STRICT = { throwOnUnavailable: true } as const;
+
+    it("throws FundingCatalogueUnavailableError on a null client, a DB error, or a thrown client", async () => {
+      state.adminNull = true;
+      await expect(listGrants({ excludeNonMatching: true, ...STRICT })).rejects.toBeInstanceOf(FundingCatalogueUnavailableError);
+      await expect(getGrant("rdti", STRICT)).rejects.toMatchObject({ name: "FundingCatalogueUnavailableError", scope: "getGrant" });
+
+      reset();
+      state.result = { data: null, error: { message: "canceling statement due to statement timeout" } };
+      await expect(listPrograms({ capital: "Sydney", ...STRICT })).rejects.toBeInstanceOf(FundingCatalogueUnavailableError);
+      await expect(getProgram("syd-startmate-accelerator", STRICT)).rejects.toBeInstanceOf(FundingCatalogueUnavailableError);
+
+      reset();
+      state.throwOnFrom = true;
+      await expect(listGrants({ state: "NSW", ...STRICT })).rejects.toBeInstanceOf(FundingCatalogueUnavailableError);
+    });
+
+    it("a missing row is still null (→ notFound()), never an error", async () => {
+      state.result = { data: null, error: null };
+      expect(await getGrant("no-such-grant", STRICT)).toBeNull();
+      expect(await getProgram("no-such-program", STRICT)).toBeNull();
+      state.result = { data: [], error: null };
+      expect(await listGrants({ state: "NT", ...STRICT })).toEqual([]);
+    });
+
+    it("returns rows exactly like the lenient read when the DB answers", async () => {
+      state.result = { data: [GRANT], error: null };
+      expect(await listGrants(STRICT)).toEqual([GRANT]);
+      state.result = { data: GRANT, error: null };
+      expect(await getGrant("rdti", STRICT)).toEqual(GRANT);
+    });
+
+    it("degrades instead of throwing during `next build` so a DB blip cannot fail a deploy", async () => {
+      vi.stubEnv("NEXT_PHASE", "phase-production-build");
+      try {
+        state.adminNull = true;
+        expect(await listGrants(STRICT)).toEqual([]);
+        expect(await getGrant("rdti", STRICT)).toBeNull();
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("the lenient default is unchanged: [] / null, never a throw", async () => {
+      state.adminNull = true;
+      expect(await listGrants()).toEqual([]);
+      expect(await getGrant("rdti")).toBeNull();
     });
   });
 });
