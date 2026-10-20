@@ -9,7 +9,10 @@
 // Kept free of imports so thin route files can use it without pulling the
 // whole provider chain into their module graph.
 
-export type AICapacityReason = "queue_full" | "user_limit" | "user_queue_full";
+// A3 (G35): "provider_budget" — the DeepInfra balance is critical, so a
+// report-scoped job is queued (retried later) instead of failed or moved to a
+// provider outside the founder's report policy (lib/ai/balance-flags.ts).
+export type AICapacityReason = "queue_full" | "user_limit" | "user_queue_full" | "provider_budget";
 
 export class AICapacityError extends Error {
   readonly reason: AICapacityReason;
@@ -23,7 +26,9 @@ export class AICapacityError extends Error {
     super(
       reason === "user_limit" || reason === "user_queue_full"
         ? `AI capacity busy for this account — try again in ~${retryAfterSec} s`
-        : `AI capacity busy (${detail.queued} queued, ${detail.running} running) — try again in ~${retryAfterSec} s`,
+        : reason === "provider_budget"
+          ? `AI report capacity paused (provider balance low) — queued, retry in ~${retryAfterSec} s`
+          : `AI capacity busy (${detail.queued} queued, ${detail.running} running) — try again in ~${retryAfterSec} s`,
     );
     this.name = "AICapacityError";
     this.reason = reason;

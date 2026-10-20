@@ -68,6 +68,11 @@ export const NOTIFICATION_KINDS = [
   // once per letter (dedupe key = letter id); payload {letter_id, k, orgs,
   // weakest_dim, startup} — never an evaluator, decision or note.
   "feedback_letter",
+  // G35 P4 Verified review SLA: an IN_REVIEW Verified report order is due
+  // within 4 business hours or overdue. Written to the platform admin only,
+  // once per order per level (lib/verified-review/sla-alerts.ts); payload
+  // { level, order_id, startup, due_at, due_label, line, project_id }.
+  "verified_review_sla",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -131,6 +136,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
   intro_requested: "Intro requested",
   access_requested: "Access requested",
   feedback_letter: "What investors said",
+  verified_review_sla: "Verified review SLA",
 };
 
 function s(v: unknown): string | null {
@@ -316,6 +322,13 @@ export function describeNotification(row: FounderNotificationRow): string {
       // S31-A: payload { reason, spent_aud, cap_aud, calls } from lib/ai/spend-guard.ts.
       const reason = s(p.reason);
       if (reason === "openrouter_low_credit") return "OpenRouter paused — credit is below the floor; top up to resume";
+      // G35 A3: payload { reason: "ai_balance", provider, level, balance_usd, runway_days } from /api/cron/ai-balance.
+      if (reason === "ai_balance") {
+        const bal = n(p.balance_usd);
+        const runway = n(p.runway_days);
+        const level = s(p.level) === "critical" ? "critical" : "low";
+        return `AI balance ${level} — ${s(p.provider) ?? "provider"}${bal !== null ? ` US$${bal.toFixed(2)}` : ""}${runway !== null ? `, ~${runway.toFixed(1)} days left` : ""}`;
+      }
       const spent = n(p.spent_aud);
       const cap = n(p.cap_aud);
       return spent !== null && cap !== null
@@ -353,6 +366,13 @@ export function describeNotification(row: FounderNotificationRow): string {
       return weakest
         ? `${who} shared their combined view of ${startup} — they rated ${weakest} lowest`
         : `${who} shared their combined view of ${startup}`;
+    }
+    case "verified_review_sla": {
+      const startup = s(p.startup) ?? "a startup";
+      const line = s(p.line);
+      return s(p.level) === "overdue"
+        ? `Verified review overdue for ${startup}${line ? ` — ${line}` : ""}`
+        : `Verified review due soon for ${startup}${line ? ` — ${line}` : ""}`;
     }
     default:
       return row.kind;
@@ -414,6 +434,10 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return { href: "/workspace/investors/access", label: "Review access" };
     case "feedback_letter":
       return { href: "/dashboard#what-investors-said", label: "Read the letter" };
+    case "verified_review_sla": {
+      const orderId = s(p.order_id);
+      return { href: orderId ? `/admin/verified-reviews/${orderId}` : "/admin/verified-reviews", label: "Open the review" };
+    }
     default:
       return null;
   }

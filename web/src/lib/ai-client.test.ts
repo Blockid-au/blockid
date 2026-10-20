@@ -2174,4 +2174,52 @@ describe("G30 BlockID report policy", () => {
     expect(budget.settle).toHaveBeenCalledTimes(1);
   });
 
+  // G35 A3 (pricing v5 §7.4): the hourly balance check's runtime flags.
+  describe("A3 balance flags", () => {
+    const FLAGS_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-balance-flags.json";
+    const setFlags = (f: { deepinfra_critical?: boolean; openrouter_paid_disabled?: boolean }) =>
+      fsMock.files.set(FLAGS_FILE, JSON.stringify({ updated_at: new Date().toISOString(), deepinfra_critical: false, openrouter_paid_disabled: false, ...f }));
+    const urls = () => fetchMock.mock.calls.map(([u]) => String(u));
+
+    it("DeepInfra critical → a report-scoped call is QUEUED (AICapacityError provider_budget), no provider dialled", async () => {
+      setFlags({ deepinfra_critical: true });
+      const { callAI } = await loadClient();
+      const err = await callAI({ ...request, taskClass: "report" }).catch((e: unknown) => e);
+      expect(err).toMatchObject({ name: "AICapacityError", reason: "provider_budget", status: 503 });
+      expect((err as { retryAfterSec: number }).retryAfterSec).toBeGreaterThan(0);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(tierMock.call).not.toHaveBeenCalled();
+    });
+
+    it("DeepInfra critical → a non-report (unscoped classify) call runs on the free tier, never DeepInfra / paid / gateway", async () => {
+      setFlags({ deepinfra_critical: true });
+      delete process.env.AI_GATEWAY_URL;
+      const client = await loadClient();
+      client._resetDispatcherForTests();
+      const result = await client.callAI({ system: "s", user: "classify this", taskClass: "classify" });
+      expect(result.via).toBe("groq");
+      expect(urls().every((u) => !u.includes("deepinfra") && !u.includes("gateway"))).toBe(true);
+      expect(tierMock.call).not.toHaveBeenCalled(); // claude-apikey (quality tier) skipped
+      expect(client.providerBlockReason("deepinfra")).toBe("balance_critical");
+    });
+
+    it("no / stale flags → unchanged routing (report-scoped call reaches DeepInfra)", async () => {
+      fsMock.files.set(FLAGS_FILE, JSON.stringify({ updated_at: new Date(Date.now() - 4 * 3600_000).toISOString(), deepinfra_critical: true }));
+      const { callAI } = await loadClient();
+      const result = await callAI({ ...request, taskClass: "report", interactive: true });
+      expect(result.via).toBe("deepinfra");
+    });
+
+    it("OpenRouter critical → only the paid OpenRouter ids are off; :free ids keep the provider dialable", async () => {
+      setFlags({ openrouter_paid_disabled: true });
+      const client = await loadClient();
+      client._resetDispatcherForTests();
+      expect(client.providerBlockReason("openrouter")).toBeNull(); // curated defaults are all :free
+      expect(client.providerBlockReason("deepinfra")).toBeNull();
+      fsMock.files.set("/home/dovanlong/blockid.au/web/content/reports/ai-free-models.json", JSON.stringify({ openrouter: ["openai/gpt-5-mini"] }));
+      const again = await loadClient();
+      again._resetDispatcherForTests();
+      expect(again.providerBlockReason("openrouter")).toBe("balance_critical");
+    });
+  });
 });

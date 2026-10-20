@@ -669,6 +669,24 @@ describe("tier projection (G35 Pricing v5 P2)", () => {
     expect(JSON.stringify(docxDoc)).not.toContain("LOCKED-BODY");
   });
 
+  it("G35 P4: a reviewed Verified order carries the BlockID Reviewed badge (web + PDF); unreviewed / non-Verified never do", async () => {
+    seedOrder({ product_sku: "report_verified" });
+    seedReport({ report_json: demoReportV2(), reviewed: true, reviewed_at: "2026-10-22T03:00:00.000Z", reviewed_by: "admin-x" });
+    const body = (await (await call()).json()) as { tier: string; report: { reportV2: { reviewBadge?: { label: string } } } };
+    expect(body.tier).toBe("verified");
+    // No app_users row → the reviewer reads "BlockID team" (never an e-mail).
+    expect(body.report.reportV2.reviewBadge?.label).toBe("BlockID Reviewed · 22 Oct 2026 · BlockID team");
+    await call(ORDER_ID, "?format=pdf");
+    expect((renderTbrPdfMock.mock.calls.at(-1)![0] as { reviewBadge?: unknown }).reviewBadge).toBeTruthy();
+
+    // Refunded badge (reviewed=false) or a Full order with a reviewed flag: no badge.
+    seedReport({ report_json: demoReportV2(), reviewed: false, reviewed_at: "2026-10-22T03:00:00.000Z" });
+    expect(((await (await call()).json()) as { report: { reportV2: { reviewBadge?: unknown } } }).report.reportV2.reviewBadge).toBeUndefined();
+    seedOrder({ product_sku: "report_full" });
+    seedReport({ report_json: demoReportV2(), reviewed: true, reviewed_at: "2026-10-22T03:00:00.000Z" });
+    expect(((await (await call()).json()) as { report: { reportV2: { reviewBadge?: unknown } } }).report.reportV2.reviewBadge).toBeUndefined();
+  });
+
   it("a Snapshot order without a ReportV2 never falls back to the full legacy markdown", async () => {
     seedOrder({ product_sku: "report_snapshot" });
     seedReport();
