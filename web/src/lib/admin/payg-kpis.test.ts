@@ -56,8 +56,8 @@ describe("computePaygKpis (G35 P5 §6.8)", () => {
     expect(k.snapshotToFull).toEqual({ cohort: 2, upgraded: 1, rate: 0.5 });
   });
 
-  it("Verified SLA: delivered on/before sla_due_at, plus open overdue reviews", () => {
-    expect(k.verifiedSla).toEqual({ delivered: 2, onTime: 1, rate: 0.5, open: 1, openOverdue: 1 });
+  it("Verified SLA (W4 computeSlaHitRate): on time / late / breached in review, plus the open queue", () => {
+    expect(k.verifiedSla).toEqual({ onTime: 1, late: 1, breached: 1, rate: 0.333, open: 1, openOverdue: 1 });
   });
 
   it("PAYG buyers who subscribed after their first PAYG order", () => {

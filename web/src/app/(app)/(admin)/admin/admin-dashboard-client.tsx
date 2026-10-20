@@ -98,7 +98,7 @@ export function PaygKpiTile({ k, enabled }: { k: PaygKpis; enabled: boolean }) {
     { label: "PAYG orders (30 d)", value: String(k.last30.orders), sub: `${tiers(k.last30)}${k.last30.refunded ? ` · ${k.last30.refunded} refunded` : ""}` },
     { label: "PAYG revenue", value: audCents(k.last30.revenueCents), sub: `30 d inc. GST · 7 d ${audCents(k.last7.revenueCents)}` },
     { label: "Snapshot → Full", value: pct(k.snapshotToFull.rate), sub: `${k.snapshotToFull.upgraded} of ${k.snapshotToFull.cohort} Snapshot buyers (30 d)` },
-    { label: "Verified SLA hit rate", value: pct(k.verifiedSla.rate), sub: `${k.verifiedSla.onTime}/${k.verifiedSla.delivered} on time (30 d) · ${k.verifiedSla.open} in review, ${k.verifiedSla.openOverdue} overdue` },
+    { label: "Verified SLA hit rate", value: pct(k.verifiedSla.rate), sub: `${k.verifiedSla.onTime} on time · ${k.verifiedSla.late} late · ${k.verifiedSla.breached} breached (due in 30 d) · ${k.verifiedSla.open} in review` },
     { label: "PAYG → subscription", value: pct(k.buyersSubscribed.rate), sub: `${k.buyersSubscribed.subscribed} of ${k.buyersSubscribed.buyers} PAYG buyers subscribed after buying` },
   ];
   return (

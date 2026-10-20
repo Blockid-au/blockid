@@ -106,6 +106,7 @@ export default async function BillingPage({
             subscription={billing?.view}
             subscriptionPlanLabel={billing?.planLabel ?? null}
             paygEnabled={paygView(cfg).enabled}
+            paygSnapshotLabel={paygView(cfg).snapshot}
           />
         </Suspense>
       </div>

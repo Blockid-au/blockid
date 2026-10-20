@@ -8,20 +8,22 @@
 //                        bought Full for the same startup (upgrade SKU, a Full
 //                        order, or an order whose upgrade_of_order_id points
 //                        at the Snapshot)
-//   Verified SLA         Verified orders delivered in 30 days: delivered_at ≤
-//                        sla_due_at; plus open reviews already past due
+//   Verified SLA         W4's definition (lib/verified-review/kpi.ts
+//                        computeSlaHitRate): orders due in the last 30 days,
+//                        on time = delivered_at ≤ sla_due_at, an IN_REVIEW
+//                        order past due counts as a miss; plus the open queue
 //   PAYG → subscription  distinct PAYG buyers (all time in the read window)
 //                        whose subscription (trial_start, else updated_at)
 //                        started after their first paid PAYG order
 //
-// The SLA query lives here, not in W4's /admin/verified-reviews module, so the
-// dashboard does not depend on that lane landing first; both read the same
-// columns (report_orders.sla_due_at / delivered_at, migration 0474).
+// The SLA rate reuses W4's pure `computeSlaHitRate` over the same order rows
+// (one definition for /admin and /admin/verified-reviews).
 //
 // `computePaygKpis` is pure (tests); `loadPaygKpis` does the reads and never
 // throws — a missing 0474 column degrades to `null`, never a broken dashboard.
 
 import { PAYG_SKUS, isPaygSkuId, type PaygSkuId } from "@/lib/pricing/v5-payg";
+import { VERIFIED_ORDER_SKUS, computeSlaHitRate } from "@/lib/verified-review/kpi";
 
 /** Statuses that mean money moved and was kept (REFUNDED is counted apart). */
 export const PAYG_PAID_STATUSES = ["PAID", "GENERATING", "IN_REVIEW", "READY", "SHARED"] as const;
@@ -64,8 +66,8 @@ export interface PaygKpis {
   last30: PaygWindowKpi;
   /** Snapshot buyers in the 30-day cohort and how many moved to Full. */
   snapshotToFull: { cohort: number; upgraded: number; rate: number | null };
-  /** Verified delivered in 30 days; `rate` = on-time share, null when none delivered. */
-  verifiedSla: { delivered: number; onTime: number; rate: number | null; openOverdue: number; open: number };
+  /** W4 computeSlaHitRate over orders due in 30 days (breached = in review past due); plus the open queue. */
+  verifiedSla: { onTime: number; late: number; breached: number; rate: number | null; open: number; openOverdue: number };
   /** Distinct PAYG buyers and how many subscribed after their first PAYG order. */
   buyersSubscribed: { buyers: number; subscribed: number; rate: number | null };
 }
@@ -125,23 +127,17 @@ export function computePaygKpis(input: { orders: PaygOrderRow[]; subscriptions?:
     if (moved) upgraded += 1;
   }
 
-  // Verified SLA.
-  const verified = orders.filter((r) => r.product_sku === "report_verified" || r.product_sku === "upgrade_full_verified");
-  let delivered = 0;
-  let onTime = 0;
+  // Verified SLA — W4's definition, plus the open review queue.
+  const verifiedSkus = new Set<string>(VERIFIED_ORDER_SKUS);
+  const verified = orders.filter((r) => verifiedSkus.has(r.product_sku));
+  const sla = computeSlaHitRate(verified as unknown as Record<string, unknown>[], new Date(now), 30);
   let open = 0;
   let openOverdue = 0;
   for (const v of verified) {
+    if (v.status !== "IN_REVIEW") continue;
+    open += 1;
     const due = v.sla_due_at ? Date.parse(v.sla_due_at) : NaN;
-    if (v.status === "IN_REVIEW") {
-      open += 1;
-      if (Number.isFinite(due) && due < now) openOverdue += 1;
-      continue;
-    }
-    const d = v.delivered_at ? Date.parse(v.delivered_at) : NaN;
-    if (!Number.isFinite(d) || d < since30 || d > now || !PAID.has(v.status)) continue;
-    delivered += 1;
-    if (Number.isFinite(due) && d <= due) onTime += 1;
+    if (Number.isFinite(due) && due < now) openOverdue += 1;
   }
 
   // PAYG buyer → subscription after the first paid PAYG order.
@@ -167,7 +163,7 @@ export function computePaygKpis(input: { orders: PaygOrderRow[]; subscriptions?:
     last7: windowKpi(orders, now, 7),
     last30: windowKpi(orders, now, 30),
     snapshotToFull: { cohort: snapshots.length, upgraded, rate: ratio(upgraded, snapshots.length) },
-    verifiedSla: { delivered, onTime, rate: ratio(onTime, delivered), open, openOverdue },
+    verifiedSla: { onTime: sla.onTime, late: sla.late, breached: sla.breached, rate: sla.rate, open, openOverdue },
     buyersSubscribed: { buyers: firstPaid.size, subscribed, rate: ratio(subscribed, firstPaid.size) },
   };
 }

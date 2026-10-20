@@ -32,7 +32,7 @@ import {
   type Segment,
 } from "@/lib/plans-v2";
 import { TRIAL_COPY, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { creditPacksForSale } from "@/lib/credit-packs";
 import { checkoutReviewHref, type CheckoutLocale } from "@/lib/billing/checkout-review";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
@@ -332,8 +332,10 @@ export function reportFootnoteLead(payg: PaygView): string {
 }
 
 function ReportFootnote({ payg }: { payg: PaygView }) {
-  const smallest = CREDIT_PACKS[0];
-  const largest = CREDIT_PACKS[CREDIT_PACKS.length - 1];
+  // D27: the 5-credit pack leaves sale when payg_enabled is ON.
+  const packs = creditPacksForSale(payg.enabled);
+  const smallest = packs[0];
+  const largest = packs[packs.length - 1];
   return (
     <p data-testid="founder-payg" className="mx-auto mt-6 max-w-3xl text-center text-xs text-tertiary">
       {reportFootnoteLead(payg)} Credit packs from{" "}

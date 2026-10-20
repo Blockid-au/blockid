@@ -1,5 +1,7 @@
 "use client";
 
+import { planFeaturesForView } from "@/lib/plans-v2";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -69,6 +71,8 @@ interface BillingClientProps {
    * packs read "N credits" + the pack price only. Omitted → OFF (today).
    */
   paygEnabled?: boolean;
+  /** Snapshot display price ("A$19") for the Free plan's PAYG bullet when ON; catalogue fallback. */
+  paygSnapshotLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,7 +130,10 @@ export function BillingClient({
   subscription,
   subscriptionPlanLabel = null,
   paygEnabled = false,
+  paygSnapshotLabel = PAYG_ON_VIEW.snapshot,
 }: BillingClientProps) {
+  // G35 P5: the Free plan's "pay-as-you-go" bullet follows the switch.
+  const featureView = { enabled: paygEnabled, snapshot: paygSnapshotLabel };
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [showDowngradeConfirm, setShowDowngradeConfirm] = React.useState<
@@ -351,11 +358,10 @@ export function BillingClient({
 
           {/* Features */}
           <ul className="space-y-2">
-            {(
-              activePlan?.features ??
-              plans.find((p) => p.id === "founder_free")?.features ??
-              []
-            ).map((f) => (
+            {(() => {
+              const p = activePlan ?? plans.find((x) => x.id === "founder_free");
+              return p ? planFeaturesForView(p, featureView) : [];
+            })().map((f) => (
               <li key={f} className="flex items-start gap-2.5 text-sm">
                 <Check
                   strokeWidth={2}
@@ -552,7 +558,7 @@ export function BillingClient({
 
                 {/* Features */}
                 <ul className="px-5 pb-4 space-y-1.5 flex-1">
-                  {plan.features.map((f) => (
+                  {planFeaturesForView(plan, featureView).map((f) => (
                     <li
                       key={f}
                       className="flex items-start gap-2 text-xs text-ink-700"

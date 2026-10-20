@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 import { CREDIT_PACKS, type CreditPack } from "@/lib/credit-packs";
 import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
-import { creditsLabel } from "@/lib/pricing/payg-copy";
+import { LEGACY_FUNDING_CREDITS, creditsLabel } from "@/lib/pricing/payg-copy";
+import { PAYG_SKUS } from "@/lib/pricing/v5-payg";
 import { usePaygView } from "@/components/pricing/payg-view-context";
 
 // ---------------------------------------------------------------------------
@@ -93,7 +94,7 @@ const FEATURE_INFO: Record<string, FeatureInfo> = {
     label: "Grant & Program match report (≈1,200 words, 12-month timeline)",
     description:
       "Every Australian grant and program you are eligible for, ranked, with the checklist, A$ estimates and the month-by-month plan. Included free with Starter (Founder Radar).",
-    costLabel: "3 credits",
+    // G35 D25: derived at render (legacy 3 credits OFF, 19 credits ON) — see fallbackCost.
   },
   modular_report: {
     label: "Modular Report",
@@ -156,7 +157,9 @@ export function CreditGate({
   const ctxPayg = usePaygView();
   const payg = paygEnabled ?? ctxPayg.enabled;
   const fallbackCost =
-    typeof info.credits === "number"
+    feature === "grant_match"
+      ? creditsLabel(payg ? (PAYG_SKUS.report_funding.creditCost ?? LEGACY_FUNDING_CREDITS) : LEGACY_FUNDING_CREDITS)
+      : typeof info.credits === "number"
       ? payg
         ? creditsLabel(info.credits)
         : `A$${info.credits.toFixed(2)}`
