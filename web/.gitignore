@@ -73,6 +73,11 @@ content/reports/funnel-daily.jsonl
 content/reports/funnel-latest.json
 content/reports/link-check.jsonl
 content/reports/link-check-latest.json
+# W1 (2026-10-20): per-site link-check reports (startupvalueindex.com …) + the weekly funding official_url health job
+content/reports/link-check-*.jsonl
+content/reports/link-check-*-latest.json
+content/reports/funding-link-health.jsonl
+content/reports/funding-link-health-latest.json
 content/reports/page-sweep.jsonl
 content/reports/page-sweep-latest.json
 content/reports/stripe-price-audit-latest.json
