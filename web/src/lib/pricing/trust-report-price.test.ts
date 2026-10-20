@@ -10,9 +10,18 @@ describe("trust-report-price (G16-B copy truth)", () => {
     expect(TRUST_REPORT_PRICE_AUD).toBe(TRUST_REPORT_AMOUNT_CENTS / 100);
   });
 
-  it("agrees with the credit-side FEATURE_COSTS.trust_report and the SKU display label", () => {
-    expect(FEATURE_COSTS.trust_report).toBe(TRUST_REPORT_PRICE_AUD);
+  it("agrees with the SKU display label", () => {
     expect(TRUST_REPORT_5AUD.display_price_label).toContain(trustReportPriceLabel());
+  });
+
+  // G35 P1 (D27, founder 2026-10-20): credits are decoupled from the A$ price —
+  // "1 credit = A$1" is no longer a rule, so FEATURE_COSTS.trust_report is NOT
+  // forced to equal TRUST_REPORT_PRICE_AUD any more. Pricing v5 tiers carry
+  // their own credit costs (lib/pricing/v5-payg.ts creditCost).
+  it("does not couple the credit cost to the A$ price (D27)", () => {
+    expect(typeof FEATURE_COSTS.trust_report).toBe("number");
+    expect(FEATURE_COSTS.report_snapshot).toBe(19);
+    expect(FEATURE_COSTS.report_full).toBe(49);
   });
 
   it("formats through plans-v2 formatAud (no literal in the helper)", () => {
