@@ -6,6 +6,7 @@ import { PDFParse } from "pdf-parse";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PLANS_V2 } from "@/lib/plans-v2";
 import { PitchDeckPDF } from "./pitch-deck-pdf";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 async function fullText(buf: Buffer): Promise<string> {
   const parser = new PDFParse({ data: buf });
@@ -29,5 +30,14 @@ describe("pitch deck — business model slide tracks lib/plans-v2", () => {
     expect(text).not.toContain("Founding 100");
     expect(text).not.toContain("A$99");
     expect(text).not.toContain("100 credits");
+    // G35 P5 — flag OFF (default): the Free rung keeps today's one-off report line.
+    expect(text).toContain("A$3 Trusted Business Report");
+  }, 60_000);
+
+  it("G35 P5: payg_enabled ON → the Free rung names the PAYG entry price, not the legacy report", async () => {
+    const buf = await renderToBuffer(PitchDeckPDF({ payg: PAYG_ON_VIEW }));
+    const text = await fullText(Buffer.from(buf));
+    expect(text).toContain(`Reports from ${PAYG_ON_VIEW.snapshot}`);
+    expect(text).not.toContain("A$3 Trusted Business Report");
   }, 60_000);
 });

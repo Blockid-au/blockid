@@ -699,7 +699,7 @@ const v2En: TbrV2Strings = {
     lockedNote: "Full analysis, evidence table and criterion cards are in the full Trusted Business Report.",
     headlineBuyPayg: (from) => `Get the report — Snapshot, Full or Verified, from ${from} (one-off)`,
     chooseReport: "Choose a report",
-    paygNote: "One-off, GST incl. You review the tier, what is included and the price before you pay.",
+    paygNote: "One-off, inc. GST. You review the tier, what is included and the price before you pay.",
     moveUpFor: (tier, price) => `Move up to ${tier} — ${price}`,
     headlineMoveUp: (from, to) => `You own the ${from} report — open every section with ${to}`,
     openSnapshot: "Open your Snapshot",

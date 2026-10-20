@@ -26,14 +26,16 @@ import {
   GST_POLICY_LINE,
   annualSavingPct,
   formatAud,
+  planFeaturesForView,
   publicPlansForSegment,
   type Plan,
   type Segment,
 } from "@/lib/plans-v2";
 import { TRIAL_COPY, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { creditPacksForSale } from "@/lib/credit-packs";
 import { checkoutReviewHref, type CheckoutLocale } from "@/lib/billing/checkout-review";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 
 // pricing-anchor-2026-07 (T0121/T0123). Anchor-tier + pricing_anchor_order
 // A/B experiments were retired 2026-09-07 (Workstream B8) to keep the
@@ -140,6 +142,12 @@ export interface PricingMatrixProps {
   purchasable?: readonly string[];
   /** `vi` → CTAs link to `/vi/checkout/review` (the VI page); default `en`. */
   locale?: CheckoutLocale;
+  /**
+   * Pricing v5 P5: the server-read `platform_config.payg_enabled` view. OFF
+   * (default) = today's footnote and Free bullets; ON = the v5 single-report
+   * line. Threaded from the page through <PricingSegmentSwitch>.
+   */
+  payg?: PaygView;
 }
 
 
@@ -154,7 +162,7 @@ export function defaultIntervalForSegment(segment: Segment): Interval {
   return plans.every((p) => p.billing_default === "annual") ? "annual" : "monthly";
 }
 
-export function PricingMatrix({ segment: overrideSegment, annualAvailable, purchasable, locale = "en" }: PricingMatrixProps = {}) {
+export function PricingMatrix({ segment: overrideSegment, annualAvailable, purchasable, locale = "en", payg = PAYG_OFF_VIEW }: PricingMatrixProps = {}) {
   const ctx = useSegmentSafe();
   const segment: Segment = overrideSegment ?? ctx?.segment ?? "founder";
   const [chosenInterval, setInterval] = useState<{ segment: Segment; interval: Interval } | null>(null);
@@ -281,14 +289,16 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
             forceContactSales={CONTACT_SALES_SEGMENTS.includes(plan.segment) || (purchasable !== undefined && plan.cta_kind === "trial" && !purchasable.includes(plan.id))}
             onSelect={recordAnchorConversion}
             locale={locale}
+            payg={payg}
           />
         ))}
       </div>
 
       {/* G21 P0-C: the A$3 Trusted Business Report is a founder-tab footnote,
           never a headline or a card of its own; the evaluator and programs
-          ladders carry no A$3 reference. */}
-      {!isEvaluator && !isPrograms && <ReportFootnote />}
+          ladders carry no A$3 reference. Pricing v5 P5: with payg_enabled
+          the footnote names the three single-report tiers instead. */}
+      {!isEvaluator && !isPrograms && <ReportFootnote payg={payg} />}
 
       <p className="mt-10 text-center text-xs text-tertiary">
         {GST_POLICY_LINE}
@@ -313,13 +323,22 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
  * box on the Evaluator tab; the evaluator-first positioning leads with the
  * Cohort plans, so the A$3 reference stays on the Founder tab only.)
  */
-function ReportFootnote() {
+export function reportFootnoteLead(payg: PaygView): string {
+  if (payg.enabled) {
+    return `Single reports: Snapshot ${payg.snapshot} · Full ${payg.full} · Verified ${payg.verified} — pay as you go, no subscription needed.`;
+  }
   const reportPrice = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;
-  const smallest = CREDIT_PACKS[0];
-  const largest = CREDIT_PACKS[CREDIT_PACKS.length - 1];
+  return `Trusted Business Report — ${reportPrice} per report, pay-as-you-go, no subscription needed.`;
+}
+
+function ReportFootnote({ payg }: { payg: PaygView }) {
+  // D27: the 5-credit pack leaves sale when payg_enabled is ON.
+  const packs = creditPacksForSale(payg.enabled);
+  const smallest = packs[0];
+  const largest = packs[packs.length - 1];
   return (
     <p data-testid="founder-payg" className="mx-auto mt-6 max-w-3xl text-center text-xs text-tertiary">
-      Trusted Business Report — {reportPrice} per report, pay-as-you-go, no subscription needed. Credit packs from{" "}
+      {reportFootnoteLead(payg)} Credit packs from{" "}
       {smallest ? `A$${smallest.price} (${smallest.credits} credits)` : "A$5"} to{" "}
       {largest ? `A$${largest.price} (${largest.credits} credits)` : "A$60"}.
     </p>
@@ -425,6 +444,7 @@ function PlanCard({
   forceContactSales = false,
   onSelect,
   locale = "en",
+  payg = PAYG_OFF_VIEW,
 }: {
   plan: Plan;
   interval: Interval;
@@ -432,6 +452,7 @@ function PlanCard({
   forceContactSales?: boolean;
   onSelect?: (valueAud?: number) => void;
   locale?: CheckoutLocale;
+  payg?: PaygView;
 }) {
   const price = interval === "annual" ? plan.annual_aud : plan.monthly_aud;
   const priceLabel = formatAud(price);
@@ -551,7 +572,7 @@ function PlanCard({
       )}
 
       <ul className="mb-8 flex-1 space-y-2.5 text-sm text-secondary">
-        {plan.features.map((f) => (
+        {planFeaturesForView(plan, payg).map((f) => (
           <li key={f} className="flex items-start gap-2">
             <CheckIcon />
             <span>{f}</span>

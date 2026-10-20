@@ -53,6 +53,7 @@ import {
   programPath,
   satelliteList,
 } from "@/lib/funding/seo";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -70,7 +71,7 @@ export default async function ProgramsDirectoryPage({
 }) {
   const sp = await searchParams;
   const filters = parseProgramFilters(sp);
-  const all = await listPrograms();
+  const [all, view] = await Promise.all([listPrograms(), getPaygView()]);
   const counts = countByCapital(all);
   const rows = applyProgramFilters(all, filters);
   const capitalGroups = groupProgramsByCapital(rows);
@@ -221,7 +222,7 @@ export default async function ProgramsDirectoryPage({
 
       <FundingGuides guides={PROGRAM_GUIDES} heading="Read before you apply" />
 
-      <FundingFaq items={directoryFaq("programs")} />
+      <FundingFaq items={directoryFaq("programs", null, view)} />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

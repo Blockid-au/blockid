@@ -18,6 +18,7 @@ import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 import { buildFounderProps } from "../evaluator-page-props";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const PATH = "/solutions/founder";
 const VI_PATH = "/vi/solutions/founder";
@@ -36,5 +37,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SolutionsFounderPage() {
   const m = await getMessages("en");
-  return <SolutionsPageShell {...buildFounderProps(m, "en")} />;
+  return <SolutionsPageShell {...buildFounderProps(m, "en", await getPaygView())} />;
 }

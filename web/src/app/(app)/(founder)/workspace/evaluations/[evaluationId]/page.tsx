@@ -51,6 +51,7 @@ import { AssessmentCard } from "@/components/svi/AssessmentCard";
 import { OutcomesBlock } from "./dossier/outcomes-block";
 import { TriageBlock } from "./dossier/triage-block";
 import { dossierFieldsUnlockedBy } from "@/lib/mentor/access-tiers";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const metadata: Metadata = {
   title: "Investor Dossier | BlockID",
@@ -72,11 +73,12 @@ export default async function InvestorDossierPage({ params }: PageProps) {
   if (!user) redirect(`/auth/login?next=/workspace/evaluations/${encodeURIComponent(evaluationId)}`);
   if (!ID_RE.test(evaluationId)) notFound();
 
-  const [dossier, isSandbox, isEvaluator, flags] = await Promise.all([
+  const [dossier, isSandbox, isEvaluator, flags, payg] = await Promise.all([
     loadDossier(evaluationId, user.id),
     getCurrentProjectIsSandbox(),
     isEvaluatorUser(user),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
+    getPaygView(),
   ]);
   if (!dossier) notFound();
   // The evaluator seat must still be an evaluator; the claimed founder needs
@@ -114,7 +116,7 @@ export default async function InvestorDossierPage({ params }: PageProps) {
         <ProgressBlock block={dossier.progress} role={dossier.viewer.role} />
         {/* G21-P3-A — block 7: outcome ledger + Day 0 / 60 / 180 trajectory (consent-tier projected; assessor may record). */}
         <OutcomesBlock projectId={dossier.header.projectId} role={dossier.viewer.role} consentTier={dossier.header.consentTier} verificationLevel={dossier.header.verification.level} canRecord={dossier.viewer.role === "assessor" && !dossier.viewer.readOnly} />
-        <ActionsBlock view={dossier} plan={user.plan} batchAllowed={canBatchScore(flags)} />
+        <ActionsBlock view={dossier} plan={user.plan} batchAllowed={canBatchScore(flags)} payg={payg} />
         {/* G21 P3-C — reviewer signature (assessor only). */}
         <SignatureBlock signature={dossier.signature} />
         <EvaluatorReportDisclaimer variant="compact" />

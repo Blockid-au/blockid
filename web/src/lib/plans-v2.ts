@@ -635,6 +635,29 @@ export function formatAud(amount: number | null): string {
   return `A$${amount.toLocaleString("en-AU")}`;
 }
 
+/**
+ * Pricing v5 P5 — a plan's feature bullets for the `payg_enabled` view.
+ *
+ * The catalogue row keeps today's Free-plan pay-as-you-go bullet (the static
+ * row is what the flag-OFF site renders). With the flag ON that bullet
+ * becomes the three-tier v5 line, priced from the view (platform_config
+ * display cents). Every other bullet, and every other plan, is returned
+ * as-is. Pure — safe in "use client" renderers.
+ */
+const LEGACY_PAYG_FEATURE = /^Trusted Business Report A\$[\d.,]+ pay-as-you-go$/;
+
+export function paygFeatureLine(view: { snapshot: string }): string {
+  return `Single reports from ${view.snapshot} (Snapshot, Full, Verified) — pay as you go`;
+}
+
+export function planFeaturesForView(
+  plan: Pick<Plan, "features">,
+  view: { enabled: boolean; snapshot: string },
+): string[] {
+  if (!view.enabled) return plan.features;
+  return plan.features.map((f) => (LEGACY_PAYG_FEATURE.test(f) ? paygFeatureLine(view) : f));
+}
+
 /** Annual saving vs 12× monthly, as a percent (0–100). Null if custom. */
 export function annualSavingPct(plan: Plan): number | null {
   if (plan.monthly_aud === null || plan.annual_aud === null) return null;

@@ -13,6 +13,15 @@ import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+// Pricing v5 P5: the page reads payg_enabled via getPaygView(); default OFF.
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const copy = await vi.importActual<typeof import("@/lib/pricing/payg-copy")>("@/lib/pricing/payg-copy");
+  return {
+    getPaygView: async () => (paygState.enabled ? copy.PAYG_ON_VIEW : copy.PAYG_OFF_VIEW),
+    isPaygEnabled: async () => paygState.enabled,
+  };
+});
 
 import en from "@/lib/i18n/messages/en.json";
 import vi_ from "@/lib/i18n/messages/vi.json";
@@ -175,5 +184,34 @@ describe("/solutions/advisor — rendered page", () => {
     expect(String(meta.description).length).toBeLessThanOrEqual(160);
     expect((meta.openGraph as { images?: unknown[] }).images).toHaveLength(1);
     expect((meta.twitter as { images?: unknown[] }).images).toEqual(["/opengraph-image"]);
+  });
+});
+
+describe("/solutions/advisor — Pricing v5 P5 payg_enabled", () => {
+  it("flag ON: headline + {reportPrice} copy read 'from A$19' (EN) / 'từ A$19' (VI); the full report is quoted at A$49; no A$3 report price", async () => {
+    paygState.enabled = true;
+    try {
+      const html = await render(await SolutionsAdvisorPage());
+      expect(html).toContain("white-labelled, from A$19 a report.");
+      expect(html).toContain("from A$19 a report, pay as you go.");
+      expect(html).toContain("A$49 for a full Trusted Business Report");
+      expect(html).not.toMatch(/A\$3(?![\d,.])/);
+      expect(html).not.toMatch(/\{[a-zA-Z]+\}/);
+      const faq = extractJsonLd(html).find((b) => b["@type"] === "FAQPage");
+      expect(validateJsonLd(faq!)).toEqual({ ok: true, errors: [] });
+      const vi = await render(await ViSolutionsAdvisorPage());
+      expect(vi).toContain("gắn thương hiệu của bạn, từ A$19 mỗi báo cáo.");
+      expect(vi).not.toMatch(/A\$3(?![\d,.])/);
+    } finally {
+      paygState.enabled = false;
+    }
+  });
+
+  it("flag OFF: the advisor headline is the approved A$3 line, unchanged", async () => {
+    paygState.enabled = false;
+    expect(buildAdvisorProps(EN, "en").headline).toBe(HEADLINE_EN);
+    const html = await render(await SolutionsAdvisorPage());
+    expect(html).toContain(HEADLINE_EN.replace(/&/g, "&amp;"));
+    expect(html).not.toContain("from A$19");
   });
 });

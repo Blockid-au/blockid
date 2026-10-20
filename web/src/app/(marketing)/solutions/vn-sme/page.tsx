@@ -15,6 +15,7 @@ import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const PATH = "/solutions/vn-sme";
 const VI_PATH = "/vi/solutions/vn-sme";
@@ -33,11 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SolutionsVnSmePage() {
   const m = await getMessages("en");
+  const payg = await getPaygView();
 
   return (
     <SolutionsPageShell
       slug="vn-sme"
       lang="en"
+      payg={payg}
       eyebrow={t(m, "solutions.vnSme.eyebrow")}
       headline={t(m, "solutions.vnSme.headline")}
       personaLine={t(m, "solutions.vnSme.persona")}

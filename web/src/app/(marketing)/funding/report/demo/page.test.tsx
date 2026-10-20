@@ -2,12 +2,15 @@
 // "Sample report" banner, >= 3 ranked grant cards, the SVG Gantt, the CTA
 // href, indexable metadata + canonical + Article JSON-LD, and the absence of
 // everything a paid report shows only to its viewer (PDF / data-room
-// buttons, Radar upsell, ICS / draft links, tokens).
+// buttons, Radar upsell, ICS / draft links, tokens). G35 P5 (D25): the
+// Money Finder price follows the payg_enabled view — OFF pins today's copy,
+// ON the v5 catalogue.
 
 import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { DEMO_BANNER, DEMO_CTA_HREF, DEMO_CTA_LABEL, buildDemoFundingReport } from "@/lib/funding/demo-report";
+import { DEMO_BANNER, DEMO_CTA_HREF, DEMO_CTA_LABEL, buildDemoFundingReport, demoCtaLabel } from "@/lib/funding/demo-report";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import { assertDeterministicRender, assertHydratableNesting } from "@/test/hydration-guard";
 
@@ -16,6 +19,11 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
 }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-nonce": "test-nonce" }) }));
+const payg = vi.hoisted(() => ({ view: null as PaygView | null }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW: off } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => payg.view ?? off, isPaygEnabled: async () => (payg.view ?? off).enabled };
+});
 
 async function html(): Promise<string> {
   const { default: Page } = await import("./page");
@@ -85,14 +93,15 @@ describe("/funding/report/demo", () => {
 
   it("is indexable with a canonical and ISR (no force-dynamic)", async () => {
     const mod = await import("./page");
-    expect(mod.metadata.robots).toEqual({ index: true, follow: true });
-    expect(mod.metadata.alternates?.canonical).toBe("https://blockid.au/funding/report/demo");
+    const metadata = await mod.generateMetadata();
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.alternates?.canonical).toBe("https://blockid.au/funding/report/demo");
     expect(mod.revalidate).toBe(3600);
     expect((mod as { dynamic?: string }).dynamic).toBeUndefined();
   });
 
   it("S8-A: ≤ 60 title via the brand template, 140–160 description, OG image; Article + BreadcrumbList validate; links both free directories; one H1", async () => {
-    const { metadata } = await import("./page");
+    const metadata = await (await import("./page")).generateMetadata();
     expect(String(metadata.title)).toBe("Sample startup funding report — what A$3 buys");
     expect(`${String(metadata.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
     expect(String(metadata.description).length).toBeGreaterThanOrEqual(140);
@@ -106,6 +115,34 @@ describe("/funding/report/demo", () => {
     expect(out).toContain('href="/funding/grants"');
     expect(out).toContain('href="/funding/programs"');
     expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+  });
+});
+
+describe("/funding/report/demo — payg_enabled (G35 P5, D25)", () => {
+  it("flag OFF renders today's price on both CTAs and the closing line", async () => {
+    payg.view = PAYG_OFF_VIEW;
+    const out = await html();
+    expect(DEMO_CTA_LABEL).toBe("Build mine for A$3");
+    expect(out.split("Build mine for A$3").length - 1).toBe(2);
+    expect(out).toContain("A$3 once, or included with Founder Radar.");
+  });
+
+  it("flag ON renders the D25 price in the CTAs, closing line, title, description and Article JSON-LD", async () => {
+    payg.view = PAYG_ON_VIEW;
+    try {
+      const out = await html();
+      expect(demoCtaLabel(PAYG_ON_VIEW)).toBe("Build mine for A$19");
+      expect(out.split("Build mine for A$19").length - 1).toBe(2);
+      expect(out).toContain("A$19 once, or included with Founder Radar.");
+      expect(out).not.toMatch(/A\$3(?![\d,])/);
+      expect(out).toContain('"headline":"Sample startup funding report — what A$19 buys"');
+      const metadata = await (await import("./page")).generateMetadata();
+      expect(String(metadata.title)).toBe("Sample startup funding report — what A$19 buys");
+      expect(String(metadata.description)).not.toMatch(/A\$3(?![\d,])/);
+      expect(String(metadata.description).length).toBeLessThanOrEqual(160);
+    } finally {
+      payg.view = null;
+    }
   });
 });
 

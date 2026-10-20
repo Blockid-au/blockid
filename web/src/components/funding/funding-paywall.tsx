@@ -22,10 +22,16 @@
  * localStorage (`guest-paid-reports.ts`) for guests. Plan rail never sees it.
  *
  * G35 D25 (Pricing v5): when `payg_enabled` is on (GET /api/pricing/payg) the
- * card shows the `report_funding` price (A$19, "one-off, GST incl.") and its
+ * card shows the `report_funding` price (A$19, "inc. GST · one-off") and its
  * 19 credits — the same SKU the checkout / credits routes charge. While the
  * price loads the pay buttons stay disabled (the A$3 copy shows until the
  * answer lands); flag off → the A$3 copy below, unchanged.
+ *
+ * G35 P5 (copy): the eyebrow / card headline and the Radar upsell line follow
+ * the server-read `view` prop (getPaygView(), threaded through FundingIntake);
+ * the PRICE and credits on the rails come from /api/pricing/payg above (W3) —
+ * both read the same platform_config. Legacy amounts are derived from the v3
+ * SKU (payg-copy), never typed.
  */
 
 import * as React from "react";
@@ -38,7 +44,8 @@ import { CreditGate } from "@/components/ui/credit-gate";
 import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { guestPaidReportCount, RADAR_UPSELL_AFTER_REPORTS } from "@/lib/funding/guest-paid-reports";
-import { FUNDING_REPORT_AUD, radarViewerKind } from "@/lib/funding/radar-upsell";
+import { fundingReportAud, radarViewerKind } from "@/lib/funding/radar-upsell";
+import { LEGACY_FUNDING_CREDITS, PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import { usePaygPricing } from "@/lib/pricing/use-payg-pricing";
 
 /** What the rails show and charge (legacy A$3 / 3 credits, or the v5 report_funding SKU). */
@@ -55,9 +62,9 @@ export interface FundingRailPrice {
 }
 
 export const LEGACY_FUNDING_PRICE: FundingRailPrice = {
-  label: "A$3",
+  label: PAYG_OFF_VIEW.funding,
   note: ".00 inc. GST · one-off",
-  credits: 3,
+  credits: LEGACY_FUNDING_CREDITS,
   creditFeature: "grant_match",
   v5: false,
   loading: false,
@@ -70,25 +77,29 @@ export function fundingRailPrice(state: ReturnType<typeof usePaygPricing>): Fund
   const f = state.pricing.funding;
   return {
     label: f.priceLabel,
-    note: " · one-off, GST incl.",
+    note: " inc. GST · one-off",
     credits: f.credits ?? 19,
     creditFeature: "report_funding",
     v5: true,
     loading: false,
   };
 }
-import { FUNDING_COPY } from "@/lib/funding/copy";
+import { fundingCopyFor } from "@/lib/funding/copy";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 
 export type PaywallRail = "anonymous" | "guest" | "credits" | "plan";
 
-export const GRANT_MATCH_CREDITS = 3;
-export const FUNDING_REPORT_PRICE_LABEL = "A$3";
+/** Flag-OFF (legacy) credit cost — derived from the v3 SKU; the rails read the live one. */
+export const GRANT_MATCH_CREDITS = LEGACY_FUNDING_CREDITS;
+/** Flag-OFF (legacy) price label — derived; the rails read the live one. */
+export const FUNDING_REPORT_PRICE_LABEL = PAYG_OFF_VIEW.funding;
 
 export interface FundingPaywallProps {
   intake: Record<string, unknown>;
   preview: FundingPreviewPayload;
   rail: PaywallRail;
+  /** G35 P5: payg_enabled view (server-read) for the card copy. Default = flag OFF. */
+  view?: PaygView;
 }
 
 const UNLOCKS = [
@@ -99,7 +110,8 @@ const UNLOCKS = [
   "Next 3 actions, written for your stage",
 ];
 
-export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
+export function FundingPaywall({ intake, preview, rail, view = PAYG_OFF_VIEW }: FundingPaywallProps) {
+  const copy = fundingCopyFor(view);
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -220,8 +232,8 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
     <div className="mt-6 rounded-2xl border border-action/40 bg-surface-raised p-6 shadow-sm sm:p-8" data-funding-paywall data-rail={rail}>
       <div className="grid gap-8 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-action">{FUNDING_COPY.paywall.eyebrow}</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{FUNDING_COPY.paywall.card}</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-action">{copy.paywall.eyebrow}</p>
+          <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{copy.paywall.card}</h3>
           <ul className="mt-4 space-y-2 text-sm text-secondary">
             {UNLOCKS.map((u) => (
               <li key={u} className="flex items-start gap-2">
@@ -268,7 +280,12 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
         <RadarUpsellCard
           surface="funding_paywall"
           viewer={rail === "guest" ? "guest" : radarViewerKind(entUser)}
-          lead={`You've spent A$${paidCount * FUNDING_REPORT_AUD} on ${paidCount} reports — Founder Radar is A$29/mo and includes this report every month.`}
+          lead={
+            view.enabled || price.v5
+              ? // Earlier purchases may have been at the legacy price — count, never sum.
+                `You've bought ${paidCount} Money Finder reports — Founder Radar is A$29/mo and includes this report every month.`
+              : `You've spent A$${paidCount * fundingReportAud(view)} on ${paidCount} reports — Founder Radar is A$29/mo and includes this report every month.`
+          }
           paidReports={paidCount}
           className="mt-6"
         />

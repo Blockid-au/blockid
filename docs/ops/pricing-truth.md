@@ -4,13 +4,21 @@ Founder direction 2026-09-19: "review pricing for correctness, check Stripe and
 links, one consistent message across the whole site". This file is the ledger
 that lane A produced and the place any future price change is checked against.
 
+> **Pricing v5 (G35, founder D25–D30 approved 2026-10-20) — effective when `platform_config.payg_enabled = true`.**
+> One switch: OFF (default) = §§ 1–13 below describe the live site (legacy A$3 one-off reports, Money Finder A$3 / 3 credits,
+> re-score priced in A$, 5-credit pack on sale). ON = § 14: Snapshot A$19 / Full A$49 / Verified A$149 pay-as-you-go,
+> Money Finder A$19 / 19 credits (D25), guest One-Click folded into PAYG Snapshot / Full (D26), credits shown as "N credits"
+> only and the 5-credit pack withdrawn (D27). Subscription prices and quotas do not change. Every customer-facing surface
+> reads the switch through `web/src/lib/pricing/payg-copy.ts` (`PaygView`) / `payg-view.server.ts` (`getPaygView()`), which reads the flag once via W3's fail-closed `payg-flag.ts` `readPaygConfig()` — checkout and copy share one read.
+
 **Sources of truth (in this order):**
 
 | What | Where | Pinned by |
 |---|---|---|
 | Subscription rungs (price, annual, trial, credits, flags) | `web/src/config/pricing/plans.csv` → `plans.generated.ts` (`npx tsx scripts/build-plans.ts`) | `config/pricing/plans*.test.ts` |
 | Public copy for each rung (name, bullets, visibility) | `web/src/lib/plans-v2.ts` | `plans-v2.test.ts` (every number back to the csv) |
-| One-off reports (A$3) | `web/src/lib/pricing/v3-skus.ts` + `trust-report-price.ts` | `v3-skus.test.ts`, `trust-report-price.test.ts` |
+| One-off reports — legacy A$3 (flag OFF) | `web/src/lib/pricing/v3-skus.ts` + `trust-report-price.ts` | `v3-skus.test.ts`, `trust-report-price.test.ts` |
+| One-off reports — Pricing v5 PAYG (flag ON, § 14) | `web/src/lib/pricing/v5-payg.ts` (catalogue, Stripe amount) + `platform_config.payg_*_cents` (display) → `payg-copy.ts` `PaygView` | `v5-payg.test.ts`, `payg-copy.test.ts`, `legacy-price.guard.test.ts` |
 | Credit packs | `web/src/lib/credit-packs.ts` | `credit-packs.test.ts` |
 | Credit costs per feature | `web/src/lib/credits.ts` `FEATURE_COSTS` (+ client mirror `credits-public.ts`) | `credits.test.ts` |
 | What Stripe holds (names + amounts, **no ids**) | `web/src/config/pricing/stripe-price-catalogue.json` | `lib/pricing/stripe-map.test.ts` (code == catalogue), `scripts/stripe-price-audit.mjs` (Stripe == catalogue, weekly) |
@@ -271,3 +279,56 @@ Founder decision 2026-09-21 (verbatim): "cho phép phân tích 2 lần đầu mi
 | Erasure | `free_report_grants` keyed by e-mail → `NON_FK_EXTRAS` delete (migration `0440` re-emits `erase_account()`) | `lib/privacy/erasure-map.ts` |
 
 No Stripe change: the A$3 SKU, its Stripe price and the checkout routes are untouched — the allowance only decides *whether* the quote is shown.
+
+## 14. Pricing v5 — pay as you go (G35; effective when `payg_enabled = true`)
+
+Plan: `docs/pricing-v5-plan.md` (§ 2 D25–D30, § 6). Catalogue: `web/src/lib/pricing/v5-payg.ts`. Display prices:
+`platform_config.payg_snapshot_cents / payg_full_cents / payg_verified_cents` (admin › System Config; validated Snapshot <
+Full < Verified, falls back to the catalogue — never A$0). **Charged** amount = the Stripe Price the env var names; the
+Stripe Sync page lists display ≠ catalogue drift (`displayDrift()`).
+
+| SKU | Display (inc. GST) | Credits | Env var | Sold from (flag ON) | Notes |
+|---|---|---|---|---|---|
+| `report_snapshot` | A$19 | 19 | `STRIPE_PRICE_REPORT_SNAPSHOT` | `/pricing` PAYG block, `/analyze?tier=paid&payg=snapshot`, `/one-click-report` (guest), unlock rail | SVI + 8-dimension radar, top 3 strengths / risks, evidence-confidence %, 1-page PDF (server-side tier projection) |
+| `report_full` | A$49 | 49 | `STRIPE_PRICE_REPORT_FULL` | same + evaluator deal-flow when the quota is spent | all 16 sections, AU comparables, evidence register, questions to ask next, full PDF; = the report included in every subscription |
+| `report_verified` | A$149 | card only | `STRIPE_PRICE_REPORT_VERIFIED` | `/pricing` PAYG block (sign-in required), unlock rail | + BlockID team evidence review, Investor Pack PDF, "BlockID Reviewed" badge, ≤ `verified_sla_business_days` (2) Sydney business days; hidden while ≥ `payg_verified_max_open` (5) are in review |
+| `upgrade_snapshot_full` | A$30 | card only | `STRIPE_PRICE_UPGRADE_SNAPSHOT_FULL` | unlock rail on a Snapshot report | D28 — own one-time Price, never a coupon |
+| `upgrade_full_verified` | A$100 | card only | `STRIPE_PRICE_UPGRADE_FULL_VERIFIED` | unlock rail on a Full report | D28 |
+| `report_funding` | A$19 | 19 | `STRIPE_PRICE_REPORT_FUNDING` | `/funding` paywall, Money Finder pages | D25 — Money Finder stays its own product at the Snapshot price point; "Free scan · A$19 full" |
+
+**Retired when ON (kept for late webhooks + receipts, never sold):** `sku_trust_report_5aud`, `sku_one_click_report_3aud`,
+`sku_funding_report_3aud` (A$3; `LEGACY_REPORT_SKUS` resolves a session created before the cut-over), the 5-credit / A$5 pack
+(D27 — 10 / 25 / 50 / 100 stay), `STRIPE_PRICE_SVI_ANALYSIS` (A$1 early-bird; already unused, catalogue row retired).
+
+**Credits (D27):** every credit amount renders as "N credits" (`creditsLabel()`); no A$-per-credit conversion anywhere
+(billing page per-credit line removed when ON); evaluator re-score = "1 credit" (`rescoreLabel()`).
+
+**Copy (one string per idea, `payg-copy.ts`):**
+
+- `/pricing` FAQ + FAQ JSON-LD: *"Without a subscription, buy a single report: Snapshot A$19, Full A$49 or Verified A$149 (all AUD, GST-inclusive)."*
+- PAYG block line: *"Scout pays for itself after two Full reports."* (Scout A$79 / month < 2 × A$49)
+- Entry price wherever one number stands for "a report" (`/solutions/*` `{reportPrice}`, homepage ladder): *"from A$19"*
+- `(marketing)/layout.tsx` Product JSON-LD: `AggregateOffer` lowPrice 19 / highPrice 149 AUD (ON); single Offer 3.00 (OFF)
+- Refund sentence (FAQ ↔ Terms v2.2 clause 3A): one-off reports non-refundable once delivered except where the ACL
+  requires; a Verified report still in review refunded in full on request; ACL guarantees never excluded.
+
+**Legal:** Terms v2.2 (`content/legal/terms-v2.mdx`, `DISCLAIMER_VERSIONS.tos = v2.2-2026-10-20`) is **flag-neutral** — it
+names no fixed one-off price ("the price shown on the review step before you pay") and words the Verified in-review refund as
+"where we offer a report that includes a review", so it is true with the flag OFF or ON and one consent version is current
+regardless of the switch. Registry row `web/supabase/pending-authority/0477_terms_v2_2_registry.sql` — **written, not
+applied** (founder applies with the cut-over). Privacy policy Money Finder copy is price-neutral (editorial, no version bump).
+
+**Guards:** `docs/design/messaging.md` § 11 rows ban `A$3` / bare `A$1` as a report / credit price on public surfaces;
+`web/src/lib/pricing/legacy-price.guard.test.ts` scans `web/src`, `web/content/legal` and the i18n messages — every
+remaining legacy literal must sit in a file listed in `web/src/lib/pricing/legacy-price-allowlist.ts` (history page,
+legacy catalogue, or a flag-OFF branch that also reads the switch). After the cut-over is permanent, delete the flag-OFF
+branches and the list empties.
+
+**Admin:** `/admin` "Pay as you go" tile (`lib/admin/payg-kpis.ts`): orders by tier 7 / 30 d, PAYG revenue, Snapshot → Full,
+Verified SLA hit rate, PAYG buyers who later subscribed. `GET /api/platform-config` exposes `payg_enabled` + the validated
+display prices + SLA days (review capacity stays admin-only).
+
+**Cut-over (founder, one deploy — plan § 6.10):** mint live Prices (`scripts/stripe/mint-payg-v5.mjs --mode live
+--confirm-live`), set the six env vars, apply 0477, set `payg_enabled = true` in Admin › System Config, re-run `qa:live`,
+then archive (not delete) the three A$3 Prices.
+

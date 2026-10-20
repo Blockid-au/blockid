@@ -13,11 +13,16 @@
 //           · unsubscribe (money_radar category — the cron gates on
 //           canSendEmail(email, "money_radar") and passes the URL in).
 //
-// Pricing words are the G12 ones only: Trusted Business Report A$3, re-score A$1.
-// Never "PhD", never the retired A$5.50 (pinned by the test).
+// Pricing words: with `payg` OFF (default) the G12 ones only — Trusted
+// Business Report + re-score at the legacy amounts. G35 P5: with
+// `platform_config.payg_enabled` ON (the cron passes the server-read view)
+// the re-score reads "1 credit" (D27) and the one-off is the Full tier at the
+// view's price. Never "PhD", never the retired A$5.50 (pinned by the test).
 
 import { DISCLAIMER_SURFACES } from "@/lib/legal/surfaces";
 import { formatDelta, progressHeadline, type EvaluatorProgress, type EvaluatorProgressItem } from "./progress-shared";
+import { PAYG_OFF_VIEW, rescoreLabel, type PaygView } from "@/lib/pricing/payg-copy";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 
 export interface EvaluatorProgressEmailPayload {
   progress: EvaluatorProgress;
@@ -27,6 +32,8 @@ export interface EvaluatorProgressEmailPayload {
   unsubscribeUrl?: string | null;
   /** Defaults to NEXT_PUBLIC_SITE_URL or https://blockid.au. */
   siteUrl?: string | null;
+  /** G35 P5 — Pricing v5 view from the (server) cron. Omitted → flag OFF (today's copy). */
+  payg?: Pick<PaygView, "enabled" | "full">;
 }
 
 export interface RenderedEvaluatorProgressEmail {
@@ -153,6 +160,14 @@ ${p.deadlines
         )}.</p>`
       : `<p style="margin:0;font-size:14px;color:#4b5563;">No new grant or program matches this week.</p>`;
 
+  // G35 P5 price words (OFF = the legacy amounts, byte-identical to before).
+  const payg = payload.payg ?? PAYG_OFF_VIEW;
+  const rescore = rescoreLabel(payg);
+  const reportCta = payg.enabled ? "Run a full report" : "Run Trusted Business Report";
+  const reportLine = payg.enabled
+    ? `A full report is one of your included reports, or Full ${payg.full} pay as you go.`
+    : `A full Trusted Business Report is ${trustReportPriceLabel()} or one of your included reports.`;
+
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#eef0f5;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;">
   <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;">BlockID.au · Progress Radar</p>
   <h1 style="margin:0 0 6px 0;font-size:20px;line-height:1.3;">${escapeHtml(subject.replace(/^Your weekly progress radar — /, "This week: "))}</h1>
@@ -168,10 +183,10 @@ ${p.deadlines
   ${matchesHtml}
 
   <p style="margin:28px 0 8px 0;">
-    <a href="${escapeHtml(workspace)}" style="display:inline-block;background:#1B2A5E;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Run a re-score (A$1)</a>
-    <a href="${escapeHtml(workspace)}" style="display:inline-block;margin-left:8px;border:1px solid #eceef7;color:#1B2A5E;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;">Run Trusted Business Report</a>
+    <a href="${escapeHtml(workspace)}" style="display:inline-block;background:#1B2A5E;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Run a re-score (${escapeHtml(rescore)})</a>
+    <a href="${escapeHtml(workspace)}" style="display:inline-block;margin-left:8px;border:1px solid #eceef7;color:#1B2A5E;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;">${escapeHtml(reportCta)}</a>
   </p>
-  <p style="margin:0 0 24px 0;font-size:12px;color:#6b7280;">A re-score refreshes the SVI over the evidence the startup has now (A$1). A full Trusted Business Report is A$3 or one of your included reports.</p>
+  <p style="margin:0 0 24px 0;font-size:12px;color:#6b7280;">A re-score refreshes the SVI over the evidence the startup has now (${escapeHtml(rescore)}). ${escapeHtml(reportLine)}</p>
 
   <p style="margin:0 0 12px 0;font-size:11px;line-height:1.6;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:12px;">${escapeHtml(disclaimer)}</p>
   <p style="margin:0;font-size:11px;color:#4b5563;">You receive this because Progress Radar is part of your evaluator plan.${
@@ -197,7 +212,7 @@ ${p.deadlines
     "NEW MATCHES",
     `- ${p.newMatches} this week`,
     "",
-    `Run a re-score (A$1) or a Trusted Business Report: ${workspace}`,
+    `Run a re-score (${rescore}) or ${payg.enabled ? "a full report" : "a Trusted Business Report"}: ${workspace}`,
     "",
     disclaimer,
     ...(unsub ? ["", `Unsubscribe from Progress Radar emails: ${unsub}`] : []),

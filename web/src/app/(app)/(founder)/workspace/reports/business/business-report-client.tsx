@@ -954,7 +954,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           {founderMode && access?.projectId && unlockMode !== "buy" && verifiedUpgrade && (
             <div data-testid="payg-verified-upgrade" className="flex flex-col gap-2 rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
               <p className="text-secondary">
-                Have the BlockID team review the evidence behind this report — Verified, {verifiedUpgrade.priceLabel} one-off, GST incl., {verifiedUpgrade.delivery.toLowerCase()}.
+                Have the BlockID team review the evidence behind this report — Verified, {verifiedUpgrade.priceLabel} one-off, inc. GST, {verifiedUpgrade.delivery.toLowerCase()}.
               </p>
               <button
                 type="button"

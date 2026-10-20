@@ -22,6 +22,7 @@ vi.mock("./messages/en.json", () => ({
     "dup.key_b": "SharedEnValue",
     "roundtrip.one": "Alpha",
     "roundtrip.two": "Beta",
+    "funding.copy.cta.unlockReport": "Unlock full report {fundingPrice}",
   },
 }));
 
@@ -43,6 +44,7 @@ vi.mock("./messages/vi.json", () => ({
     "roundtrip.one": "MotAlpha",
     "roundtrip.two": "HaiBeta",
     "vi.only": "OnlyPresentInVi",
+    "funding.copy.cta.unlockReport": "Mở khóa báo cáo đầy đủ {fundingPrice}",
   },
 }));
 
@@ -246,5 +248,13 @@ describe("buildSeedCatalog — round-trip", () => {
     const pairs = new Map(Object.entries(seed));
     expect(pairs.get("Alpha")).toBe("MotAlpha");
     expect(pairs.get("Hello")).toBe("Xin chào");
+  });
+});
+
+describe("buildSeedCatalog — Money Finder price tokens (G35 P5, D25)", () => {
+  it("seeds the priced sentence as rendered in both payg_enabled states", () => {
+    const seed = buildSeedCatalog("vi");
+    expect(seed["Unlock full report A$3"]).toBe("Mở khóa báo cáo đầy đủ A$3");
+    expect(seed["Unlock full report A$19"]).toBe("Mở khóa báo cáo đầy đủ A$19");
   });
 });

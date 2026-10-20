@@ -23,7 +23,7 @@ describe("paygQuotaExhaustedOffer", () => {
     const offer = paygQuotaExhaustedOffer("full", { ...base, payg: PAYG });
     expect(offer?.title).toBe("Your included reports are used");
     expect(offer?.body).toContain("49 credits");
-    expect(offer?.body).toContain("A$49 one-off, GST incl.");
+    expect(offer?.body).toContain("A$49 one-off, inc. GST");
     expect(offer?.body).toContain("never charged");
   });
 

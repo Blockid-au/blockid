@@ -21,12 +21,16 @@
 //                      (the same reducer /api/status.tbr_quality uses): runs
 //                      in 24 h, grounded median, cost median (USD), degraded
 //                      share, verdict ok | watch | missing.
+//   payg (G35 P5)      Pricing v5 pay-as-you-go: orders by tier 7/30 d, PAYG
+//                      revenue, Snapshot → Full rate, Verified SLA hit rate,
+//                      PAYG buyers who later subscribed (lib/admin/payg-kpis).
 //
 // `computeReportKpis` is pure (tests); `loadReportKpis` does the reads and
 // degrades to nulls — a missing column / file never breaks the dashboard.
 
 import { comparablesCopyLine, comparablesCounts, primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
+import { loadPaygKpis, type PaygKpiDb, type PaygKpis } from "@/lib/admin/payg-kpis";
 
 export const GROUNDED_GATE = 0.8;
 export const GROUNDED_TARGET_MEDIAN = 0.85;
@@ -107,6 +111,8 @@ export interface ReportKpis {
   clarity: ClarityKpi;
   /** G19-S46: last-24 h pipeline telemetry (tbr-quality.jsonl); null when the reader was not run. */
   pipeline: TbrQualityStatus | null;
+  /** G35 P5: Pricing v5 PAYG KPIs; null when report_orders is unreadable. */
+  payg: PaygKpis | null;
 }
 
 export function median(values: number[]): number | null {
@@ -126,6 +132,8 @@ export function computeReportKpis(input: {
   clarity?: ClarityResponseRow[];
   /** G19-S46: the tbr-quality.jsonl summary (readTbrQualityStatus). */
   pipeline?: TbrQualityStatus | null;
+  /** G35 P5: computed by lib/admin/payg-kpis. */
+  payg?: PaygKpis | null;
   now?: Date;
   windowDays?: number;
 }): ReportKpis {
@@ -157,6 +165,7 @@ export function computeReportKpis(input: {
     comparablesCopy: input.comparables.copy,
     clarity: computeClarityKpi(input.clarity ?? [], now),
     pipeline: input.pipeline ?? null,
+    payg: input.payg ?? null,
   };
 }
 
@@ -178,6 +187,8 @@ export interface LoadReportKpiDeps {
   readSpend?: () => ReportKpiSpend | null;
   /** G19-S46: the tbr-quality.jsonl reader (defaults to the live-checkout file). */
   readQuality?: () => Promise<TbrQualityStatus | null>;
+  /** G35 P5: PAYG KPI loader (defaults to loadPaygKpis over the same client). */
+  loadPayg?: () => Promise<PaygKpis | null>;
   now?: () => Date;
 }
 
@@ -221,7 +232,9 @@ export async function loadReportKpis(db: ReportKpiDb | null, deps: LoadReportKpi
   const spend = deps.readSpend ? deps.readSpend() : await defaultReadSpend();
   // G19-S46: the same 24 h reducer /api/status.tbr_quality publishes.
   const pipeline = await (deps.readQuality ? deps.readQuality() : readTbrQualityStatus(undefined, now().getTime())).catch(() => null);
+  // G35 P5: PAYG orders (report_orders v5 SKUs) — null when unreadable.
+  const payg = await (deps.loadPayg ? deps.loadPayg() : loadPaygKpis(db as unknown as PaygKpiDb | null, now())).catch(() => null);
   await primeComparables().catch(() => undefined);
   const c = comparablesCounts();
-  return computeReportKpis({ snapshots, spend, comparables: { n: c.n, withMultiplesN: c.withMultiplesN, source: c.source, copy: comparablesCopyLine() }, clarity, pipeline, now: now() });
+  return computeReportKpis({ snapshots, spend, comparables: { n: c.n, withMultiplesN: c.withMultiplesN, source: c.source, copy: comparablesCopyLine() }, clarity, pipeline, payg, now: now() });
 }

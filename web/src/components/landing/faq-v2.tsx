@@ -1,12 +1,18 @@
 import type { FC } from "react";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
+import { moneyFinderFaqAnswer, refundFaqAnswer, singleReportFaqSentence } from "@/lib/pricing/pricing-faq-copy";
 
 type FAQItem = {
   q: string;
   a: string;
 };
 
-const FAQS: FAQItem[] = [
+// Pricing v5 P5: the answers that name a one-off price follow the
+// payg_enabled view (lib/pricing/pricing-faq-copy, shared with the /pricing
+// FAQPage JSON-LD); the default flag-OFF view reproduces the pre-v5 text.
+export function faqV2Items(view: PaygView = PAYG_OFF_VIEW): FAQItem[] {
+  return [
   {
     q: "What happens after the 7-day free trial?",
     // QA-3 (2026-09-12): trial + refund copy mirror Terms v2.1 clauses 3 /
@@ -23,7 +29,7 @@ const FAQS: FAQItem[] = [
   },
   {
     q: "What's the refund policy?",
-    a: "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.",
+    a: refundFaqAnswer(view),
   },
   {
     q: 'What does "equity in lieu of cash" mean?',
@@ -41,17 +47,24 @@ const FAQS: FAQItem[] = [
     // G12 (2026-09-10, T0268): describes the Founder / Evaluator switch that
     // sits above the plans on /pricing — not the retired four persona tabs.
     q: "Founder or Evaluator — which plans do I see?",
-    a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). Without a subscription, every full Trusted Business Report is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
+    a: `Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime (Cohort plans: 14-day trial). ${singleReportFaqSentence(view)} Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.`,
   },
   {
     // G11 (2026-09-10, T0249): Money Finder ladder. Keep in sync with
     // FAQ_JSONLD in app/(marketing)/pricing/page.tsx.
     q: "What is the Grant & Program Finder (Money Finder)?",
-    a: "A ranked scan of Australian grants, programs and events your startup qualifies for. Free = the preview (how many you match, top 3 named) and the open-grants directory · A$3 = the full Money Finder report per startup — ranked matches, eligibility checklist, 12-month timeline, PDF · Starter A$29 = Founder Radar deadline alerts and monthly re-match, with full reports included · Growth A$69 = the same, with 45 credits a month for application drafts. A grants consultant charges A$500–2,000 for this scan.",
+    a: moneyFinderFaqAnswer(view),
   },
-];
+  ];
+}
 
-export const FAQV2: FC = () => {
+export interface FAQV2Props {
+  /** Server-read PaygView (`getPaygView()`); default = flag OFF (today's copy). */
+  payg?: PaygView;
+}
+
+export const FAQV2: FC<FAQV2Props> = ({ payg = PAYG_OFF_VIEW }) => {
+  const FAQS = faqV2Items(payg);
   return (
     <section id="faq" className="w-full py-24 px-6 md:px-10 bg-surface-sunken">
       <div className="mx-auto max-w-5xl">

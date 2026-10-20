@@ -4,6 +4,8 @@ import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { PLANS_V2 } from "@/lib/plans-v2";
 
 import { CreditGate, creditGatePacks, perCreditLabel } from "./credit-gate";
+import { PaygViewProvider } from "@/components/pricing/payg-view-context";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 // S31-B (2026-09-13): the gate used to hard-code 10 credits for A$5, 25 for
 // A$9 and 50 for A$15 while /api/credits charged A$9 / A$20 / A$35, and it
@@ -40,6 +42,33 @@ describe("CreditGate prices track lib/credit-packs and plans-v2", () => {
     expect(html).not.toContain("A$0.50 per credit");
     expect(html).not.toContain("A$0.36 per credit");
     expect(html).not.toContain("A$0.30 per credit");
+  });
+
+  it("G35 P5 flag OFF (default / explicit false): the zero-cost fallback and the per-credit line keep today's A$ copy", () => {
+    const html = renderToStaticMarkup(
+      <CreditGate isOpen onClose={() => {}} feature="trust_report_rescore" cost={0} balance={0} paygEnabled={false} />,
+    );
+    expect(html).toContain("A$1.00");
+    expect(html).toContain("per credit");
+    expect(renderToStaticMarkup(<CreditGate isOpen onClose={() => {}} feature="trust_report_rescore" cost={0} balance={0} />)).toBe(html);
+  });
+
+  it("G35 P5 flag ON (prop or provider): D27 — costs read 'N credits', no A$ per credit, packs keep their pack price", () => {
+    const ten = CREDIT_PACKS.find((p) => p.credits === 10)!;
+    expect(perCreditLabel(ten, true)).toBe("Save 10%");
+    for (const html of [
+      renderToStaticMarkup(<CreditGate isOpen onClose={() => {}} feature="trust_report_rescore" cost={0} balance={0} paygEnabled />),
+      renderToStaticMarkup(
+        <PaygViewProvider value={PAYG_ON_VIEW}>
+          <CreditGate isOpen onClose={() => {}} feature="trust_report_rescore" cost={0} balance={0} />
+        </PaygViewProvider>,
+      ),
+    ]) {
+      expect(html).toContain("1 credit");
+      expect(html).not.toContain("A$1.00");
+      expect(html).not.toContain("per credit");
+      for (const pack of creditGatePacks()) expect(html).toContain(`A$${pack.price}`);
+    }
   });
 
   it("renders nothing while closed", () => {

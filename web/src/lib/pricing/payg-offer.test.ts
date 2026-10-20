@@ -26,7 +26,7 @@ describe("buildPaygOffer", () => {
     const offer = buildPaygOffer({ config: ON, orders: [], openVerifiedCount: 0 });
     if (!offer.enabled) throw new Error("expected enabled");
     expect(offer.billingNote).toBe(PAYG_BILLING_NOTE);
-    expect(offer.billingNote).toBe("One-off, GST incl.");
+    expect(offer.billingNote).toBe("One-off, inc. GST.");
     expect(offer.tiers.map((t) => [t.tier, t.sku, t.amountCents, t.priceLabel, t.creditCost])).toEqual([
       ["snapshot", "report_snapshot", 1900, "A$19", 19],
       ["full", "report_full", 4900, "A$49", 49],

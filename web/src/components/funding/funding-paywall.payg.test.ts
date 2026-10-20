@@ -18,6 +18,6 @@ describe("fundingRailPrice", () => {
 
   it("on → report_funding price + credits, no A$ conversion of credits", () => {
     const p = fundingRailPrice({ status: "ready", pricing: { enabled: true, funding: { sku: "report_funding", amountCents: 1900, priceLabel: "A$19", credits: 19 } } });
-    expect(p).toEqual({ label: "A$19", note: " · one-off, GST incl.", credits: 19, creditFeature: "report_funding", v5: true, loading: false });
+    expect(p).toEqual({ label: "A$19", note: " inc. GST · one-off", credits: 19, creditFeature: "report_funding", v5: true, loading: false });
   });
 });

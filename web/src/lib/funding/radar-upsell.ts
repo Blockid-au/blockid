@@ -1,5 +1,5 @@
-// Founder Radar upsell — the facts behind the approved A$3 → subscribe copy
-// (G11 §4i D-3, T0247):
+// Founder Radar upsell — the facts behind the approved Money Finder report →
+// subscribe copy (G11 §4i D-3, T0247):
 //
 //   "This report is a snapshot. {next_program} closes in {d} days and
 //    {k} programs on your list open new rounds this quarter. Founder Radar
@@ -12,6 +12,7 @@
 // report page (server) and the tests all use it.
 
 import type { TimelineItem } from "@/lib/agents/grant-advisor";
+import { LEGACY_FUNDING_CENTS, type PaygView } from "@/lib/pricing/payg-copy";
 
 export interface RadarUpsellFacts {
   /** The earliest hard deadline still ahead of `today`, or null. */
@@ -109,10 +110,20 @@ export function radarViewerKind(user: { plan?: string | null; segment?: string |
 export const FOUNDER_RADAR_MONTHLY_AUD = 29;
 export const FOUNDER_RADAR_TRIAL_DAYS = 7;
 export const SCOUT_MONTHLY_AUD = 79;
-export const FUNDING_REPORT_AUD = 3;
+/**
+ * Legacy (payg_enabled OFF) Money Finder one-off price in whole AUD — derived
+ * from the v3 SKU (`FUNDING_REPORT_3AUD`) via payg-copy, never typed.
+ * View-aware readers use `fundingReportAud(view)`.
+ */
+export const FUNDING_REPORT_AUD = LEGACY_FUNDING_CENTS / 100;
+
+/** Money Finder one-off price in whole AUD for a view (OFF: legacy · ON: D25 catalogue). */
+export function fundingReportAud(view: Pick<PaygView, "fundingCents">): number {
+  return view.fundingCents / 100;
+}
 
 /**
- * The approved closing clause of the A$3 → Founder Radar sentence (D-3).
+ * The approved closing clause of the report → Founder Radar sentence (D-3).
  * `RadarUpsellCard` renders it; `lib/funding/copy.ts` re-exports it as
  * `FUNDING_COPY.upsell.tail` so the messaging pack never duplicates it.
  */

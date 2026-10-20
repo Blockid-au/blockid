@@ -288,6 +288,7 @@ import {
   type DripDbLike,
 } from "./email-drip";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import { PLANS_V2 } from "@/lib/plans-v2";
 
 beforeEach(() => {
@@ -1855,6 +1856,17 @@ describe("renderDripBody — tbr_unlock_24h", () => {
     expect(out.text).toContain(`(${price} one-off inc. GST)`);
     expect(out.text).toContain("https://blockid.au/workspace/reports/business?pid=p-1");
     expect(out.html).toContain("Unsubscribe");
+  });
+
+  it("G35 P5: payg OFF (explicit) is identical to the default; ON prices the nudge as the Full tier from the view", () => {
+    const payload = { project_id: "p-1", weakestDim: "traction" };
+    expect(renderDripBody("tbr_unlock_24h", "a@b.co", payload, { payg: PAYG_OFF_VIEW })).toEqual(renderDripBody("tbr_unlock_24h", "a@b.co", payload));
+    const on = renderDripBody("tbr_unlock_24h", "a@b.co", payload, { payg: PAYG_ON_VIEW });
+    expect(on.subject).toBe(`Your report is ready — get the Full report for ${PAYG_ON_VIEW.full}`);
+    expect(on.subject).toBe(tbrUnlockSubject(PAYG_ON_VIEW));
+    expect(on.html).toContain(`<strong>${PAYG_ON_VIEW.full}</strong> one-off`);
+    expect(on.text).toContain(`(${PAYG_ON_VIEW.full} one-off inc. GST)`);
+    for (const s of [on.subject, on.html, on.text]) expect(s).not.toMatch(/A\$3(?!\d)/);
   });
 
   it("no project id → bare report page; the weakest-dimension clause is omitted and payload is escaped", () => {

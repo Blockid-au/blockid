@@ -1180,6 +1180,16 @@ describe("sendGuestCheckoutRecovery — abandoned A$3 checkout, one email only",
     expect(html).toContain("the only email we'll send");
   });
 
+  it("G35 P5: prints the order's own amount when the cron passes it; the legacy amount otherwise", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendGuestCheckoutRecovery } = await import("./email");
+    await sendGuestCheckoutRecovery(args);
+    expect(lastMail().html).toContain("A$3.00 inc. GST — one payment");
+    await sendGuestCheckoutRecovery({ ...args, amountCents: 4900 });
+    expect(lastMail().html).toContain("A$49.00 inc. GST — one payment");
+    expect(lastMail().html).not.toContain("A$3.00");
+  });
+
   it("names the uploaded deck when the input was a pitch file", async () => {
     canSendEmailMock.mockResolvedValue(true);
     const { sendGuestCheckoutRecovery } = await import("./email");
@@ -1496,6 +1506,15 @@ describe("G18-A pricing truth — nurture and credit e-mails quote the ladder", 
     expect(mail.html).toContain(`${formatAud(pack(50).price)} <span`);
     expect(mail.html).toContain(pack(50).savings!);
     expect(mail.html).not.toMatch(CLOSED_PROMO);
+  });
+
+  it("G35 P5 sendUnlockDeeperAnalysis with payg ON: the analysis is priced in credits only (D27), never A$ per analysis", async () => {
+    const { SVI_ANALYSIS_CREDITS } = await ladder();
+    const { sendUnlockDeeperAnalysis } = await import("./email");
+    await sendUnlockDeeperAnalysis({ to: "a@b.co", name: "Ana", stageLabel: "Seed", paygEnabled: true });
+    const html = lastMail().html ?? "";
+    expect(html).toContain(`${SVI_ANALYSIS_CREDITS} credits`);
+    expect(html).not.toMatch(/from A\$0\.\d\d/);
   });
 
   it("sendD1Welcome quotes the real free grant and per-analysis cost", async () => {

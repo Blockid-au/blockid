@@ -25,6 +25,7 @@ import { parseClaimedParam } from "@/lib/analyses/summary";
 import { getLocale } from "@/lib/i18n";
 import { getMessages } from "@/lib/i18n/t";
 import { freeReportCopy } from "@/lib/reports/free-report-copy";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const metadata: Metadata = pageMetadata({
   title: "Analyze your startup — SVI score and valuation",
@@ -42,6 +43,8 @@ interface SearchParams {
   resume?: string;
   /** How many earlier runs the signup/login just attached to the account. */
   claimed?: string;
+  /** G35 P5 (D26) — `snapshot` | `full`: the PAYG tier a /pricing link chose (flag ON only). */
+  payg?: string;
 }
 
 export default async function AnalyzePage({
@@ -65,11 +68,11 @@ export default async function AnalyzePage({
   const resumedFromSignup = params.resume === "signup";
   // Real claim count from the auth endpoint, carried through the redirect.
   const claimed = parseClaimedParam(params.claimed);
-  const user = await getCurrentUser();
+  const paygTier = params.payg === "snapshot" ? "snapshot" : "full";
   // G25-C — the free-allowance copy (EN / VI), resolved once here so the
-  // client tree never carries the catalogues.
-  const locale = await getLocale();
-  const copy = freeReportCopy(await getMessages(locale), locale);
+  // client tree never carries the catalogues. G35 P5: + the Pricing v5 view.
+  const [user, locale, payg] = await Promise.all([getCurrentUser(), getLocale(), getPaygView()]);
+  const copy = freeReportCopy(await getMessages(locale), locale, payg);
   return (
     <MarketingShell>
       <section
@@ -99,6 +102,8 @@ export default async function AnalyzePage({
             initialKind={initialKind}
             resumedFromSignup={resumedFromSignup}
             claimed={claimed}
+            payg={payg}
+            paygTier={paygTier}
           />
           <p className="text-xs text-muted">
             Prefer a walkthrough?{" "}

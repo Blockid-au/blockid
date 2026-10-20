@@ -18,7 +18,7 @@ const EXEMPT_PATH = [
   "plans.generated.ts",
   "gst-wording.test.ts",
 ];
-const RETIRED = [/\binc-GST\b/, /\bincl\. GST\b/, /\bGST-incl\./, /(?<![.\w])\binc GST\b/, /\bGST included\b/, /\bGST inclusive\b/];
+const RETIRED = [/\binc-GST\b/, /\bincl\. GST\b/, /\bGST incl\./, /\bGST-incl\./, /(?<![.\w])\binc GST\b/, /\bGST included\b/, /\bGST inclusive\b/];
 
 function* walk(dir: string): Generator<string> {
   for (const name of readdirSync(dir)) {

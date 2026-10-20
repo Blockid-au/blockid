@@ -22,7 +22,7 @@
  *
  * G35 D26 (Pricing v5, GET /api/pricing/payg): with `payg_enabled` on the
  * guest chooses Snapshot or Full (name, what is included, price "one-off,
- * GST incl.", delivery) before the explicit Pay button; Verified needs an
+ * inc. GST", delivery) before the explicit Pay button; Verified needs an
  * account, so it shows a sign-in link instead. While the price loads the Pay
  * button is disabled. Flag off → the A$3 dialog, unchanged.
  */
@@ -30,6 +30,10 @@
 import * as React from "react";
 import { ArrowRight, Check, Loader2, X } from "lucide-react";
 import { usePaygPricing } from "@/lib/pricing/use-payg-pricing";
+import { LEGACY_REPORT_CENTS, audFromCents } from "@/lib/pricing/payg-copy";
+
+/** Flag-OFF price copy — the legacy one-off report price, derived (never typed). */
+const LEGACY_PRICE_LABEL = audFromCents(LEGACY_REPORT_CENTS);
 import { emitClientEvent } from "@/lib/analytics/client-emit";
 import type { PaygTierOffer } from "@/lib/pricing/payg-offer";
 
@@ -59,6 +63,8 @@ export interface GuestPaidCheckoutProps {
   priceLabel?: string;
   /** Pre-filled address (the one given for the free report). */
   initialEmail?: string;
+  /** G35 P5: the tier the visitor came for (`/analyze?payg=snapshot|full`) — preselected in the picker. */
+  initialTier?: GuestPaygTier;
 }
 
 interface UploadResponse {
@@ -135,8 +141,9 @@ export function GuestPaidCheckout({
   inputType,
   file,
   url,
-  priceLabel = "A$3",
+  priceLabel = LEGACY_PRICE_LABEL,
   initialEmail,
+  initialTier = "full",
 }: GuestPaidCheckoutProps) {
   // G25-C: the address the visitor already gave for the free report is
   // pre-filled — they are never asked for the same thing twice.
@@ -148,7 +155,7 @@ export function GuestPaidCheckout({
   const pricing = usePaygPricing();
   const payg = pricing.status === "ready" && pricing.pricing.enabled ? pricing.pricing : null;
   const { buyable, verified } = guestPaygTiers(payg?.tiers);
-  const [tier, setTier] = React.useState<GuestPaygTier>("full");
+  const [tier, setTier] = React.useState<GuestPaygTier>(initialTier);
   const chosen = buyable.find((t) => t.tier === tier) ?? buyable[0] ?? null;
   const priceLoading = pricing.status === "loading";
   const shownPrice = payg && chosen ? chosen.priceLabel : priceLabel;

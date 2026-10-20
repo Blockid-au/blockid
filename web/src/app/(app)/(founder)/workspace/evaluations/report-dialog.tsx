@@ -59,7 +59,7 @@ export function paygQuotaExhaustedOffer(kind: ReportKind, cost: ReportCostPrevie
   const credits = cost.payg.full_credits ?? cost.list_credits;
   return {
     title: "Your included reports are used",
-    body: `Run this as a pay-as-you-go Full report — ${credits} credits (the Full report is ${cost.payg.full_price_label} one-off, GST incl.) — or move to a plan with more included reports. Reports included in your plan are always Full and never charged.`,
+    body: `Run this as a pay-as-you-go Full report — ${credits} credits (the Full report is ${cost.payg.full_price_label} one-off, inc. GST) — or move to a plan with more included reports. Reports included in your plan are always Full and never charged.`,
   };
 }
 

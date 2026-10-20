@@ -10,9 +10,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const userState: { user: { id: string; email: string } | null } = { user: null };
 const annualState: { ids: string[] } = { ids: [] };
+const paygState: { enabled: boolean } = { enabled: false };
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => userState.user }));
 vi.mock("@/lib/plans/annual-available", () => ({ annualAvailablePlanIds: async () => annualState.ids }));
+vi.mock("@/lib/pricing/payg-view.server", () => ({ isPaygEnabled: async () => paygState.enabled }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
@@ -47,6 +49,7 @@ const hrefOf = (html: string, id: string): string | undefined => {
 beforeEach(() => {
   userState.user = null;
   annualState.ids = [];
+  paygState.enabled = false;
 });
 
 describe("/checkout/review — signed out", () => {
@@ -114,6 +117,14 @@ describe("/checkout/review — signed out", () => {
     const href = hrefOf(html, "checkout-review-continue");
     expect(href).toBe(`/auth/login?next=${encodeURIComponent("/checkout/review?pack=10&entry=credits")}`);
     expect(t).toContain("Back to Billing");
+  });
+
+  it("Pricing v5 D27: the 5-pack reviews as today with the flag OFF and is a 404 with it ON (10-pack unaffected)", async () => {
+    const off = await en({ pack: "5", entry: "credits" });
+    expect(dataAttr(off, "order-id")).toBe("credits_5");
+    paygState.enabled = true;
+    await expect(en({ pack: "5", entry: "credits" })).rejects.toThrow("NOT_FOUND");
+    expect(dataAttr(await en({ pack: "10", entry: "credits" }), "order-id")).toBe("credits_10");
   });
 
   it("unknown plan, unknown pack, unknown sku, Free rung and no params → 404", async () => {

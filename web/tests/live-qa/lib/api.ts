@@ -192,6 +192,17 @@ export async function creditBalance(ctx: APIRequestContext): Promise<number> {
 }
 
 /**
+ * G35 Pricing v5: the one switch (`platform_config.payg_enabled`) as the live
+ * site publishes it on GET /api/platform-config. Specs that pin a price branch
+ * on it — flag OFF asserts the legacy copy, flag ON the v5 copy. A route that
+ * predates P5 (no key) reads as OFF.
+ */
+export async function paygEnabled(ctx: APIRequestContext): Promise<boolean> {
+  const r = await get<{ payg_enabled?: boolean }>(ctx, "/api/platform-config");
+  return r.status === 200 && r.body.payg_enabled === true;
+}
+
+/**
  * Navigate with the same swap-window tolerance: if the document response is
  * 502/503/504, wait 60 s and load once more. Returns the final response.
  */

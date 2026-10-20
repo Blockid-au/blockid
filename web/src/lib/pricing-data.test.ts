@@ -25,8 +25,10 @@ import {
   COMPARISON_ROWS,
   FAQ_ITEMS,
   discountablePrices,
+  pricingFaqItems,
 } from "./pricing-data";
 import { TRIAL_DAYS } from "./plans/trial-copy";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "./pricing/payg-copy";
 
 const BASE_CFG = {
   founding_plan_name: "Founding 100",
@@ -119,5 +121,21 @@ describe("FAQ_ITEMS — legacy /pricing FAQ block", () => {
     const trial = FAQ_ITEMS.find((f) => f.q === "Is there a free trial?");
     expect(trial).toBeDefined();
     expect(trial!.a).toContain(`${TRIAL_DAYS}-day free trial`);
+  });
+
+  it("Pricing v5 P5: flag OFF keeps the pre-v5 refund answer; flag ON swaps only that answer for the v5 sentence", () => {
+    const refund = FAQ_ITEMS.find((f) => f.q === "Do you offer refunds?")!;
+    expect(refund.a).toContain(
+      "One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund.",
+    );
+    expect(pricingFaqItems(PAYG_OFF_VIEW)).toBe(FAQ_ITEMS);
+    const on = pricingFaqItems(PAYG_ON_VIEW);
+    expect(on).toHaveLength(FAQ_ITEMS.length);
+    const onRefund = on.find((f) => f.q === "Do you offer refunds?")!;
+    expect(onRefund.a).toContain("One-off reports (Snapshot, Full, Verified, Money Finder) and credit packs are non-refundable once delivered");
+    expect(onRefund.a).not.toMatch(/A\$3(?![\d,.])/);
+    on.forEach((item, i) => {
+      if (item.q !== "Do you offer refunds?") expect(item).toBe(FAQ_ITEMS[i]);
+    });
   });
 });

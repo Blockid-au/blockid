@@ -20,7 +20,15 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CREDIT_PACKS, type CreditPack } from "./credit-packs";
+import {
+  CREDIT_PACKS,
+  PAYG_RETIRED_PACK_CREDITS,
+  creditPacksForSale,
+  findCreditPack,
+  isCreditPackForSale,
+  smallestCreditPackForSale,
+  type CreditPack,
+} from "./credit-packs";
 
 // ── ladder pin ────────────────────────────────────────────────────────────
 // The exact 5-tier MONOTONIC ladder as of 2026-09-07 (Workstream B8).
@@ -245,9 +253,10 @@ describe("CREDIT_PACKS — business rules", () => {
     }
   });
 
-  it("smallest pack sits at A$1/credit (integer rate — the baseline for the 'Save NN%' badges)", () => {
+  it("smallest pack sits at 100 cents/credit (integer rate — the baseline for the 'Save NN%' badges; retired from sale under v5 D27 but kept resolvable)", () => {
     const pack = CREDIT_PACKS[0];
     expect(pack.priceAudCents / pack.credits).toBe(100);
+    expect(findCreditPack(pack.credits)).toBe(pack);
   });
 
   it("savings badges are roughly consistent with per-credit discount from the 5-pack baseline", () => {
@@ -304,6 +313,29 @@ describe("CREDIT_PACKS — immutability & isomorphism", () => {
 // A$15/A$25 for the 50/100 packs after B8 moved them to A$35/A$60 — `--fix`
 // would have minted the wrong Stripe prices. This test greps the script's
 // `credits_<n>` rows and pins them to CREDIT_PACKS.
+describe("Pricing v5 D27 — the 5-pack leaves sale when payg_enabled, stays resolvable", () => {
+  it("flag OFF: today's full ladder is on sale (identical array)", () => {
+    expect(creditPacksForSale(false)).toBe(CREDIT_PACKS);
+    for (const p of CREDIT_PACKS) expect(isCreditPackForSale(p.credits, false)).toBe(true);
+    expect(smallestCreditPackForSale(false)).toBe(CREDIT_PACKS[0]);
+  });
+
+  it("flag ON: the 5-pack is not offered; 10/25/50/100 are", () => {
+    expect(PAYG_RETIRED_PACK_CREDITS).toEqual([5]);
+    expect(creditPacksForSale(true).map((p) => p.credits)).toEqual([10, 25, 50, 100]);
+    expect(isCreditPackForSale(5, true)).toBe(false);
+    expect(isCreditPackForSale(10, true)).toBe(true);
+    expect(smallestCreditPackForSale(true).credits).toBe(10);
+  });
+
+  it("unknown sizes are never on sale; the retired pack still resolves for receipts / webhook lookups", () => {
+    expect(isCreditPackForSale(7, false)).toBe(false);
+    expect(isCreditPackForSale(7, true)).toBe(false);
+    expect(findCreditPack(5)?.priceAudCents).toBe(500);
+    expect(findCreditPack(7)).toBeUndefined();
+  });
+});
+
 describe("scripts/sync-stripe-pricing.mjs — credit-pack rows match CREDIT_PACKS", () => {
   const scriptPath = resolve(__dirname, "../../scripts/sync-stripe-pricing.mjs");
   const source = readFileSync(scriptPath, "utf8");

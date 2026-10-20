@@ -1,3 +1,4 @@
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { randomUUID } from "node:crypto";
 import { withReportSpendScope } from "@/lib/ai/report-attempt-budget";
 // POST /api/intake — context-aware backend intake wrapper.
@@ -235,7 +236,7 @@ async function resolveCaller(): Promise<{
 }
 
 /** The body the client branches on when the free-allowance gate declines. */
-function gatedResponse(
+async function gatedResponse(
   result: Extract<FreeReportGateResult, { allow: false }>,
   credits: CreditQuote | null = null,
 ) {
@@ -246,7 +247,8 @@ function gatedResponse(
       ok: false,
       reason: FREE_REPORT_ALLOWANCE_USED,
       used: result.used ?? 0,
-      price: freeReportPayQuote(),
+      // G35 P5: the quote follows payg_enabled (Full tier when ON).
+      price: freeReportPayQuote(await getPaygView()),
       next: "pay",
       payHref: FREE_REPORT_PAY_HREF,
       // Signed-in only: what running THIS input with credits costs, and
@@ -406,7 +408,7 @@ async function POST_handler(request: Request) {
     const quote: CreditQuote | null = afford && afford.reason !== "unknown_feature"
       ? { feature: INTAKE_CREDIT_FEATURE, cost: afford.cost, balance: afford.balance, canAfford: afford.allowed }
       : null;
-    if (body.payWith !== "credits") return gatedResponse(gateResult, quote);
+    if (body.payWith !== "credits") return await gatedResponse(gateResult, quote);
     if (!quote || !quote.canAfford) {
       return NextResponse.json(
         { ok: false, reason: "insufficient_credits", credits: quote, analysisId: null },
@@ -416,7 +418,7 @@ async function POST_handler(request: Request) {
     creditQuote = quote;
     gate = { allow: true, path: "entitled", email: userEmail, source: "account", grant: null, queued: false, remaining: 0 };
   } else {
-    return gatedResponse(gateResult);
+    return await gatedResponse(gateResult);
   }
   // A guest's address rides on the row so the job e-mails the PDF and the
   // page is never locked; a signed-in run resolves the account address at

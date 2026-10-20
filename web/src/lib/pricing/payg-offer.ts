@@ -8,7 +8,7 @@
 // the Stripe Price, the ownership and the Verified cap at submit.
 //
 // Rules encoded here (pinned by payg-offer.test.ts):
-//   - Prices shown = `displayPriceCents()` (platform_config), "one-off, GST incl."
+//   - Prices shown = `displayPriceCents()` (platform_config), "one-off, inc. GST"
 //   - Delivery: Snapshot / Full "usually within an hour"; Verified "within N
 //     business days" (N = verified_sla_business_days, D29).
 //   - Verified is hidden (available: false) while open Verified work
@@ -44,7 +44,7 @@ export function paygTierLabel(tier: PaygTier): string {
   return `${PAYG_TIER_NAME[tier]} report`;
 }
 
-export const PAYG_BILLING_NOTE = "One-off, GST incl.";
+export const PAYG_BILLING_NOTE = "One-off, inc. GST.";
 
 /** Order statuses that count against the Verified review capacity (D29). */
 export const VERIFIED_OPEN_STATUSES = ["PAID", "GENERATING", "IN_REVIEW"] as const;

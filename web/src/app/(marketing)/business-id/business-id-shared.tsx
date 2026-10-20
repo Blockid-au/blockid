@@ -51,9 +51,15 @@ interface AnalysisPillar {
 export interface BusinessIdBodyProps {
   m: Messages;
   lang?: "en" | "vi";
+  /**
+   * Pricing v5 P5 — `platform_config.payg_enabled` (server-read). ON drops
+   * the legacy report price from the sample-report CTA
+   * (`hero.v3.cta.secondary.payg`); omitted = OFF, today's label.
+   */
+  paygEnabled?: boolean;
 }
 
-export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
+export function BusinessIdBody({ m, lang = "en", paygEnabled = false }: BusinessIdBodyProps) {
   // Keep the reader inside their locale — the VI mirror of the profile
   // lives at /vi/id/[slug] (§7.7 bilingual rule).
   const demoProfileHref =
@@ -258,7 +264,7 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
           title={t(m, "businessId.cta.title")}
           sub={t(m, "hero.v3.outcome")}
           primary={{ href: SIGNUP_HREF, label: t(m, "hero.v3.cta.primary.signedOut"), ctaId: "business_id_final_signup" }}
-          secondary={{ href: "/reports/samples", label: t(m, "hero.v3.cta.secondary") }}
+          secondary={{ href: "/reports/samples", label: t(m, paygEnabled ? "hero.v3.cta.secondary.payg" : "hero.v3.cta.secondary") }}
           footnote={t(m, "businessId.disclaimer")}
           tone="base"
         />

@@ -22,7 +22,7 @@ describe("svi-entrance sells the live ladder, not the retired Founding 100 promo
 
   it("reads Starter and the credit packs from the catalogues", () => {
     expect(SRC).toContain('import { PLANS_V2, formatAud } from "@/lib/plans-v2"');
-    expect(SRC).toContain('import { CREDIT_PACKS } from "@/lib/credit-packs"');
+    expect(SRC).toContain('import { CREDIT_PACKS, smallestCreditPackForSale } from "@/lib/credit-packs"');
     expect(SRC).toContain('PLANS_V2.find((p) => p.id === "founder_starter")');
     expect(SRC).toContain("/pricing?feature=svi.run#tier-starter");
   });
@@ -32,5 +32,15 @@ describe("svi-entrance sells the live ladder, not the retired Founding 100 promo
     expect(SRC).not.toContain("Buy 25 credits (A$20");
     expect(SRC).not.toContain("Lifetime access");
     expect(SRC).not.toContain("Only 100 spots");
+  });
+
+  it("G35 P5: the paywall follows payg_enabled — OFF keeps the Quick Report + 5-pack, ON shows Snapshot at the view price and the smallest pack on sale (D26/D27)", () => {
+    expect(SRC).toContain("const payg = usePaygView();");
+    expect(SRC).toContain("const quickPrice = payg.enabled ? payg.snapshot : formatAud(PAYWALL_QUICK_REPORT_AUD);");
+    expect(SRC).toContain("const smallPack = payg.enabled ? smallestCreditPackForSale(true) : PAYWALL_PACK_5;");
+    expect(SRC).toContain('onClick={payg.enabled ? handlePaygSnapshot : handleSingleAnalysis}');
+    expect(SRC).toContain('window.location.assign("/analyze?tier=paid&payg=snapshot")');
+    // No typed v5 price either.
+    expect(SRC).not.toMatch(/A\$(19|49|149)\b/);
   });
 });

@@ -156,8 +156,9 @@ describe("2. /signup?plan= — every allow-listed plan is a catalogue row (or co
 describe("3. /workspace/billing credit packs — Buy links to the review step for the pack (G25-D) and shows the catalogue amount", () => {
   const client = src("src/app/(app)/(founder)/workspace/billing/billing-client.tsx");
 
-  it("the grid iterates CREDIT_PACKS and links each Buy to /checkout/review?pack=<credits>; only the review's Pay button posts to /api/credits", () => {
-    expect(client).toContain("CREDIT_PACKS.map((pack)");
+  it("the grid iterates the packs on sale (CREDIT_PACKS when payg is OFF; D27 drops the 5-pack when ON) and links each Buy to /checkout/review?pack=<credits>; only the review's Pay button posts to /api/credits", () => {
+    expect(client).toContain("creditPacksForSale(paygEnabled).map((pack)");
+    expect(client).toContain("paygEnabled = false,");
     expect(client).not.toContain('fetch("/api/credits", {');
     expect(client).toContain('href={checkoutReviewHref({ pack: pack.credits, entry: "credits" })}');
     expect(client).toContain('data-testid="credit-pack-buy"');
@@ -187,6 +188,8 @@ describe("3. /workspace/billing credit packs — Buy links to the review step fo
     const route = src("src/app/api/credits/route.ts");
     expect(route).toContain("CREDIT_PACKS.find((p) => p.credits === amount)");
     expect(route).toContain("STRIPE_PRICE_MAP[`credits_${amount}`]");
+    // Pricing v5 D27: a retired pack size is refused when payg_enabled is on.
+    expect(route).toContain("PAYG_RETIRED_PACK_CREDITS.includes(amount) && (await isPaygEnabled())");
     const stripe = src("src/lib/stripe.ts");
     for (const pack of CREDIT_PACKS) {
       expect(stripe).toContain(`credits_${pack.credits}: process.env.STRIPE_PRICE_CREDITS_${pack.credits}`);
@@ -259,7 +262,8 @@ describe("5. Trusted Business Report — ReportPaywallGate + unlock rail read tr
       "src/app/(app)/(founder)/workspace/evaluations/[evaluationId]/dossier/assessment/actions-block.tsx",
     ]) {
       const s = src(rel);
-      expect(s, rel).toContain("trustReportPriceLabel");
+      // G35 P5: list + dossier read the flag-aware helpers (OFF = trustReportPriceLabel, ON = Full tier / "1 credit").
+      expect(s, rel).toMatch(/trustReportPriceLabel|reportPriceLabelFor/);
       expect(s, rel).not.toMatch(/A\$[13]\b/);
     }
     expect(TRUST_REPORT_RESCORE_CREDITS).toBe(1);
@@ -283,9 +287,12 @@ describe("6. Money Finder report — /funding paywall + workspace hint read FUND
   it("the paywall posts to /api/funding/checkout and the workspace hint reads the constants", () => {
     const paywall = src("src/components/funding/funding-paywall.tsx");
     expect(paywall).toContain('await fetch("/api/funding/checkout", {');
-    expect(paywall).toContain("FUNDING_REPORT_AUD");
+    // G35 P5 (D25): the price comes from the payg_enabled view (legacy
+    // FUNDING_REPORT_AUD when OFF, PAYG_SKUS.report_funding when ON).
+    expect(paywall).toContain("fundingReportAud(view)");
+    expect(paywall).not.toMatch(/A\$(3|19)\b/);
     const page = src("src/app/(app)/(founder)/workspace/funding/page.tsx");
-    expect(page).toContain("formatAud(FUNDING_REPORT_AUD)");
+    expect(page).toContain("formatAud(fundingReportAud(view))");
     expect(page).toContain("formatAud(FOUNDER_RADAR_MONTHLY_AUD)");
     expect(page).not.toMatch(/A\$(3|29)\b/);
   });

@@ -10,7 +10,9 @@
 // Rules pinned by copy.test.ts (same as the G11 pack):
 //   • every string ≤ 2 sentences (speakability), non-empty;
 //   • no "PhD"; the only price allowed is the public ladder (Scout A$79,
-//     Firm A$149, Program A$349, Trusted Business Report A$3) — no retired A$5.50 / A$99;
+//     Firm A$149, Program A$349; one-off reports are priced by the shared
+//     helpers in lib/pricing — the legacy one-off price, or the v5 PAYG tiers
+//     when platform_config.payg_enabled is on) — no retired A$5.50 / A$99;
 //   • `{tokens}` are filled with `fill()` (reused from the funding pack) —
 //     an unknown token stays visible as `{token}` rather than vanishing.
 //

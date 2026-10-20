@@ -79,6 +79,13 @@ const checklistMock = vi.fn();
 vi.mock("@/lib/email-preferences", () => ({
   emailSendChecklist: (...args: unknown[]) => checklistMock(...args),
 }));
+// G35 P5 — the Pricing v5 view the cron threads into renderDripBody.
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => (paygState.enabled ? PAYG_ON_VIEW : PAYG_OFF_VIEW) };
+});
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 import * as routeModule from "./route";
 import { GET, POST } from "./route";
@@ -298,7 +305,18 @@ describe("POST /api/cron/email-drip — happy path", () => {
   it("passes an empty payload through as {} when the drip row payload is null", async () => {
     dueDripsMock.mockResolvedValueOnce([drip({ payload: null })]);
     await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
-    expect(renderDripBodyMock).toHaveBeenCalledWith("onboarding_d1", "founder@example.com", {});
+    expect(renderDripBodyMock).toHaveBeenCalledWith("onboarding_d1", "founder@example.com", {}, { payg: PAYG_OFF_VIEW });
+  });
+
+  it("G35 P5: payg_enabled ON → renderDripBody gets the v5 view", async () => {
+    paygState.enabled = true;
+    try {
+      dueDripsMock.mockResolvedValueOnce([drip({ payload: null })]);
+      await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+      expect(renderDripBodyMock).toHaveBeenCalledWith("onboarding_d1", "founder@example.com", {}, { payg: PAYG_ON_VIEW });
+    } finally {
+      paygState.enabled = false;
+    }
   });
 });
 
@@ -625,7 +643,7 @@ describe("POST /api/cron/email-drip — tbr_unlock_24h send-time guard (G16-B)",
     const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
     expect((await res.json()).sent).toBe(1);
     expect(tbrUnlockSuppressionMock).toHaveBeenCalledWith(expect.objectContaining({ id: "d-tbr", campaign: "tbr_unlock_24h" }));
-    expect(renderDripBodyMock).toHaveBeenCalledWith("tbr_unlock_24h", "founder@example.com", expect.any(Object));
+    expect(renderDripBodyMock).toHaveBeenCalledWith("tbr_unlock_24h", "founder@example.com", expect.any(Object), expect.any(Object));
   });
 
   it("dry run reports the skip without cancelling the row", async () => {

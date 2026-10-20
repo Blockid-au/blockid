@@ -26,30 +26,37 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
 import { OneClickForm } from "./one-click-form";
 import {
-  ONE_CLICK_DELIVERABLES,
-  ONE_CLICK_FAQ,
   ONE_CLICK_SAMPLE,
-  ONE_CLICK_STEPS,
   ONE_CLICK_TRUST,
+  oneClickDeliverables,
+  oneClickFaq,
+  oneClickPageCopy,
+  oneClickSteps,
   type OneClickIcon,
 } from "./one-click-report-content";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
+import { paygTierHref } from "@/components/pricing/payg-block";
 
-export const metadata: Metadata = {
-  ...pageMetadata({
-    title: "Trusted Business Report — A$3, no signup",
-    description:
-      "How investors see your startup: upload a pitch or paste a URL and get the full Trusted Business Report — SVI score and AUD valuation range — by e-mail in minutes.",
-    path: "/one-click-report",
-  }),
-  keywords: [
-    "one click startup report",
-    "instant investor analysis australia",
-    "startup valuation australia",
-    "pitch deck analysis",
-    "svi valuation report",
-    "trusted business report",
-  ],
-};
+// Pricing v5 P5 (D26): title / description name the price, so they follow
+// platform_config.payg_enabled — OFF is the pre-v5 metadata, unchanged.
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = oneClickPageCopy(await getPaygView());
+  return {
+    ...pageMetadata({
+      title: copy.metaTitle,
+      description: copy.metaDescription,
+      path: "/one-click-report",
+    }),
+    keywords: [
+      "one click startup report",
+      "instant investor analysis australia",
+      "startup valuation australia",
+      "pitch deck analysis",
+      "svi valuation report",
+      "trusted business report",
+    ],
+  };
+}
 
 const ICONS: Record<OneClickIcon, LucideIcon> = { upload: Upload, "credit-card": CreditCard, mail: Mail };
 
@@ -64,19 +71,29 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
   const canceled =
     (Array.isArray(canceledRaw) ? canceledRaw[0] : canceledRaw) === "true";
 
+  const payg = await getPaygView();
+  const faq = oneClickFaq(payg);
+  const copy = oneClickPageCopy(payg);
   const faqItems = [
     {
-      question: ONE_CLICK_FAQ.refundQ,
-      answerText: ONE_CLICK_FAQ.refundText,
-      answer: (
+      question: faq.refundQ,
+      answerText: faq.refundText,
+      answer: payg.enabled ? (
+        // Terms v2.2 refund line (Pricing v5 P5).
+        <>
+          If your report doesn&apos;t arrive or the analysis clearly failed, email{" "}
+          <ObfuscatedEmail user="admin" domain="blockid.au" href className="text-action underline underline-offset-2" />{" "}
+          and we&apos;ll refund it in full.
+        </>
+      ) : (
         <>
           If your report doesn&apos;t arrive or the analysis clearly failed, email{" "}
           <ObfuscatedEmail user="support" domain="blockid.au" href className="text-action underline underline-offset-2" />{" "}
-          and we&apos;ll refund the A$3 in full — no questions. It&apos;s a low-stakes trial for both of us.
+          and we&apos;ll refund the {payg.reportEntry} in full — no questions. It&apos;s a low-stakes trial for both of us.
         </>
       ),
     },
-    ...ONE_CLICK_FAQ.rest.map((f) => ({ question: f.q, answer: f.a })),
+    ...faq.rest.map((f) => ({ question: f.q, answer: f.a })),
   ];
 
   return (
@@ -96,11 +113,11 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
       <PageHero
         eyebrow="For Australian founders"
         title="See how investors look at your startup — in one click."
-        sub="Upload your pitch deck or paste your website. Get the full Trusted Business Report — your Startup Value Index score across 8 dimensions and an AUD valuation range — in your inbox. No signup. A$3 inc. GST"
+        sub={copy.heroSub}
         visual={
           <div className="rounded-xl border border-line-subtle bg-surface p-6 text-left shadow-2 md:p-7">
             <Suspense fallback={null}>
-              <OneClickForm variant="hero" />
+              <OneClickForm variant="hero" payg={payg} verifiedHref={paygTierHref("verified")} />
             </Suspense>
           </div>
         }
@@ -121,7 +138,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
           numbered
           columns={3}
           ariaLabel="How it works"
-          items={ONE_CLICK_STEPS.map((s) => ({ icon: ICONS[s.icon], title: s.title, body: s.body }))}
+          items={oneClickSteps(payg).map((s) => ({ icon: ICONS[s.icon], title: s.title, body: s.body }))}
         />
       </Section>
 
@@ -132,7 +149,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
       >
         <div className="grid items-start gap-10 lg:grid-cols-2">
           <ul className="space-y-3">
-            {ONE_CLICK_DELIVERABLES.map((item) => (
+            {oneClickDeliverables(payg).map((item) => (
               <li key={item} className="flex gap-3 text-base text-primary">
                 <Check aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-action" />
                 <span>{item}</span>
@@ -184,13 +201,13 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
       <Section
         id="cta"
         title="Ready to see your report?"
-        lede="A$3 GST-inclusive, with an ATO tax invoice. Emailed in ~2 minutes. No signup."
+        lede={copy.ctaLede}
         align="center"
         spacing="lg"
       >
         <div className="mx-auto max-w-3xl rounded-xl border border-line-subtle bg-surface p-6 shadow-2 md:p-8">
           <Suspense fallback={null}>
-            <OneClickForm variant="final" />
+            <OneClickForm variant="final" payg={payg} verifiedHref={paygTierHref("verified")} />
           </Suspense>
         </div>
       </Section>

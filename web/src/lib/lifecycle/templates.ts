@@ -20,7 +20,7 @@ import "server-only";
 import { acnAbnLine } from "@/lib/site/legal-entity";
 import { getPreferencesUrl, getUnsubscribeUrl, type EmailCategory } from "@/lib/email-preferences";
 import { SVI_ANALYSIS_CREDITS } from "@/lib/credits-public";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { smallestCreditPackForSale } from "@/lib/credit-packs";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import { checkoutReviewHref } from "@/lib/billing/checkout-review";
@@ -293,12 +293,13 @@ function renderRerunPrompt(email: string, p: LifecycleRenderInput): RenderedLife
 
 // ── EM16 free quota used (C) ─────────────────────────────────────────────────
 
-function renderFreeQuotaUsed(email: string, p: LifecycleRenderInput): RenderedLifecycleEmail {
+function renderFreeQuotaUsed(email: string, p: LifecycleRenderInput, paygEnabled = false): RenderedLifecycleEmail {
   const used = p.lifecycle?.quota?.reports_used ?? 2;
   const starter = PLANS_V2.find((pl) => pl.id === "founder_starter");
   const starterPrice = `${formatAud(starter?.monthly_aud ?? null)}/mo`;
   const starterCredits = GENERATED_PLANS_BY_ID["founder_starter"]?.usage_limits?.monthly_credits ?? 0;
-  const pack = CREDIT_PACKS[0];
+  // G35 P5 (D27): the smallest pack ON SALE — the 5-pack leaves sale when payg_enabled is on.
+  const pack = smallestCreditPackForSale(paygEnabled);
   const packAnalyses = pack ? Math.floor(pack.credits / SVI_ANALYSIS_CREDITS) : 0;
   const planUrl = `${siteUrl()}${checkoutReviewHref({ plan: "founder_starter", entry: "email" })}`;
   const packUrl = pack ? `${siteUrl()}${checkoutReviewHref({ pack: pack.credits, entry: "email" })}` : planUrl;
@@ -406,7 +407,13 @@ function renderSunsetCheck(email: string, p: LifecycleRenderInput): RenderedLife
 
 // ── Router ───────────────────────────────────────────────────────────────────
 
-export function renderLifecycleEmail(campaign: LifecycleCampaign, email: string, p: LifecycleRenderInput): RenderedLifecycleEmail {
+/** Render options from the (server) sender — G35 P5. */
+export interface LifecycleRenderOptions {
+  /** `platform_config.payg_enabled`. Omitted → OFF (today's copy). */
+  paygEnabled?: boolean;
+}
+
+export function renderLifecycleEmail(campaign: LifecycleCampaign, email: string, p: LifecycleRenderInput, opts: LifecycleRenderOptions = {}): RenderedLifecycleEmail {
   switch (campaign) {
     case "score_updated":
       return renderScoreUpdated(email, p);
@@ -421,7 +428,7 @@ export function renderLifecycleEmail(campaign: LifecycleCampaign, email: string,
     case "rerun_prompt":
       return renderRerunPrompt(email, p);
     case "free_quota_used":
-      return renderFreeQuotaUsed(email, p);
+      return renderFreeQuotaUsed(email, p, opts.paygEnabled === true);
     case "monthly_digest":
       return renderMonthlyDigest(email, p);
     case "sunset_check":

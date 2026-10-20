@@ -1,6 +1,6 @@
 // G35 Pricing v5 P3 — review-before-pay UI (tier picker, gate, unlock rail).
 //
-// Pins: every tier shows name, included bullets, price, "One-off, GST incl."
+// Pins: every tier shows name, included bullets, price, "One-off, inc. GST."
 // and delivery (Verified "within 2 business days"); the Pay button names the
 // price; an owner of a lower tier sees the upgrade first; flag off → the A$3
 // gate / rail render exactly as before.
@@ -53,7 +53,7 @@ describe("paygChoices / defaultChoiceIndex / checkoutBodyFor", () => {
 describe("<PaygTierPicker>", () => {
   it("renders name, price, one-off GST note, delivery and included bullets for each tier, and an explicit Pay button", () => {
     const html = renderToStaticMarkup(<PaygTierPicker offer={offer()} businessId={BIZ} surface="test" creditBalance={0} />);
-    for (const s of ["Snapshot report", "Full report", "Verified report", "A$19", "A$49", "A$149", "One-off, GST incl.", "Within 2 business days (team review)", "Evidence-confidence %", "Investor Pack PDF"]) {
+    for (const s of ["Snapshot report", "Full report", "Verified report", "A$19", "A$49", "A$149", "One-off, inc. GST.", "Within 2 business days (team review)", "Evidence-confidence %", "Investor Pack PDF"]) {
       expect(html).toContain(s);
     }
     expect(html).toContain('data-testid="payg-pay"');

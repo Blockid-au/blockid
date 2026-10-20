@@ -361,11 +361,15 @@ async function renderPdfForEntry(
 
   switch (entry.pdfGenerator) {
     case "pitch-deck": {
-      const { PitchDeckPDF } = await import("@/lib/pdf/pitch-deck-pdf");
+      const [{ PitchDeckPDF }, { getPaygView }] = await Promise.all([
+        import("@/lib/pdf/pitch-deck-pdf"),
+        import("@/lib/pricing/payg-view.server"),
+      ]);
       // PitchDeckPDF returns a JSX Document element — direct call is fine
       // for @react-pdf/renderer's Node renderer (same pattern used in
       // web/src/lib/pdf/svi-report-pdf.test.ts).
-      return (await renderToBuffer(PitchDeckPDF() as never)) as Buffer;
+      // G35 P5 — the Free rung's report line follows payg_enabled.
+      return (await renderToBuffer(PitchDeckPDF({ payg: await getPaygView() }) as never)) as Buffer;
     }
     case "investor-pack": {
       const { renderInvestorPack } = await import("@/lib/pdf/investor-pack");

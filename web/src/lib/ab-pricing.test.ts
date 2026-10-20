@@ -147,6 +147,7 @@ import {
   getFoundingPriceVariant,
   logAbEvent,
   type ExperimentId,
+  activeVariants,
 } from "./ab-pricing";
 
 beforeEach(() => {
@@ -212,9 +213,22 @@ describe("getFoundingPriceVariant", () => {
     expect(a.id).toBe(b.id);
   });
 
-  it("returns one of the 4 defined variant ids", async () => {
+  it("returns one of the active variant ids (G35 D27: a1 / a3 retired)", async () => {
     const result = await getFoundingPriceVariant({ identityOverride: "identity-1" });
-    expect(["a5", "a3", "a10", "a1"]).toContain(result.id);
+    expect(["a5", "a10"]).toContain(result.id);
+  });
+
+  it("G35 D27: the A$1 / A$3 arms are inactive and never assigned; a5 / a10 still are", async () => {
+    const retired = FOUNDING_PRICE_EXPERIMENT.variants.filter((v) => v.active === false).map((v) => v.id);
+    expect(retired.sort()).toEqual(["a1", "a3"]);
+    expect(activeVariants(FOUNDING_PRICE_EXPERIMENT).map((v) => v.id)).toEqual(["a5", "a10"]);
+    const seen = new Set<string>();
+    for (let i = 0; i < 300; i++) {
+      seen.add((await getFoundingPriceVariant({ identityOverride: `id-${i}@x.io` })).id);
+    }
+    expect(seen.has("a1")).toBe(false);
+    expect(seen.has("a3")).toBe(false);
+    expect(seen.size).toBe(2);
   });
 
   it("different identities can resolve to different variants (bucketing is not degenerate)", async () => {
@@ -253,7 +267,7 @@ describe("getFoundingPriceVariant", () => {
     // No cookie set — getOrSetAnonId produces `anon_<ts>_<rand>`. The picked
     // variant must still be one of the 4 configured ids (no crash on missing cookie).
     const v = await getFoundingPriceVariant();
-    expect(["a5", "a3", "a10", "a1"]).toContain(v.id);
+    expect(["a5", "a10"]).toContain(v.id);
   });
 
   it("returns the control (variants[0] = a5) when the experiment is inactive", async () => {

@@ -24,10 +24,13 @@ import {
   publicPlansForSegment,
   formatAud,
   annualSavingPct,
+  planFeaturesForView,
+  paygFeatureLine,
   type Plan,
   type Segment,
   type CtaKind,
 } from "./plans-v2";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW, paygView } from "@/lib/pricing/payg-copy";
 
 const SEGMENTS: readonly Segment[] = [
   "founder",
@@ -768,5 +771,29 @@ describe("public founder rungs claim only what the product ships", () => {
       .toLowerCase();
     expect(addOnLines).not.toContain("dividend");
     expect(addOnLines).not.toContain("shareholder portal");
+  });
+});
+
+// Pricing v5 P5 — the Free plan's pay-as-you-go bullet follows payg_enabled.
+describe("planFeaturesForView() (Pricing v5 P5)", () => {
+  const free = PLANS_V2.find((p) => p.id === "founder_free")!;
+
+  it("flag OFF: every plan's features are returned unchanged (today's catalogue row)", () => {
+    for (const p of PLANS_V2) expect(planFeaturesForView(p, PAYG_OFF_VIEW)).toEqual(p.features);
+    expect(planFeaturesForView(free, PAYG_OFF_VIEW)).toContain("Trusted Business Report A$3 pay-as-you-go");
+  });
+
+  it("flag ON: the Free bullet becomes the v5 three-tier line priced from the view; nothing else moves", () => {
+    const on = planFeaturesForView(free, PAYG_ON_VIEW);
+    expect(on).toContain("Single reports from A$19 (Snapshot, Full, Verified) — pay as you go");
+    expect(on.join(" ")).not.toMatch(/A\$3(?!\d)/);
+    expect(on).toHaveLength(free.features.length);
+    for (const p of PLANS_V2.filter((x) => x.id !== "founder_free")) expect(planFeaturesForView(p, PAYG_ON_VIEW)).toEqual(p.features);
+  });
+
+  it("flag ON: the price follows platform_config display cents", () => {
+    const view = paygView({ payg_enabled: true, payg_snapshot_cents: 2500 });
+    expect(paygFeatureLine(view)).toBe("Single reports from A$25 (Snapshot, Full, Verified) — pay as you go");
+    expect(planFeaturesForView(free, view)).toContain(paygFeatureLine(view));
   });
 });

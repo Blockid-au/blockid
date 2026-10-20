@@ -37,6 +37,7 @@ import {
   sortByStatusThenName,
 } from "@/lib/funding/directory";
 import { FUNDING_CRUMBS, PROGRAM_GUIDES, capitalPath, capitalSeo, grantsStatePath, stateForCapital } from "@/lib/funding/seo";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
@@ -67,7 +68,7 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
   const path = `/funding/programs/${capitalSlug(capital)}`;
   // Strict: a DB failure throws so ISR keeps the last good page instead of
   // caching an empty city directory for an hour (L0-5).
-  const all = await listPrograms({ throwOnUnavailable: true });
+  const [all, view] = await Promise.all([listPrograms({ throwOnUnavailable: true }), getPaygView()]);
   const counts = countByCapital(all);
   const rows = sortByStatusThenName(all.filter((p) => p.capital === capital));
   const calendar = buildIntakeCalendar(rows, new Date());
@@ -138,7 +139,7 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
               </Link>
               {" · "}
               <Link href="/funding/report/demo" className="font-semibold text-action underline-offset-2 hover:underline">
-                see a sample A$3 report
+                {`see a sample ${view.funding} report`}
               </Link>
             </>
           }

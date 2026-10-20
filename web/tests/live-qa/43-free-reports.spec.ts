@@ -35,7 +35,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 import { test, expect } from "./fixtures";
-import { anonRequest, evidence, json, post } from "./lib/api";
+import { anonRequest, evidence, json, paygEnabled, post } from "./lib/api";
 import { countFreeReportGrants, dbAllowed, deleteFreeReportGrants, freeReportGrantDelivery, freeReportGrantsTableExists, seedFreeReportGrants } from "./lib/db";
 import { env } from "./lib/env";
 
@@ -196,7 +196,7 @@ test.describe("43 — free allowance (G25-C)", () => {
     }
   });
 
-  test("third run → 200 free_allowance_used with the A$3 quote, as a guest AND as the account (never double-granted); nothing runs", async ({ api, qa, credits }, testInfo) => {
+  test("third run → 200 free_allowance_used with the report quote (legacy OFF / Full ON), as a guest AND as the account (never double-granted); nothing runs", async ({ api, qa, credits }, testInfo) => {
     test.skip(!dbAllowed(), "LIVE_QA_ALLOW_DB unset — the two free reports are seeded in the ledger, not run");
     test.skip(!freeReportGrantsTableExists(), "free_report_grants is not in the database yet — apply supabase/migrations/0439_free_report_grants.sql");
     const before = await credits.snapshot();
@@ -205,6 +205,7 @@ test.describe("43 — free allowance (G25-C)", () => {
 
     const anon = await anonRequest(qa.baseURL);
     try {
+      const on = await paygEnabled(anon);
       const guest = await post<IntakeReply>(anon, "/api/intake", { ...IDEA, tier: "free", email: qa.email.toUpperCase() });
       const account = await post<IntakeReply>(api, "/api/intake", { ...IDEA, tier: "free" });
       await evidence(testInfo, "third run = the quote", { guest: { status: guest.status, body: guest.body }, account: { status: account.status, body: account.body } });
@@ -214,7 +215,9 @@ test.describe("43 — free allowance (G25-C)", () => {
         expect(r.body.reason).toBe("free_allowance_used");
         expect(r.body.used).toBe(2);
         expect(r.body.next).toBe("pay");
-        expect(r.body.price).toEqual({ sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3 inc. GST" });
+        // G35 P5: OFF → the legacy quote; ON → the Full PAYG tier (freeReportPayQuote(view)).
+        if (on) expect(r.body.price).toMatchObject({ sku: "report_full", label: expect.stringMatching(/^Full A\$\d+ inc\. GST$/) });
+        else expect(r.body.price).toEqual({ sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3 inc. GST" });
         expect(r.body.payHref).toBe("/workspace/reports/business");
         expect(r.body.analysisId ?? null).toBeNull();
       }

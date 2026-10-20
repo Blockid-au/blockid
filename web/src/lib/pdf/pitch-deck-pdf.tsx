@@ -5,6 +5,7 @@ import { PDF_THEME } from "./theme";
 import * as path from "path";
 import * as fs from "fs";
 import { PLANS_V2 } from "@/lib/plans-v2";
+import { LEGACY_REPORT_CENTS, PAYG_OFF_VIEW, audFromCents, reportFromLabel, type PaygView } from "@/lib/pricing/payg-copy";
 
 // Load logo
 const LOGO_PATH = path.join(process.cwd(), "public", "images", "logo-transparent.png");
@@ -56,8 +57,16 @@ function priceLine(id: string): string {
   if (r.monthly_aud == null) return "Custom";
   return r.monthly_aud === 0 ? "A$0" : `A$${r.monthly_aud}/mo`;
 }
-const BUSINESS_MODEL_TIERS = [
-  { tier: rung("founder_free")?.name ?? "Free", price: priceLine("founder_free"), features: [creditsLine("founder_free") ?? "SVI score", "Free tools", "A$3 Trusted Business Report"], color: C.ink500 },
+/**
+ * G35 P5: the Free rung's one-off report line follows platform_config.
+ * payg_enabled — OFF (default) the legacy one-off Trusted Business Report
+ * price, ON "Reports from A$19" (PAYG entry price from the view).
+ */
+function freeRungReportLine(view: PaygView): string {
+  return view.enabled ? `Reports ${reportFromLabel(view)}` : `${audFromCents(LEGACY_REPORT_CENTS)} Trusted Business Report`;
+}
+const businessModelTiers = (view: PaygView) => [
+  { tier: rung("founder_free")?.name ?? "Free", price: priceLine("founder_free"), features: [creditsLine("founder_free") ?? "SVI score", "Free tools", freeRungReportLine(view)], color: C.ink500 },
   { tier: rung("founder_starter")?.name ?? "Starter", price: priceLine("founder_starter"), features: [creditsLine("founder_starter") ?? "Credits", "Evidence vault", "Founder Radar", "Data room"], color: C.brand },
   { tier: rung("founder_growth")?.name ?? "Growth", price: priceLine("founder_growth"), features: [creditsLine("founder_growth") ?? "Credits", "Cap table + ESOP", "Term Sheet AI", "Investor tools"], color: C.emerald },
   { tier: rung("founder_enterprise")?.name ?? "Enterprise", price: priceLine("founder_enterprise"), features: ["Portfolio dashboard", "API access", "White-label", "Dedicated CSM"], color: C.gold },
@@ -142,7 +151,13 @@ function Check() { return <Text style={{ fontSize: 12, color: C.emerald }}>✓</
 function Cross() { return <Text style={{ fontSize: 12, color: C.red }}>✗</Text>; }
 
 /* ─── Main PDF Component ──────────────────────────────────────────────── */
-export function PitchDeckPDF() {
+export interface PitchDeckPDFProps {
+  /** G35 P5 — server-read Pricing v5 view (the route passes getPaygView()). Omitted → flag OFF. */
+  payg?: PaygView;
+}
+
+export function PitchDeckPDF({ payg = PAYG_OFF_VIEW }: PitchDeckPDFProps = {}) {
+  const BUSINESS_MODEL_TIERS = businessModelTiers(payg);
   return (
     <Document>
       {/* ═══ Slide 1: Title ═══ */}

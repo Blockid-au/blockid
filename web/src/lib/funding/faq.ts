@@ -6,7 +6,8 @@
 // once and the JSON-LD can never say something the page does not show.
 
 import { CAPITALS, CAPITAL_SATELLITES, type Capital } from "./seed-map";
-import { fundingCopy } from "./copy";
+import { fundingCopy, type FundingPriceView } from "./copy";
+import { PAYG_OFF_VIEW } from "@/lib/pricing/payg-copy";
 import { satelliteList } from "./seo";
 
 export interface FaqItem {
@@ -36,12 +37,20 @@ export function satelliteCoverage(): string {
   return parts.join("; ");
 }
 
-/** The visible Q&As for one directory, localised when `messages` is given. */
-export function directoryFaq(kind: DirectoryFaqKind, messages?: Readonly<Record<string, string>> | null): FaqItem[] {
+/**
+ * The visible Q&As for one directory, localised when `messages` is given.
+ * `view` (G35 P5, D25): the payg_enabled view that prices the report answers
+ * — default flag OFF (today's site).
+ */
+export function directoryFaq(
+  kind: DirectoryFaqKind,
+  messages?: Readonly<Record<string, string>> | null,
+  view: FundingPriceView = PAYG_OFF_VIEW,
+): FaqItem[] {
   const tokens = { satellites: satelliteCoverage() };
   return DIRECTORY_FAQ_KEYS[kind].map((key) => ({
-    question: fundingCopy("faq", `${key}Q`, tokens, messages),
-    answer: fundingCopy("faq", `${key}A`, tokens, messages),
+    question: fundingCopy("faq", `${key}Q`, tokens, messages, view),
+    answer: fundingCopy("faq", `${key}A`, tokens, messages, view),
   }));
 }
 

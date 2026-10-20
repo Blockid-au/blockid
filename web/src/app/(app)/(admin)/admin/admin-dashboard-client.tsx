@@ -11,6 +11,7 @@ import {
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { planBadgeClass } from "@/lib/plan-badges";
 import type { ReportKpis } from "@/lib/admin/report-kpis";
+import type { PaygKpis } from "@/lib/admin/payg-kpis";
 
 interface SviAccount {
   email: string;
@@ -34,6 +35,8 @@ interface AdminDashboardClientProps {
   recentAnalyses: RecentAnalysis[];
   /** S-R5 §E.5: report KPIs (reports/day, COGS median, grounded share, comparables N). */
   reportKpis?: ReportKpis | null;
+  /** G35 P5: `platform_config.payg_enabled` — the PAYG tile shows when ON (or once v5 orders exist). */
+  paygEnabled?: boolean;
 }
 
 function pct(v: number | null): string {
@@ -85,12 +88,45 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
   );
 }
 
+/** G35 P5 §6.8 — Pricing v5 pay-as-you-go KPIs. */
+export function PaygKpiTile({ k, enabled }: { k: PaygKpis; enabled: boolean }) {
+  const tiers = (w: PaygKpis["last7"]) =>
+    `Snapshot ${w.byTier.snapshot} · Full ${w.byTier.full} · Verified ${w.byTier.verified} · upgrades ${w.byTier.upgrade}${w.byTier.funding ? ` · Money Finder ${w.byTier.funding}` : ""}`;
+  const audCents = (c: number) => `A$${(c / 100).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+  const cells = [
+    { label: "PAYG orders (7 d)", value: String(k.last7.orders), sub: tiers(k.last7) },
+    { label: "PAYG orders (30 d)", value: String(k.last30.orders), sub: `${tiers(k.last30)}${k.last30.refunded ? ` · ${k.last30.refunded} refunded` : ""}` },
+    { label: "PAYG revenue", value: audCents(k.last30.revenueCents), sub: `30 d inc. GST · 7 d ${audCents(k.last7.revenueCents)}` },
+    { label: "Snapshot → Full", value: pct(k.snapshotToFull.rate), sub: `${k.snapshotToFull.upgraded} of ${k.snapshotToFull.cohort} Snapshot buyers (30 d)` },
+    { label: "Verified SLA hit rate", value: pct(k.verifiedSla.rate), sub: `${k.verifiedSla.onTime} on time · ${k.verifiedSla.late} late · ${k.verifiedSla.breached} breached (due in 30 d) · ${k.verifiedSla.open} in review` },
+    { label: "PAYG → subscription", value: pct(k.buyersSubscribed.rate), sub: `${k.buyersSubscribed.subscribed} of ${k.buyersSubscribed.buyers} PAYG buyers subscribed after buying` },
+  ];
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="payg-kpis">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-ink-800">Pay as you go (Pricing v5)</h2>
+        <span className="text-xs text-ink-600">{enabled ? "payg_enabled: on" : "payg_enabled: off"}</span>
+      </div>
+      <div className="mt-4 grid grid-cols-2 lg:grid-cols-3 gap-4">
+        {cells.map((c) => (
+          <div key={c.label}>
+            <p className="text-xs text-ink-700">{c.label}</p>
+            <p className="text-2xl font-bold font-mono text-ink-800">{c.value}</p>
+            <p className="text-xs text-ink-600 mt-0.5">{c.sub}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AdminDashboardClient({
   user,
   stats,
   sviAccounts,
   recentAnalyses,
   reportKpis = null,
+  paygEnabled = false,
 }: AdminDashboardClientProps) {
   return (
     <AdminLayout user={user}>
@@ -148,6 +184,9 @@ export function AdminDashboardClient({
         </div>
 
         {reportKpis ? <ReportKpiTile k={reportKpis} /> : null}
+        {reportKpis?.payg && (paygEnabled || reportKpis.payg.last30.orders > 0 || reportKpis.payg.last30.refunded > 0) ? (
+          <PaygKpiTile k={reportKpis.payg} enabled={paygEnabled} />
+        ) : null}
 
         {/* SVI Accounts Table */}
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">

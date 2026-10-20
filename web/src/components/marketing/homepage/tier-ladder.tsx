@@ -25,16 +25,21 @@
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 
-import { HOMEPAGE_TIERS } from "./tiers";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
+import { homepageTiers } from "./tiers";
 
-export function TierLadder() {
+/**
+ * `payg` — the server-read `platform_config.payg_enabled` view (Pricing v5
+ * P5); omitted = flag OFF, i.e. today's ladder.
+ */
+export function TierLadder({ payg = PAYG_OFF_VIEW }: { payg?: PaygView } = {}) {
   return (
     <ul
       role="list"
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5"
       data-testid="homepage-tier-ladder"
     >
-      {HOMEPAGE_TIERS.map((tier) => {
+      {homepageTiers(payg).map((tier) => {
         const accent = tier.emphasis;
         return (
           <li

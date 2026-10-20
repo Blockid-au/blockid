@@ -14,7 +14,7 @@
 // Stripe ids. Amounts are read off the catalogue, never typed here.
 
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { CREDIT_PACKS, isCreditPackForSale } from "@/lib/credit-packs";
 import { calculateGst } from "@/lib/gst";
 import { PLANS_V2, type Plan, type Segment } from "@/lib/plans-v2";
 import { parseBillingInterval, withInterval, type BillingInterval } from "@/lib/plans/billing-interval";
@@ -184,6 +184,11 @@ export interface ResolveCheckoutOrderOptions {
    * `annualAvailablePlanIds()`). Omitted → trust `plan.annual_aud`.
    */
   annualAvailable?: readonly string[];
+  /**
+   * `platform_config.payg_enabled` (Pricing v5). ON → a credit pack retired
+   * by D27 (the 5-pack) is not sellable here (→ 404). Omitted → OFF (today).
+   */
+  paygEnabled?: boolean;
 }
 
 function segmentOf(plan: Plan): CheckoutSegment {
@@ -201,7 +206,7 @@ function gstOf(amountCents: number): number {
 export function resolveCheckoutOrder(req: CheckoutReviewRequest, opts: ResolveCheckoutOrderOptions = {}): CheckoutOrder | null {
   if (req.kind === "pack") {
     const pack = CREDIT_PACKS.find((p) => p.credits === req.credits);
-    if (!pack) return null;
+    if (!pack || !isCreditPackForSale(pack.credits, opts.paygEnabled === true)) return null;
     return {
       kind: "pack",
       id: `credits_${pack.credits}`,

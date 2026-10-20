@@ -52,8 +52,15 @@ import {
   type SolutionTier,
   type SolutionTrustBadge,
 } from "./solutions-shared";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 
 type Lang = "en" | "vi";
+
+// Pricing v5 P5: every builder takes the server-read PaygView (default flag
+// OFF) and hands it to <SolutionsPageShell payg>, which picks the
+// `{reportPrice}` token. The advisor headline carries a literal price in
+// today's catalogue, so its flag-ON copy is a sibling key
+// (`solutions.advisor.headline.payg`, `{reportPrice}`-tokenised).
 
 /** The alias route of `/compare` that the ChatGPT FAQ links through to. */
 export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
@@ -181,9 +188,10 @@ function hero(
 }
 
 /** `/solutions/investor` — the first-pass review; Scout → Fund rungs. */
-export function buildInvestorProps(m: Messages, lang: Lang = "en"): SolutionPageProps {
+export function buildInvestorProps(m: Messages, lang: Lang = "en", payg: PaygView = PAYG_OFF_VIEW): SolutionPageProps {
   return {
     ...hero(m, "investor", lang),
+    payg,
     secondaryCtaLabel: t(m, "solutions.cta.secondary.evaluatorPricing"),
     secondaryCtaHref: EVALUATOR_PRICING_HREF,
     benefits: benefits(m, "investor", 6),
@@ -209,9 +217,11 @@ export function buildInvestorProps(m: Messages, lang: Lang = "en"): SolutionPage
 }
 
 /** `/solutions/advisor` — Firm A$149 recommended. */
-export function buildAdvisorProps(m: Messages, lang: Lang = "en"): SolutionPageProps {
+export function buildAdvisorProps(m: Messages, lang: Lang = "en", payg: PaygView = PAYG_OFF_VIEW): SolutionPageProps {
   return {
     ...hero(m, "advisor", lang),
+    ...(payg.enabled ? { headline: t(m, "solutions.advisor.headline.payg") } : {}),
+    payg,
     secondaryCtaLabel: t(m, "solutions.cta.secondary.evaluatorPricing"),
     secondaryCtaHref: EVALUATOR_PRICING_HREF,
     benefits: benefits(m, "advisor", 6),
@@ -263,9 +273,10 @@ export function acceleratorTiers(m: Messages): NonNullable<SolutionPageProps["ti
  * two rungs (#plans), FAQ. Nothing reads an env var — the rungs are the
  * sold ladder's trial links.
  */
-export function buildAcceleratorProps(m: Messages, lang: Lang = "en"): SolutionPageProps {
+export function buildAcceleratorProps(m: Messages, lang: Lang = "en", payg: PaygView = PAYG_OFF_VIEW): SolutionPageProps {
   return {
     ...hero(m, "accelerator", lang),
+    payg,
     secondaryCtaLabel: t(m, "solutions.cta.secondary.sampleCohort"),
     secondaryCtaHref: SAMPLE_COHORT_HREF,
     problem: {
@@ -292,9 +303,10 @@ export function buildAcceleratorProps(m: Messages, lang: Lang = "en"): SolutionP
 }
 
 /** `/solutions/founder` — nine steps, three cards, Free / Starter / Growth. */
-export function buildFounderProps(m: Messages, lang: Lang = "en"): SolutionPageProps {
+export function buildFounderProps(m: Messages, lang: Lang = "en", payg: PaygView = PAYG_OFF_VIEW): SolutionPageProps {
   return {
     ...hero(m, "founder", lang),
+    payg,
     secondaryCtaLabel: t(m, "solutions.cta.secondary.pricing"),
     secondaryCtaHref: "/pricing",
     workflow: {

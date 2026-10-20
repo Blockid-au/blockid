@@ -17,6 +17,8 @@ import "server-only";
 import { getEntitlements } from "@/lib/entitlements";
 import { hashIpDaily } from "@/lib/iphash";
 import { TRUST_REPORT_AMOUNT_CENTS, TRUST_REPORT_SKU_ID, trustReportPriceLabelLong } from "@/lib/pricing/trust-report-price";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
+import { withGst } from "@/lib/plans-v2";
 import {
   countFreeReportsSubmittedToday,
   countIpFreeReportsToday,
@@ -42,8 +44,16 @@ import {
   type FreeReportSource,
 } from "./free-grants-rules";
 
-/** The A$3 quote the third run is answered with — the same shape `/api/reports/access` publishes. */
-export function freeReportPayQuote() {
+/**
+ * The quote the third run is answered with — the same shape
+ * `/api/reports/access` publishes. G35 P5: flag OFF → the legacy single
+ * report (today); flag ON → the Full PAYG tier (the report a subscription
+ * includes), display price from the PaygView.
+ */
+export function freeReportPayQuote(view: Pick<PaygView, "enabled" | "fullCents" | "full"> = PAYG_OFF_VIEW) {
+  if (view.enabled) {
+    return { sku: "report_full", amount_cents: view.fullCents, label: withGst(`Full ${view.full}`) };
+  }
   return {
     sku: TRUST_REPORT_SKU_ID,
     amount_cents: TRUST_REPORT_AMOUNT_CENTS,

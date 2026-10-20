@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import { getMessages } from "@/lib/i18n/t";
 import { buildCompareProps, COMPARE_ALIAS_SLUGS, isCompareAlias } from "../compare-content";
 import { buildCompareMetadata } from "../compare-metadata";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 import { ComparePage } from "../compare-page";
 
 type Params = { slug: string };
@@ -36,5 +37,5 @@ export default async function CompareAliasPage({ params }: { params: Promise<Par
   const { slug } = await params;
   if (!isCompareAlias(slug)) notFound();
   const m = await getMessages("en");
-  return <ComparePage {...buildCompareProps(m, slug, "en")} />;
+  return <ComparePage {...buildCompareProps(m, slug, "en", await getPaygView())} />;
 }

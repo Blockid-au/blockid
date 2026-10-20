@@ -10,16 +10,24 @@
 // Rules baked into the tests:
 //   • every string ≤ 2 sentences (D-5 speakability — the hero sub-line is
 //     split into `hero.sub` + `hero.subPrice` for that reason);
-//   • no "PhD", no retired "A$5.50" / "A$99" (G11-9: Free / A$3 / A$29 only);
+//   • no "PhD", no retired "A$5.50" / "A$99" (G11-9: Free / report / A$29 only);
 //   • `{tokens}` are filled with `fill()`; an unknown token stays visible as
 //     `{token}` rather than vanishing, so a missing value is never a blank.
 //
+// Pricing v5 (G35 P5, D25): the Money Finder report price is NOT typed into
+// any string. Templates carry `{fundingPrice}` / `{fundingCredits}`, filled
+// from a `PaygView` (lib/pricing/payg-copy): flag OFF → the legacy v3 SKU
+// price / credits (today's site, byte for byte), flag ON → the v5 catalogue
+// (`PAYG_SKUS.report_funding`). `FUNDING_COPY` is the flag-OFF resolution (so
+// every view-unaware reader keeps working); `fundingCopyFor(view)` resolves
+// for a view; `FUNDING_COPY_TEMPLATES` is what the i18n catalogues mirror.
+//
 // No `server-only` import — shared by client components (intake, feed).
 
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import {
   FOUNDER_RADAR_MONTHLY_AUD,
   FOUNDER_RADAR_TRIAL_DAYS,
-  FUNDING_REPORT_AUD,
   RADAR_UPSELL_TAIL,
 } from "./radar-upsell";
 
@@ -45,10 +53,25 @@ export function tokensOf(template: string): string[] {
   return [...out].sort();
 }
 
-const REPORT_PRICE = `A$${FUNDING_REPORT_AUD}`;
+/** Money Finder price tokens every priced template carries (D25). */
+export const FUNDING_PRICE_TOKEN = "{fundingPrice}";
+export const FUNDING_CREDITS_TOKEN = "{fundingCredits}";
+const REPORT_PRICE = FUNDING_PRICE_TOKEN;
 const RADAR_PRICE = `A$${FOUNDER_RADAR_MONTHLY_AUD}/mo`;
 
-export const FUNDING_COPY = {
+/** The slice of a `PaygView` the copy pack reads. */
+export type FundingPriceView = Pick<PaygView, "funding" | "fundingCredits">;
+
+/** `{ fundingPrice: "A$19", fundingCredits: 19 }` for a view (default: flag OFF). */
+export function fundingPriceTokens(view: FundingPriceView = PAYG_OFF_VIEW): {
+  fundingPrice: string;
+  fundingCredits: number;
+} {
+  return { fundingPrice: view.funding, fundingCredits: view.fundingCredits };
+}
+
+/** Raw templates — mirrored 1:1 by `funding.copy.*` in messages/en.json. */
+export const FUNDING_COPY_TEMPLATES = {
   /** Buttons + links. D-3 "Public CTA" + D-2 tile CTAs. */
   cta: {
     needMoney: "Do you need money?",
@@ -92,7 +115,7 @@ export const FUNDING_COPY = {
     card: `Unlock the full ranked list, eligibility checklist, A$ estimate and 12-month timeline — ${REPORT_PRICE}, or free with Founder Radar (${FOUNDER_RADAR_TRIAL_DAYS}-day trial).`,
   },
 
-  /** A$3 report → subscribe (T0247 owns the card; the tail is shared, not duplicated). */
+  /** Money Finder report → subscribe (T0247 owns the card; the tail is shared, not duplicated). */
   upsell: {
     snapshot: "This report is a snapshot. {next_program} closes in {d} days and {k} programs on your list open new rounds this quarter.",
     tail: RADAR_UPSELL_TAIL,
@@ -147,8 +170,10 @@ export const FUNDING_COPY = {
   pricing: {
     starter: "Money Radar — deadline alerts, monthly re-match, weekly next step, capital map, application drafts (credits)",
     growth: "Investor matching + unlimited drafts + quarterly expert update",
-    reportPrice: `${REPORT_PRICE} · or 3 credits`,
+    reportPrice: `${REPORT_PRICE} · or ${FUNDING_CREDITS_TOKEN} credits`,
     radarPrice: `${RADAR_PRICE} · Starter`,
+    /** D25 short price line ("Free scan · A$19 full") — rendered when payg_enabled is on. */
+    scanLine: `Free scan · ${REPORT_PRICE} full`,
   },
 
   /** Growth extras (T0251 §4h): investor reverse-match, unlimited drafts, quarterly expert update. Starter sees the locked lines. */
@@ -178,7 +203,7 @@ export const FUNDING_COPY = {
    * Visible FAQ at the foot of the free directories (S12-A) — the same
    * strings feed the `FAQPage` JSON-LD, so nothing in the schema is invisible.
    * Product facts only: free lists, the Sunday refresh + review queue, what
-   * A$3 buys, no cut of grants, the capital → satellite grouping, per-program
+   * the report buys, no cut of grants, the capital → satellite grouping, per-program
    * equity terms. `{satellites}` is filled from `CAPITAL_SATELLITES`.
    */
   faq: {
@@ -205,16 +230,49 @@ export const FUNDING_COPY = {
   },
 } as const;
 
-export type FundingCopy = typeof FUNDING_COPY;
-export type FundingCopyGroup = keyof FundingCopy;
+export type FundingCopyTemplates = typeof FUNDING_COPY_TEMPLATES;
+export type FundingCopyGroup = keyof FundingCopyTemplates;
+/** Same shape as the templates, every value a plain string (price filled). */
+export type FundingCopy = { readonly [G in FundingCopyGroup]: { readonly [K in keyof FundingCopyTemplates[G]]: string } };
+
+const RESOLVED = new Map<string, FundingCopy>();
+
+/**
+ * The copy pack with the Money Finder price filled for `view` (flag OFF →
+ * legacy price, flag ON → D25). Every other `{token}` stays for `fill()`.
+ * Memoised per price pair; the result is frozen.
+ */
+export function fundingCopyFor(view: FundingPriceView = PAYG_OFF_VIEW): FundingCopy {
+  const tokens = fundingPriceTokens(view);
+  const memoKey = `${tokens.fundingPrice}|${tokens.fundingCredits}`;
+  const hit = RESOLVED.get(memoKey);
+  if (hit) return hit;
+  const out: Record<string, Readonly<Record<string, string>>> = {};
+  for (const [group, entries] of Object.entries(FUNDING_COPY_TEMPLATES)) {
+    const g: Record<string, string> = {};
+    for (const [key, value] of Object.entries(entries)) g[key] = fill(value, tokens);
+    out[group] = Object.freeze(g);
+  }
+  const frozen = Object.freeze(out) as unknown as FundingCopy;
+  RESOLVED.set(memoKey, frozen);
+  return frozen;
+}
+
+/** The flag-OFF pack (today's site) — what every view-unaware reader gets. */
+export const FUNDING_COPY: FundingCopy = fundingCopyFor(PAYG_OFF_VIEW);
 
 /** i18n key prefix — `funding.copy.<group>.<key>` in messages/en.json + vi.json. */
 export const FUNDING_COPY_I18N_PREFIX = "funding.copy.";
 
-/** `{ "funding.copy.hero.h1": "There's {sum} …", … }` — every string, flat. */
-export function flattenFundingCopy(): Record<string, string> {
+/**
+ * `{ "funding.copy.hero.h1": "There's {sum} …", … }` — every string, flat.
+ * The templates by default (what the catalogues hold); pass a view for the
+ * price-resolved strings.
+ */
+export function flattenFundingCopy(view?: FundingPriceView): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const [group, entries] of Object.entries(FUNDING_COPY)) {
+  const pack: Readonly<Record<string, Readonly<Record<string, string>>>> = view ? fundingCopyFor(view) : FUNDING_COPY_TEMPLATES;
+  for (const [group, entries] of Object.entries(pack)) {
     for (const [key, value] of Object.entries(entries)) {
       out[`${FUNDING_COPY_I18N_PREFIX}${group}.${key}`] = value;
     }
@@ -225,17 +283,33 @@ export function flattenFundingCopy(): Record<string, string> {
 /**
  * Look a string up by its i18n key in a message catalogue, falling back to
  * the English constant — the VI pages pass `getMessages("vi")`, everything
- * else can omit `messages`.
+ * else can omit `messages`. `view` (default: flag OFF) fills the Money Finder
+ * price tokens; explicit `tokens` win.
  */
 export function fundingCopy(
   group: FundingCopyGroup,
   key: string,
   tokens: CopyTokens = {},
   messages?: Readonly<Record<string, string>> | null,
+  view: FundingPriceView = PAYG_OFF_VIEW,
 ): string {
-  const en = (FUNDING_COPY[group] as Readonly<Record<string, string>>)[key] ?? `{${group}.${key}}`;
+  const en = (FUNDING_COPY_TEMPLATES[group] as Readonly<Record<string, string>>)[key] ?? `{${group}.${key}}`;
   const localised = messages?.[`${FUNDING_COPY_I18N_PREFIX}${group}.${key}`];
-  return fill(typeof localised === "string" && localised.trim() ? localised : en, tokens);
+  return fill(typeof localised === "string" && localised.trim() ? localised : en, { ...fundingPriceTokens(view), ...tokens });
+}
+
+/**
+ * Seed-catalogue pairs for a catalogue string that carries the Money Finder
+ * price tokens: the EN → VI pair resolved for BOTH flag states, so the client
+ * translator (`buildSeedCatalog`) swaps the rendered sentence whichever way
+ * `payg_enabled` is set. `[]` for a string without the tokens.
+ */
+export function fundingSeedPairs(enVal: string, viVal: string): Array<[string, string]> {
+  if (!enVal.includes(FUNDING_PRICE_TOKEN) && !enVal.includes(FUNDING_CREDITS_TOKEN)) return [];
+  return [PAYG_OFF_VIEW, PAYG_ON_VIEW].map((v): [string, string] => {
+    const t = fundingPriceTokens(v);
+    return [fill(enVal, t), fill(viVal, t)];
+  });
 }
 
 // ─── Small helpers the surfaces share ────────────────────────────────────────

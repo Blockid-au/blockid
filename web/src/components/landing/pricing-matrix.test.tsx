@@ -169,3 +169,30 @@ describe("purchasable gate (W4 review P1)", () => {
     expect(open).not.toContain("/contact?plan=investor_fund");
   });
 });
+
+describe("Pricing v5 P5 — payg_enabled view on the founder tab", () => {
+  it("flag OFF (default and explicit): today's footnote + Free bullet, no v5 copy", async () => {
+    const { PAYG_OFF_VIEW } = await import("@/lib/pricing/payg-copy");
+    for (const out of [renderToStaticMarkup(<PricingMatrix segment="founder" />), renderToStaticMarkup(<PricingMatrix segment="founder" payg={PAYG_OFF_VIEW} />)]) {
+      expect(out).toContain("Trusted Business Report — A$3 per report, pay-as-you-go, no subscription needed. Credit packs from");
+      expect(out).toContain("Trusted Business Report A$3 pay-as-you-go");
+      expect(out).not.toContain("Single reports");
+    }
+  });
+
+  it("flag ON: the footnote names Snapshot / Full / Verified from the view and the Free bullet follows", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    const out = renderToStaticMarkup(<PricingMatrix segment="founder" payg={PAYG_ON_VIEW} />);
+    expect(out).toContain("Single reports: Snapshot A$19 · Full A$49 · Verified A$149 — pay as you go, no subscription needed.");
+    expect(out).toContain("Single reports from A$19 (Snapshot, Full, Verified) — pay as you go");
+    expect(out).not.toMatch(/A\$3(?![\d,.])/);
+  });
+
+  it("flag ON: evaluator / programs ladders still carry no single-report footnote", async () => {
+    const { PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    for (const seg of ["investor", "accelerator"] as const) {
+      const out = renderToStaticMarkup(<PricingMatrix segment={seg} payg={PAYG_ON_VIEW} />);
+      expect(out).not.toContain('data-testid="founder-payg"');
+    }
+  });
+});

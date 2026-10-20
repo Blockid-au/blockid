@@ -128,6 +128,25 @@ export const EVALUATOR_TRIAL_COPY = {
   account_type_label: "I evaluate startups as",
 } as const;
 
+/**
+ * Pricing v5 P5 — the evaluator signup headline + subheadline for the
+ * `platform_config.payg_enabled` view. OFF returns `EVALUATOR_TRIAL_COPY`'s
+ * strings unchanged; ON prices the single report from the Snapshot entry
+ * ("from A$19"), read from the view rather than typed.
+ */
+export function evaluatorTrialHeadlines(view: { enabled: boolean; snapshot: string }): {
+  headline: string;
+  subheadline: string;
+} {
+  if (!view.enabled) {
+    return { headline: EVALUATOR_TRIAL_COPY.headline, subheadline: EVALUATOR_TRIAL_COPY.subheadline };
+  }
+  return {
+    headline: `Evaluate any Australian startup from ${view.snapshot}. Track it from A$79 a month.`,
+    subheadline: `One rubric, a whole C-suite, the startup's own evidence — Australian context, from ${view.snapshot} a report.`,
+  };
+}
+
 /** A positive integer trial length, else the default. */
 function normaliseTrialDays(trialDays: number | null | undefined): number {
   return typeof trialDays === "number" && Number.isInteger(trialDays) && trialDays > 0 ? trialDays : TRIAL_DAYS;

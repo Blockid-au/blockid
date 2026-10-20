@@ -5,14 +5,17 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
 import { RND_REPORT_CREDITS } from "@/lib/credits-public";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { smallestCreditPackForSale } from "@/lib/credit-packs";
 import { formatAud } from "@/lib/plans-v2";
+import { usePaygView } from "@/components/pricing/payg-view-context";
 
 // G18-A (2026-09-19): this rail said "From A$0.50 per section" (a full R&D
 // report is FEATURE_COSTS.rnd_report = 1 credit) and "Get unlimited reports
 // — A$1 lifetime" linking /founding-50 (promo closed 2026-09-01). Figures
 // now come from the credit ladder (credits-public mirror + CREDIT_PACKS).
-const SMALLEST_PACK = CREDIT_PACKS[0]!;
+// G35 P5 (D27): the smallest pack ON SALE — the 5-pack leaves sale when
+// platform_config.payg_enabled is on (read from the page's PaygViewProvider;
+// default OFF = today's ladder).
 
 interface RndLockedSectionProps {
   lockedPreview: string;
@@ -31,6 +34,7 @@ export function RndLockedSection({
   currentSVI,
   onUnlock,
 }: RndLockedSectionProps) {
+  const smallestPack = smallestCreditPackForSale(usePaygView().enabled);
   return (
     <div className="mt-6 relative">
       {/* Gradient fade from content above */}
@@ -115,7 +119,7 @@ export function RndLockedSection({
         <p className="mt-3 text-[10px] text-muted">
           <Link href="/pricing#tier-starter" className="text-brand-600 hover:text-brand-700 font-medium">Monthly credits are included on Starter</Link>
           {" "}or{" "}
-          <Link href="/workspace/billing#credits" className="text-brand-600 hover:text-brand-700 font-medium">buy credit packs from {formatAud(SMALLEST_PACK.price)}</Link>
+          <Link href="/workspace/billing#credits" className="text-brand-600 hover:text-brand-700 font-medium">buy credit packs from {formatAud(smallestPack.price)}</Link>
         </p>
       </div>
     </div>

@@ -42,6 +42,15 @@ describe("GuestPaidCheckout render", () => {
     expect(out).toContain("guest-paid-checkout");
     expect(out).toContain("guest-paid-email");
     expect(out).toContain("A$3");
+    expect(out).toContain("Get your full report — A$3");
+  });
+
+  it("G35 P5: the flag-OFF price is derived from the legacy SKU; a ?payg tier is accepted for the W3 picker", () => {
+    const out = html(
+      <GuestPaidCheckout open onClose={() => {}} inputType="website_url" url="https://example.com" initialTier="snapshot" />,
+    );
+    // Before /api/pricing/payg answers (SSR), the legacy dialog renders.
+    expect(out).toContain("Get your full report — A$3");
   });
 });
 

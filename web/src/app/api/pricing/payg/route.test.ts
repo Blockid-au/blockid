@@ -25,7 +25,7 @@ describe("GET /api/pricing/payg", () => {
   it("flag on → tiers with display prices, delivery and Money Finder A$19 / 19 credits", async () => {
     paygConfig.current = { payg_enabled: true, payg_snapshot_cents: 2100 };
     const body = await (await GET()).json();
-    expect(body).toMatchObject({ ok: true, enabled: true, billingNote: "One-off, GST incl.", slaBusinessDays: 2 });
+    expect(body).toMatchObject({ ok: true, enabled: true, billingNote: "One-off, inc. GST.", slaBusinessDays: 2 });
     expect(body.tiers.map((t: { tier: string; priceLabel: string }) => [t.tier, t.priceLabel])).toEqual([
       ["snapshot", "A$21"],
       ["full", "A$49"],

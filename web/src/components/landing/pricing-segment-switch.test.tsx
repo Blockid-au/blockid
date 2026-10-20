@@ -235,3 +235,14 @@ it("distinguishes default, explicit links and clicks without premature hydration
  expect(pricingViewVia(false, "founder", "evaluator")).toBeNull();
  expect(pricingViewVia(true, "founder", "evaluator")).toBe("tab");
 });
+
+describe("Pricing v5 P5 — payg view forwarded to <PricingMatrix>", () => {
+  it("no view / OFF view: today's founder footnote; ON view: the v5 single-report line", async () => {
+    const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+    const off = renderToStaticMarkup(<PricingSegmentSwitch initialSegment="founder" readTabFromUrl={false} />);
+    expect(off).toMatch(/A\$3(<!-- -->)? per report, pay-as-you-go/);
+    expect(renderToStaticMarkup(<PricingSegmentSwitch initialSegment="founder" readTabFromUrl={false} payg={PAYG_OFF_VIEW} />)).toBe(off);
+    const on = renderToStaticMarkup(<PricingSegmentSwitch initialSegment="founder" readTabFromUrl={false} payg={PAYG_ON_VIEW} />);
+    expect(on).toContain("Single reports: Snapshot A$19 · Full A$49 · Verified A$149 — pay as you go, no subscription needed.");
+  });
+});

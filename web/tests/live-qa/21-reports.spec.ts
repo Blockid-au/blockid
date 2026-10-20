@@ -18,7 +18,7 @@
  */
 import { test, expect } from "./fixtures";
 import { getScratch, setScratch } from "./lib/run-state";
-import { anonRequest, evidence, get, post } from "./lib/api";
+import { anonRequest, evidence, get, paygEnabled, post } from "./lib/api";
 import { env } from "./lib/env";
 
 const RANDOM_UUID = "00000000-0000-4000-8000-00000000c0de";
@@ -46,16 +46,19 @@ function tbrSnapshotForSeed(startupName: string) {
 }
 
 test.describe("Trust BizReport — price before checkout", () => {
-  test("/one-click-report states A$3 on the CTA; /pricing evaluator PAYG note prices the report at A$3", async ({ page, visit }, testInfo) => {
+  test("/one-click-report states the price on the CTA; /pricing founder footnote prices the report (legacy A$3 OFF · v5 tiers ON)", async ({ page, visit, qa }, testInfo) => {
+    // G35 P5: one switch — OFF asserts today's legacy copy, ON the v5 tiers.
+    const anonCtx = await anonRequest(qa.baseURL);
+    const on = await paygEnabled(anonCtx).finally(() => anonCtx.dispose());
     await visit("/one-click-report");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 30_000 });
-    const cta = page.getByRole("button", { name: /Pay A\$3 & get my report/ }).first(); // G25-D: explicit Pay label; the form renders the CTA twice (hero + "Ready to see your report?")
+    const cta = page.getByRole("button", { name: on ? /Review and pay — (Snapshot|Full) A\$\d+/ : /Pay A\$3 & get my report/ }).first(); // G25-D: explicit Pay label; the form renders the CTA twice (hero + "Ready to see your report?")
     await expect(cta).toBeVisible();
-    // G21 P0-C: the A$3 line is a footnote under the Founder rungs now.
+    // G21 P0-C: the single-report line is a footnote under the Founder rungs.
     await visit("/pricing?segment=founder"); // /pricing defaults to Evaluator since 1e0d7e6d7
     const payg = page.getByTestId("founder-payg");
     await expect(payg).toBeVisible({ timeout: 30_000 });
-    await expect(payg).toContainText(/A\$3/);
+    await expect(payg).toContainText(on ? /Snapshot A\$\d+ · Full A\$\d+ · Verified A\$\d+/ : /A\$3/);
     await evidence(testInfo, "A$3 surfaces", { oneClickCta: await cta.innerText().catch(() => null), payg: await payg.innerText() });
   });
 
@@ -73,7 +76,9 @@ test.describe("Trust BizReport — price before checkout", () => {
     await evidence(testInfo, "GET /api/reports/access", { status: r.status, body: r.body, elevated: qa.elevated });
     expect(r.status).toBe(200);
     expect(r.body.ok).toBe(true);
-    expect(r.body.price).toEqual({ sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3" });
+    // G35 P5: the legacy quote while payg_enabled is OFF; with it ON the
+    // access route (W3) publishes the PAYG offer — pinned by its own unit tests.
+    if (!(await paygEnabled(api))) expect(r.body.price).toEqual({ sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3" });
     expect(r.body.quote.credits).toBeGreaterThan(0);
     expect(r.body.quote.estimatedWords).toBeGreaterThan(0);
     expect(r.body.paidOrderId).toBeNull(); // the suite never buys one

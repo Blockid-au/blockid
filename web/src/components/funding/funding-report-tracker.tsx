@@ -18,7 +18,7 @@ export function FundingReportTracker({ reportId, paidVia }: { reportId: string; 
     fired.current = true;
     const q = new URLSearchParams(window.location.search);
     if (!q.get("s")) return;
-    // T0247 — count the purchase for the "3rd A$3 report" Radar upsell on
+    // T0247 — count the purchase for the 3rd-report Radar upsell on
     // /funding. Idempotent per report id; storage-safe.
     if (paidVia === "one_off") rememberGuestPaidReport(reportId);
     try {

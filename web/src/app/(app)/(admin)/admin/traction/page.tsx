@@ -170,7 +170,7 @@ export default async function TractionAdminPage() {
               <Tile label="Evaluators" value={n(sumRecord(snap.users.evaluators_by_plan))} sub="Scout / Firm / Program seats (any status)" />
               <Tile label="Paying evaluators" value={n(sumRecord(snap.evaluators.paying_by_plan))} sub={`${n(snap.evaluators.trials)} on trial`} />
               <Tile label="SVI analyses" value={n(snap.analyses.svi_analyses)} sub={`${n(snap.analyses.analyses)} intake runs`} />
-              <Tile label="Guest A$3 reports" value={n(snap.analyses.guest_analyses_paid)} sub="paid / analysing / delivered" />
+              <Tile label="Guest one-off reports" value={n(snap.analyses.guest_analyses_paid)} sub="paid / analysing / delivered" />
               <Tile label="TBR purchased" value={n(snap.tbr.purchased)} sub={`${n(snap.tbr.shared)} shared · ${n(snap.tbr.views)} views`} />
               <Tile label="Reports / evaluator (p50)" value={n(snap.evaluators.reports_per_evaluator_p50)} sub="evaluation_reports per seat" />
               <Tile label="Assessments" value={n(snap.assessments.submitted)} sub={`${n(snap.assessments.shared_with_founder)} shared with founder`} />

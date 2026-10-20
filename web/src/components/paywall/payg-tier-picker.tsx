@@ -4,7 +4,7 @@
  * PaygTierPicker — the Pricing v5 review-before-pay step (G35 P3, plan §6.4.1).
  *
  * Renders the server-built offer (GET /api/reports/access → `payg`): the
- * three tiers (name, what is included, price, "One-off, GST incl.",
+ * three tiers (name, what is included, price, "One-off, inc. GST.",
  * delivery time — Verified "within 2 business days") and, for the owner of
  * a lower tier, the D28 upgrade. Nothing is charged on selection: only the
  * explicit "Confirm & Pay A$X" button posts to /api/reports/checkout (which

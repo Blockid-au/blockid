@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { LEGACY_PRICE_ALLOWLIST } from "@/lib/pricing/legacy-price-allowlist";
 
 const WEB_ROOT = resolve(__dirname, "../../..");
 const DOC_PATH = resolve(WEB_ROOT, "../docs/design/messaging.md");
@@ -124,7 +125,11 @@ export function parseNeverSay(markdown: string): Rule[] {
     if (/^Phrase/.test(cells[0]!) || /^-+$/.test(cells[0]!)) continue;
     const patterns = backtickSpans(cells[0]!).map(toRegExp);
     if (patterns.length === 0) continue;
-    const allow = cells[2] === "—" ? [] : backtickSpans(cells[2]!);
+    // G35 P5: `@legacy-price-allowlist` expands to the files that may keep a
+    // flag-OFF legacy price (src/lib/pricing/legacy-price-allowlist.ts).
+    const allow = (cells[2] === "—" ? [] : backtickSpans(cells[2]!)).flatMap((a) =>
+      a === "@legacy-price-allowlist" ? Object.keys(LEGACY_PRICE_ALLOWLIST) : [a],
+    );
     rules.push({ patterns, why: cells[1]!, allow });
   }
   return rules;

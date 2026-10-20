@@ -1,5 +1,7 @@
 "use client";
 
+import { planFeaturesForView } from "@/lib/plans-v2";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,7 +26,7 @@ import {
   normaliseBillingPlanId,
   resolveActivePlan,
 } from "./billing-plans";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { creditPacksForSale } from "@/lib/credit-packs";
 import { formatAud, withGst } from "@/lib/plans-v2";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
@@ -63,6 +65,14 @@ interface BillingClientProps {
   subscription?: BillingSubscriptionView;
   /** Public plan name for the subscription (Scout / Starter / Cohort 25 …). */
   subscriptionPlanLabel?: string | null;
+  /**
+   * `platform_config.payg_enabled` (Pricing v5, read by the server page).
+   * ON → D27: the 5-pack leaves the grid and no "A$x/credit" rate is shown —
+   * packs read "N credits" + the pack price only. Omitted → OFF (today).
+   */
+  paygEnabled?: boolean;
+  /** Snapshot display price ("A$19") for the Free plan's PAYG bullet when ON; catalogue fallback. */
+  paygSnapshotLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +129,11 @@ export function BillingClient({
   shareMgmtAddonPriceIds,
   subscription,
   subscriptionPlanLabel = null,
+  paygEnabled = false,
+  paygSnapshotLabel = PAYG_ON_VIEW.snapshot,
 }: BillingClientProps) {
+  // G35 P5: the Free plan's "pay-as-you-go" bullet follows the switch.
+  const featureView = { enabled: paygEnabled, snapshot: paygSnapshotLabel };
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [showDowngradeConfirm, setShowDowngradeConfirm] = React.useState<
@@ -344,11 +358,10 @@ export function BillingClient({
 
           {/* Features */}
           <ul className="space-y-2">
-            {(
-              activePlan?.features ??
-              plans.find((p) => p.id === "founder_free")?.features ??
-              []
-            ).map((f) => (
+            {(() => {
+              const p = activePlan ?? plans.find((x) => x.id === "founder_free");
+              return p ? planFeaturesForView(p, featureView) : [];
+            })().map((f) => (
               <li key={f} className="flex items-start gap-2.5 text-sm">
                 <Check
                   strokeWidth={2}
@@ -545,7 +558,7 @@ export function BillingClient({
 
                 {/* Features */}
                 <ul className="px-5 pb-4 space-y-1.5 flex-1">
-                  {plan.features.map((f) => (
+                  {planFeaturesForView(plan, featureView).map((f) => (
                     <li
                       key={f}
                       className="flex items-start gap-2 text-xs text-ink-700"
@@ -609,7 +622,7 @@ export function BillingClient({
       </section>
 
       {/* ---- Credits Section ---- */}
-      <CreditsPurchaseSection />
+      <CreditsPurchaseSection paygEnabled={paygEnabled} />
 
       {/* ---- Downgrade Confirmation Dialog ---- */}
       {showDowngradeConfirm && (
@@ -676,7 +689,7 @@ const FEATURE_COST_LIST = [
   { feature: "Dilution Calculator", cost: 0 },
 ] as const;
 
-function CreditsPurchaseSection() {
+function CreditsPurchaseSection({ paygEnabled = false }: { paygEnabled?: boolean }) {
   const [balance, setBalance] = React.useState<number | null>(null);
   const [showCosts, setShowCosts] = React.useState(false);
 
@@ -736,9 +749,10 @@ function CreditsPurchaseSection() {
 
         {/* Pack grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {CREDIT_PACKS.map((pack) => {
+          {creditPacksForSale(paygEnabled).map((pack) => {
             const priceLabel = withGst(formatAud(pack.price));
-            const perCredit = `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
+            // D27: no A$-per-credit conversion once Pricing v5 is on.
+            const perCredit = paygEnabled ? null : `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
             return (
             <div
               key={pack.credits}
@@ -756,7 +770,7 @@ function CreditsPurchaseSection() {
               <p className="text-sm font-semibold text-brand-600 mb-0.5">
                 {priceLabel}
               </p>
-              <p className="text-[11px] text-ink-500 mb-1">{perCredit}</p>
+              {perCredit ? <p className="text-[11px] text-ink-500 mb-1">{perCredit}</p> : null}
               {pack.savings && (
                 <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-3">
                   {pack.savings}

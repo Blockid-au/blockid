@@ -27,7 +27,7 @@
  * G35 Pricing v5 (P3): when the access route returns `payg.enabled`, the
  * dialog renders <PaygTierPicker> instead — Snapshot / Full / Verified (and
  * the D28 upgrade for an owner of a lower tier), each with what is included,
- * the price "one-off, GST incl." and the delivery time, then an explicit
+ * the price "one-off, inc. GST" and the delivery time, then an explicit
  * "Confirm & Pay". Flag off (`payg` absent / disabled) → the A$3 body below,
  * unchanged.
  */

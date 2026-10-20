@@ -18,7 +18,7 @@ beforeEach(() => {
 });
 
 describe("report order e-mails", () => {
-  it("paid: tier, amount (GST incl.), what happens next, order link", async () => {
+  it("paid: tier, amount (inc. GST), what happens next, order link", async () => {
     await sendReportOrderPaid({ to: "f@x.au", orderId: "o1", tier: "snapshot", amountCents: 1900, slaBusinessDays: 2 });
     const a = sendEmailMock.mock.calls[0][0];
     expect(a.subject).toBe("Payment received — your BlockID Snapshot report");

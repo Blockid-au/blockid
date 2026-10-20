@@ -21,11 +21,53 @@ import { ArrowRight, Loader2, Upload, Link as LinkIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { LEGACY_REPORT_CENTS, audFromCents, type PaygView } from "@/lib/pricing/payg-copy";
 
 type Mode = "pitch" | "url";
 
+/** Pricing v5 P5 (D26): the guest tiers this form sells. Verified needs sign-in. */
+export type GuestPaygTier = "snapshot" | "full";
+
+/** The slice of the server-read PaygView the form needs (serialisable). */
+export type OneClickPaygProps = Pick<PaygView, "enabled" | "snapshot" | "full" | "verified">;
+
 interface OneClickFormProps {
   variant?: "hero" | "final";
+  /**
+   * Pricing v5 P5: `platform_config.payg_enabled` view from the page. OFF
+   * (default) = today's single-price form, request body unchanged. ON = a
+   * Snapshot / Full choice, sent as the additive `tier` field.
+   */
+  payg?: OneClickPaygProps;
+  /** Where "Need Verified?" points (sign-in first). */
+  verifiedHref?: string;
+}
+
+/**
+ * The create-order body. Flag OFF is byte-for-byte the pre-v5 body; flag ON
+ * only ADDS `tier` (the guest-analysis API owns what it does with it).
+ */
+export function guestOrderBody(input: {
+  email: string;
+  inputType: "pitch_file" | "website_url";
+  inputValue: string;
+  inputFilename?: string;
+  tier?: GuestPaygTier | null;
+}): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    email: input.email,
+    inputType: input.inputType,
+    inputValue: input.inputValue,
+    inputFilename: input.inputFilename,
+  };
+  if (input.tier) body.tier = input.tier;
+  return body;
+}
+
+/** Submit label: "Review and pay — Snapshot A$19" (ON) or today's label (OFF). */
+export function oneClickSubmitLabel(payg: OneClickPaygProps | undefined, tier: GuestPaygTier): string | null {
+  if (!payg?.enabled) return null;
+  return `Review and pay — ${tier === "snapshot" ? `Snapshot ${payg.snapshot}` : `Full ${payg.full}`}`;
 }
 
 interface UploadResponse {
@@ -57,8 +99,10 @@ function isValidUrl(raw: string): boolean {
   }
 }
 
-export function OneClickForm({ variant = "hero" }: OneClickFormProps) {
+export function OneClickForm({ variant = "hero", payg, verifiedHref = "/auth/login" }: OneClickFormProps) {
   const ns = variant; // id namespace
+  const paygOn = payg?.enabled === true;
+  const [tier, setTier] = React.useState<GuestPaygTier>("snapshot");
   const [mode, setMode] = React.useState<Mode>("pitch");
   const [email, setEmail] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
@@ -151,12 +195,15 @@ export function OneClickForm({ variant = "hero" }: OneClickFormProps) {
       const orderRes = await fetch("/api/guest-analysis/create-order", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          inputType: mode === "pitch" ? "pitch_file" : "website_url",
-          inputValue,
-          inputFilename,
-        }),
+        body: JSON.stringify(
+          guestOrderBody({
+            email: email.trim().toLowerCase(),
+            inputType: mode === "pitch" ? "pitch_file" : "website_url",
+            inputValue,
+            inputFilename,
+            tier: paygOn ? tier : null,
+          }),
+        ),
       });
       const orderData = (await orderRes.json()) as CreateOrderResponse;
       if (!orderRes.ok || !orderData.checkoutUrl) {
@@ -276,6 +323,45 @@ export function OneClickForm({ variant = "hero" }: OneClickFormProps) {
         </div>
       )}
 
+      {paygOn && payg ? (
+        <fieldset data-testid="one-click-tier" className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium text-ink-800">Which report?</legend>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["snapshot", "Snapshot", payg.snapshot, "Score, radar, top risks — 1 page"],
+                ["full", "Full", payg.full, "All 16 sections + evidence register"],
+              ] as const
+            ).map(([value, name, price, gist]) => (
+              <label
+                key={value}
+                htmlFor={`${ns}-tier-${value}`}
+                className={
+                  "flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors " +
+                  (tier === value ? "border-brand-500 bg-brand-50/40" : "border-surface-300 bg-surface-50")
+                }
+              >
+                <input
+                  id={`${ns}-tier-${value}`}
+                  type="radio"
+                  name={`${ns}-tier`}
+                  value={value}
+                  checked={tier === value}
+                  onChange={() => setTier(value)}
+                  className="mt-1 h-4 w-4 shrink-0 cursor-pointer text-brand-600"
+                />
+                <span className="flex flex-col">
+                  <span className="font-medium text-ink-800">
+                    {name} · {price} <span className="font-normal text-ink-500">inc. GST</span>
+                  </span>
+                  <span className="text-xs text-ink-500">{gist}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
+
       <div className="flex flex-col gap-2">
         <Label htmlFor={`${ns}-email`}>Your email (report is sent here)</Label>
         <Input
@@ -316,11 +402,21 @@ export function OneClickForm({ variant = "hero" }: OneClickFormProps) {
           </>
         ) : (
           <>
-            Pay A$3 &amp; get my report
+            {oneClickSubmitLabel(payg, tier) ?? `Pay ${audFromCents(LEGACY_REPORT_CENTS)} & get my report`}
             <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
           </>
         )}
       </Button>
+
+      {paygOn ? (
+        <p data-testid="one-click-verified" className="text-center text-xs text-ink-500">
+          Need the evidence reviewed by our team?{" "}
+          <a href={verifiedHref} className="font-medium text-brand-600 underline underline-offset-2">
+            Verified {payg?.verified} — sign in first
+          </a>
+          .
+        </p>
+      ) : null}
 
       <p className="text-center text-xs text-ink-500 leading-relaxed">
         Not financial advice. GST tax invoice included. Report emailed in ~2 min

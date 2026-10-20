@@ -12,7 +12,10 @@ vi.mock("@/hooks/useEntitlement", () => ({
   useEntitlement: () => ({ user: null, entitlements: [], trial: null, isLoading: true, can: () => false, refresh: async () => undefined }),
 }));
 
-import { FundingPreviewCard, prefillFromSearch, toIntakeBody } from "./funding-intake";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
+
+import { FundingIntake, FundingPreviewCard, prefillFromSearch, toIntakeBody } from "./funding-intake";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 async function html(el: React.ReactElement): Promise<string> {
   const stream = await renderToReadableStream(el);
@@ -161,5 +164,23 @@ describe("FundingPreviewCard", () => {
     expect(out).toContain("Nothing open for NT at the idea stage.");
     expect(out).toContain("R&amp;D Tax Incentive");
     expect(out).toContain("only national schemes are shown");
+  });
+});
+
+describe("FundingIntake price lines follow payg_enabled (G35 P5, D25)", () => {
+  it("flag OFF (default) renders today's lines", async () => {
+    const pub = await html(<FundingIntake openGrantCount={3} openProgramCount={2} />);
+    expect(pub).toContain("Tell us three things and we match them to you — the list is free, the analysis is A$3.");
+    const ws = await html(<FundingIntake openGrantCount={3} openProgramCount={2} variant="workspace" view={PAYG_OFF_VIEW} />);
+    expect(ws).toContain("The preview is free — the full report is A$3 (3 credits) or included in Starter.");
+  });
+
+  it("flag ON renders 'Free scan · A$19 full' and A$19 (19 credits)", async () => {
+    const pub = await html(<FundingIntake openGrantCount={3} openProgramCount={2} view={PAYG_ON_VIEW} />);
+    expect(pub).toContain("Tell us three things and we match them to you. Free scan · A$19 full.");
+    expect(pub).not.toMatch(/A\$3\b/);
+    const ws = await html(<FundingIntake openGrantCount={3} openProgramCount={2} variant="workspace" view={PAYG_ON_VIEW} />);
+    expect(ws).toContain("The preview is free — the full report is A$19 (19 credits) or included in Starter.");
+    expect(ws).not.toMatch(/A\$3\b|3 credits/);
   });
 });

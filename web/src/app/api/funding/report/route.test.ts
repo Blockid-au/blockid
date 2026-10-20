@@ -11,6 +11,8 @@
 //      funding_report_id, and only a successful spend flips it to `ready`;
 //      spend failure → 402 + row marked spend_failed and NEVER ready.
 //   5. project_id → ownership check (403) and project_grant_profiles upsert.
+//   6. G35 P5 (D25): payg_enabled OFF debits "grant_match" (3, unchanged);
+//      ON debits "report_funding" (19) — the credits the paywall shows.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,8 +28,11 @@ const { canAffordMock, spendCreditsMock } = vi.hoisted(() => ({ canAffordMock: v
 vi.mock("@/lib/credits", () => ({
   canAfford: (u: string, f: string) => canAffordMock(u, f),
   spendCredits: (u: string, f: string, m?: unknown) => spendCreditsMock(u, f, m),
-  FEATURE_COSTS: { grant_match: 3 },
+  FEATURE_COSTS: { grant_match: 3, report_funding: 19 },
 }));
+
+const paygEnabled = vi.hoisted(() => ({ on: false }));
+vi.mock("@/lib/pricing/payg-flag", () => ({ isPaygEnabled: async () => paygEnabled.on }));
 
 const canMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/entitlements", () => ({ can: (u: unknown, f: string) => canMock(u, f) }));
@@ -123,6 +128,7 @@ beforeEach(() => {
   getCurrentUserMock.mockReset().mockResolvedValue(USER);
   enforceRateLimitMock.mockReset().mockReturnValue(null);
   canMock.mockReset().mockResolvedValue(false);
+  paygEnabled.on = false;
   canAffordMock.mockReset().mockResolvedValue({ allowed: true, balance: 10, cost: 3 });
   spendCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 7 });
   getProjectByIdMock.mockReset();
@@ -223,6 +229,23 @@ describe("POST /api/funding/report — rails", () => {
     // G14-S33: server-side funding_report_paid for the credits rail.
     expect(emitCalls.filter((c) => c.name === "funding_report_paid")).toHaveLength(1);
     expect(emitCalls[0]).toMatchObject({ params: { paid_via: "credits", report_id: "rep-1" }, userId: "user-1" });
+  });
+
+  it("payg_enabled ON (D25): pre-flight + spend run under report_funding (19 credits), 402 quotes 19", async () => {
+    paygEnabled.on = true;
+    canAffordMock.mockResolvedValueOnce({ allowed: true, balance: 25, cost: 19 });
+    const res = await POST(req(GOOD));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, paidVia: "credits", creditsCharged: 19 });
+    expect(canAffordMock).toHaveBeenCalledWith("user-1", "report_funding");
+    expect(spendCreditsMock.mock.calls[0][1]).toBe("report_funding");
+    const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
+    expect(inserted).toMatchObject({ paid_via: "credits", credits_cost: 19 });
+
+    canAffordMock.mockResolvedValueOnce({ allowed: false, balance: 5, cost: 19, reason: "insufficient_credits" });
+    const short = await POST(req(GOOD));
+    expect(short.status).toBe(402);
+    expect(await short.json()).toMatchObject({ error: "insufficient_credits", creditsRequired: 19, balance: 5 });
   });
 
   it("plan rail: grant_finder entitlement bypasses canAfford + spendCredits; row is paid_via=plan", async () => {

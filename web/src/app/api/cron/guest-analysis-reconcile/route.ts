@@ -390,7 +390,7 @@ async function sendRecoveryEmails(
   const { data, error } = await supabase
     .from("guest_analyses")
     .select(
-      "id, email, input_type, input_value, input_filename, abandoned_at, resume_token",
+      "id, email, input_type, input_value, input_filename, abandoned_at, resume_token, amount_paid_aud_cents",
     )
     .eq("status", "abandoned")
     .is("recovery_email_sent_at", null)
@@ -473,6 +473,10 @@ async function sendRecoveryEmails(
             : row.input_value,
         resumeUrl: `${siteOrigin()}/api/guest-analysis/resume/${token}`,
         guestAnalysisId: row.id,
+        // G35 P5 — the resumed checkout's own (intended) amount, not a literal.
+        amountCents: typeof (row as { amount_paid_aud_cents?: unknown }).amount_paid_aud_cents === "number"
+          ? (row as unknown as { amount_paid_aud_cents: number }).amount_paid_aud_cents
+          : null,
       });
       if (result.ok) {
         out.push({ id: row.id, action: "sent" });
