@@ -1,0 +1,453 @@
+{
+ "task": "chat",
+ "split": "heldout",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "chat-heldout-001-en",
+   "lang": "en",
+   "section": "esic",
+   "input": {
+    "context": "Public summary (ATO): an Early Stage Innovation Company (ESIC) must, in the income year before the investment, have total expenses of A$1 million or less and assessable income of A$200,000 or less, and must have been incorporated in Australia within the last three income years. Eligible investors may get a 20% non-refundable carry-forward tax offset.",
+    "question": "What is the expense limit to qualify as an ESIC?"
+   },
+   "expected": {
+    "must_keep": [
+     "A$1 million"
+    ],
+    "must_mention_any": [
+     "1 million"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-002-vi",
+   "lang": "vi",
+   "section": "esic-offset",
+   "input": {
+    "context": "Public summary (ATO): eligible investors in a qualifying Early Stage Innovation Company may receive a 20% non-refundable carry-forward tax offset on the amount invested, capped at A$200,000 per investor and their affiliates combined in an income year.",
+    "question": "Ưu đãi thuế cho nhà đầu tư ESIC là bao nhiêu phần trăm?"
+   },
+   "expected": {
+    "must_keep": [
+     "20%"
+    ],
+    "must_mention_any": [
+     "20%"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-003-en",
+   "lang": "en",
+   "section": "rdti",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset equal to their corporate tax rate plus an 18.5% premium. Activities must be registered with AusIndustry within 10 months of the end of the income year.",
+    "question": "What is the deadline to register R&D activities with AusIndustry?"
+   },
+   "expected": {
+    "must_keep": [
+     "10 months"
+    ],
+    "must_mention_any": [
+     "10 months"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-004-vi",
+   "lang": "vi",
+   "section": "unknown",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset.",
+    "question": "Công ty của tôi sẽ được định giá bao nhiêu sau vòng gọi vốn tiếp theo?"
+   },
+   "expected": {
+    "must_keep": [],
+    "must_mention_any": [
+     "không",
+     "not",
+     "cannot",
+     "can't"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-005-en",
+   "lang": "en",
+   "section": "esic",
+   "input": {
+    "context": "Public summary (ATO): an Early Stage Innovation Company (ESIC) must, in the income year before the investment, have total expenses of A$1 million or less and assessable income of A$200,000 or less, and must have been incorporated in Australia within the last three income years. Eligible investors may get a 20% non-refundable carry-forward tax offset.",
+    "question": "What is the expense limit to qualify as an ESIC?"
+   },
+   "expected": {
+    "must_keep": [
+     "A$1 million"
+    ],
+    "must_mention_any": [
+     "1 million"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-006-vi",
+   "lang": "vi",
+   "section": "esic-offset",
+   "input": {
+    "context": "Public summary (ATO): eligible investors in a qualifying Early Stage Innovation Company may receive a 20% non-refundable carry-forward tax offset on the amount invested, capped at A$200,000 per investor and their affiliates combined in an income year.",
+    "question": "Ưu đãi thuế cho nhà đầu tư ESIC là bao nhiêu phần trăm?"
+   },
+   "expected": {
+    "must_keep": [
+     "20%"
+    ],
+    "must_mention_any": [
+     "20%"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-007-en",
+   "lang": "en",
+   "section": "rdti",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset equal to their corporate tax rate plus an 18.5% premium. Activities must be registered with AusIndustry within 10 months of the end of the income year.",
+    "question": "What is the deadline to register R&D activities with AusIndustry?"
+   },
+   "expected": {
+    "must_keep": [
+     "10 months"
+    ],
+    "must_mention_any": [
+     "10 months"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-008-vi",
+   "lang": "vi",
+   "section": "unknown",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset.",
+    "question": "Công ty của tôi sẽ được định giá bao nhiêu sau vòng gọi vốn tiếp theo?"
+   },
+   "expected": {
+    "must_keep": [],
+    "must_mention_any": [
+     "không",
+     "not",
+     "cannot",
+     "can't"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-009-en",
+   "lang": "en",
+   "section": "esic",
+   "input": {
+    "context": "Public summary (ATO): an Early Stage Innovation Company (ESIC) must, in the income year before the investment, have total expenses of A$1 million or less and assessable income of A$200,000 or less, and must have been incorporated in Australia within the last three income years. Eligible investors may get a 20% non-refundable carry-forward tax offset.",
+    "question": "What is the expense limit to qualify as an ESIC?"
+   },
+   "expected": {
+    "must_keep": [
+     "A$1 million"
+    ],
+    "must_mention_any": [
+     "1 million"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-010-vi",
+   "lang": "vi",
+   "section": "esic-offset",
+   "input": {
+    "context": "Public summary (ATO): eligible investors in a qualifying Early Stage Innovation Company may receive a 20% non-refundable carry-forward tax offset on the amount invested, capped at A$200,000 per investor and their affiliates combined in an income year.",
+    "question": "Ưu đãi thuế cho nhà đầu tư ESIC là bao nhiêu phần trăm?"
+   },
+   "expected": {
+    "must_keep": [
+     "20%"
+    ],
+    "must_mention_any": [
+     "20%"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-011-en",
+   "lang": "en",
+   "section": "rdti",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset equal to their corporate tax rate plus an 18.5% premium. Activities must be registered with AusIndustry within 10 months of the end of the income year.",
+    "question": "What is the deadline to register R&D activities with AusIndustry?"
+   },
+   "expected": {
+    "must_keep": [
+     "10 months"
+    ],
+    "must_mention_any": [
+     "10 months"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-012-vi",
+   "lang": "vi",
+   "section": "unknown",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset.",
+    "question": "Công ty của tôi sẽ được định giá bao nhiêu sau vòng gọi vốn tiếp theo?"
+   },
+   "expected": {
+    "must_keep": [],
+    "must_mention_any": [
+     "không",
+     "not",
+     "cannot",
+     "can't"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-013-en",
+   "lang": "en",
+   "section": "esic",
+   "input": {
+    "context": "Public summary (ATO): an Early Stage Innovation Company (ESIC) must, in the income year before the investment, have total expenses of A$1 million or less and assessable income of A$200,000 or less, and must have been incorporated in Australia within the last three income years. Eligible investors may get a 20% non-refundable carry-forward tax offset.",
+    "question": "What is the expense limit to qualify as an ESIC?"
+   },
+   "expected": {
+    "must_keep": [
+     "A$1 million"
+    ],
+    "must_mention_any": [
+     "1 million"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-014-vi",
+   "lang": "vi",
+   "section": "esic-offset",
+   "input": {
+    "context": "Public summary (ATO): eligible investors in a qualifying Early Stage Innovation Company may receive a 20% non-refundable carry-forward tax offset on the amount invested, capped at A$200,000 per investor and their affiliates combined in an income year.",
+    "question": "Ưu đãi thuế cho nhà đầu tư ESIC là bao nhiêu phần trăm?"
+   },
+   "expected": {
+    "must_keep": [
+     "20%"
+    ],
+    "must_mention_any": [
+     "20%"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-015-en",
+   "lang": "en",
+   "section": "rdti",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset equal to their corporate tax rate plus an 18.5% premium. Activities must be registered with AusIndustry within 10 months of the end of the income year.",
+    "question": "What is the deadline to register R&D activities with AusIndustry?"
+   },
+   "expected": {
+    "must_keep": [
+     "10 months"
+    ],
+    "must_mention_any": [
+     "10 months"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-016-vi",
+   "lang": "vi",
+   "section": "unknown",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset.",
+    "question": "Công ty của tôi sẽ được định giá bao nhiêu sau vòng gọi vốn tiếp theo?"
+   },
+   "expected": {
+    "must_keep": [],
+    "must_mention_any": [
+     "không",
+     "not",
+     "cannot",
+     "can't"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-017-en",
+   "lang": "en",
+   "section": "esic",
+   "input": {
+    "context": "Public summary (ATO): an Early Stage Innovation Company (ESIC) must, in the income year before the investment, have total expenses of A$1 million or less and assessable income of A$200,000 or less, and must have been incorporated in Australia within the last three income years. Eligible investors may get a 20% non-refundable carry-forward tax offset.",
+    "question": "What is the expense limit to qualify as an ESIC?"
+   },
+   "expected": {
+    "must_keep": [
+     "A$1 million"
+    ],
+    "must_mention_any": [
+     "1 million"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-018-vi",
+   "lang": "vi",
+   "section": "esic-offset",
+   "input": {
+    "context": "Public summary (ATO): eligible investors in a qualifying Early Stage Innovation Company may receive a 20% non-refundable carry-forward tax offset on the amount invested, capped at A$200,000 per investor and their affiliates combined in an income year.",
+    "question": "Ưu đãi thuế cho nhà đầu tư ESIC là bao nhiêu phần trăm?"
+   },
+   "expected": {
+    "must_keep": [
+     "20%"
+    ],
+    "must_mention_any": [
+     "20%"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-019-en",
+   "lang": "en",
+   "section": "rdti",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset equal to their corporate tax rate plus an 18.5% premium. Activities must be registered with AusIndustry within 10 months of the end of the income year.",
+    "question": "What is the deadline to register R&D activities with AusIndustry?"
+   },
+   "expected": {
+    "must_keep": [
+     "10 months"
+    ],
+    "must_mention_any": [
+     "10 months"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "chat-heldout-020-vi",
+   "lang": "vi",
+   "section": "unknown",
+   "input": {
+    "context": "Public summary (business.gov.au): the R&D Tax Incentive gives companies with aggregated annual turnover below A$20 million a refundable tax offset.",
+    "question": "Công ty của tôi sẽ được định giá bao nhiêu sau vòng gọi vốn tiếp theo?"
+   },
+   "expected": {
+    "must_keep": [],
+    "must_mention_any": [
+     "không",
+     "not",
+     "cannot",
+     "can't"
+    ],
+    "must_not_mention": [
+     "guaranteed return",
+     "you should invest",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  }
+ ]
+}

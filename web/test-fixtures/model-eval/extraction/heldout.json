@@ -1,0 +1,368 @@
+{
+ "task": "extraction",
+ "split": "heldout",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "extraction-heldout-001-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Lyrebird Learn Pty Ltd is a deeptech company founded in 2017, building quantum-safe encryption chips. It employs 8 people. FY2026 revenue was A$800,000. It has raised A$150,000 in total. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Lyrebird Learn",
+     "founded_year": 2017,
+     "employees": 8,
+     "revenue_aud": 800000,
+     "funding_raised_aud": 150000,
+     "sector": "deeptech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-002-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Kestrel Pay Pty Ltd là một công ty fintech được thành lập năm 2023, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 5 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,600,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Kestrel Pay",
+     "founded_year": 2023,
+     "employees": 5,
+     "revenue_aud": 1600000,
+     "funding_raised_aud": null,
+     "sector": "fintech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-003-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Numbat Labs Pty Ltd is a cleantech company founded in 2024, building battery management software for rooftop solar. It employs 21 people. FY2026 revenue was A$350,000. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Numbat Labs",
+     "founded_year": 2024,
+     "employees": 21,
+     "revenue_aud": 350000,
+     "funding_raised_aud": null,
+     "sector": "cleantech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-004-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Echidna Logic Pty Ltd là một công ty saas được thành lập năm 2017, chuyên về phần mềm B2B cho các công ty kế toán. Công ty hiện có 35 nhân viên. Doanh thu năm tài chính 2026 đạt A$750,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Echidna Logic",
+     "founded_year": 2017,
+     "employees": 35,
+     "revenue_aud": 750000,
+     "funding_raised_aud": null,
+     "sector": "saas"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-005-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Coral Learn Pty Ltd is a edtech company founded in 2017, building a maths tutoring platform for high-school students. It employs 39 people. FY2026 revenue was A$800,000. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Coral Learn",
+     "founded_year": 2017,
+     "employees": 39,
+     "revenue_aud": 800000,
+     "funding_raised_aud": null,
+     "sector": "edtech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-006-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Saltbush Logic Pty Ltd là một công ty saas được thành lập năm 2020, chuyên về phần mềm B2B cho các công ty kế toán. Doanh thu năm tài chính 2026 đạt A$350,000. Tổng vốn đã huy động là A$775,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Saltbush Logic",
+     "founded_year": 2020,
+     "employees": null,
+     "revenue_aud": 350000,
+     "funding_raised_aud": 775000,
+     "sector": "saas"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-007-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Mallee Cloud Pty Ltd is a deeptech company founded in 2024, building quantum-safe encryption chips. It employs 48 people. It has raised A$375,000 in total. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Mallee Cloud",
+     "founded_year": 2024,
+     "employees": 48,
+     "revenue_aud": null,
+     "funding_raised_aud": 375000,
+     "sector": "deeptech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-008-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Numbat Farm Pty Ltd là một công ty fintech được thành lập năm 2023, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 28 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,300,000. Tổng vốn đã huy động là A$350,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Numbat Farm",
+     "founded_year": 2023,
+     "employees": 28,
+     "revenue_aud": 1300000,
+     "funding_raised_aud": 350000,
+     "sector": "fintech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-009-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Quokka Analytics Pty Ltd is a saas company founded in 2017, building B2B software for accounting firms. It employs 55 people. It has raised A$650,000 in total. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Quokka Analytics",
+     "founded_year": 2017,
+     "employees": 55,
+     "revenue_aud": null,
+     "funding_raised_aud": 650000,
+     "sector": "saas"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-010-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Galah Learn Pty Ltd là một công ty agritech được thành lập năm 2019, chuyên về cảm biến độ ẩm đất cho trang trại ngũ cốc. Công ty hiện có 17 nhân viên. Doanh thu năm tài chính 2026 đạt A$900,000. Tổng vốn đã huy động là A$400,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Galah Learn",
+     "founded_year": 2019,
+     "employees": 17,
+     "revenue_aud": 900000,
+     "funding_raised_aud": 400000,
+     "sector": "agritech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-011-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Jarrah Works Pty Ltd is a cleantech company founded in 2025, building battery management software for rooftop solar. It employs 20 people. It has raised A$950,000 in total. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Jarrah Works",
+     "founded_year": 2025,
+     "employees": 20,
+     "revenue_aud": null,
+     "funding_raised_aud": 950000,
+     "sector": "cleantech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-012-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Saltbush Labs Pty Ltd là một công ty agritech được thành lập năm 2022, chuyên về cảm biến độ ẩm đất cho trang trại ngũ cốc. Công ty hiện có 23 nhân viên. Tổng vốn đã huy động là A$800,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Saltbush Labs",
+     "founded_year": 2022,
+     "employees": 23,
+     "revenue_aud": null,
+     "funding_raised_aud": 800000,
+     "sector": "agritech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-013-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Koala Analytics Pty Ltd is a cleantech company founded in 2020, building battery management software for rooftop solar. It employs 17 people. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Koala Analytics",
+     "founded_year": 2020,
+     "employees": 17,
+     "revenue_aud": null,
+     "funding_raised_aud": null,
+     "sector": "cleantech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-014-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Mallee Pay Pty Ltd là một công ty healthtech được thành lập năm 2019, chuyên về theo dõi từ xa cho người cao tuổi trong viện dưỡng lão. Công ty hiện có 54 nhân viên. Tổng vốn đã huy động là A$400,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Mallee Pay",
+     "founded_year": 2019,
+     "employees": 54,
+     "revenue_aud": null,
+     "funding_raised_aud": 400000,
+     "sector": "healthtech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-015-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Paperbark Health Pty Ltd is a healthtech company founded in 2019, building remote monitoring for aged-care residents. It employs 40 people. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Paperbark Health",
+     "founded_year": 2019,
+     "employees": 40,
+     "revenue_aud": null,
+     "funding_raised_aud": null,
+     "sector": "healthtech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-016-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Tidal Health Pty Ltd là một công ty fintech được thành lập năm 2024, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 28 nhân viên. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Tidal Health",
+     "founded_year": 2024,
+     "employees": 28,
+     "revenue_aud": null,
+     "funding_raised_aud": null,
+     "sector": "fintech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-017-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Wattle Analytics Pty Ltd is a saas company founded in 2020, building B2B software for accounting firms. It employs 4 people. FY2026 revenue was A$1,350,000. It has raised A$450,000 in total. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Wattle Analytics",
+     "founded_year": 2020,
+     "employees": 4,
+     "revenue_aud": 1350000,
+     "funding_raised_aud": 450000,
+     "sector": "saas"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-018-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Numbat Health Pty Ltd là một công ty healthtech được thành lập năm 2019, chuyên về theo dõi từ xa cho người cao tuổi trong viện dưỡng lão. Công ty hiện có 13 nhân viên. Doanh thu năm tài chính 2026 đạt A$400,000. Tổng vốn đã huy động là A$600,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Numbat Health",
+     "founded_year": 2019,
+     "employees": 13,
+     "revenue_aud": 400000,
+     "funding_raised_aud": 600000,
+     "sector": "healthtech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-019-en",
+   "lang": "en",
+   "section": "fields",
+   "input": {
+    "document": "Galah Analytics Pty Ltd is a edtech company founded in 2022, building a maths tutoring platform for high-school students. It employs 32 people. FY2026 revenue was A$650,000. The founders are looking for distribution partners in Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Galah Analytics",
+     "founded_year": 2022,
+     "employees": 32,
+     "revenue_aud": 650000,
+     "funding_raised_aud": null,
+     "sector": "edtech"
+    }
+   }
+  },
+  {
+   "id": "extraction-heldout-020-vi",
+   "lang": "vi",
+   "section": "fields",
+   "input": {
+    "document": "Lyrebird Cloud Pty Ltd là một công ty fintech được thành lập năm 2024, chuyên về ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Công ty hiện có 31 nhân viên. Doanh thu năm tài chính 2026 đạt A$1,950,000. Tổng vốn đã huy động là A$150,000. Nhà sáng lập đang tìm kiếm đối tác phân phối tại Queensland."
+   },
+   "expected": {
+    "fields": {
+     "company_name": "Lyrebird Cloud",
+     "founded_year": 2024,
+     "employees": 31,
+     "revenue_aud": 1950000,
+     "funding_raised_aud": 150000,
+     "sector": "fintech"
+    }
+   }
+  }
+ ]
+}

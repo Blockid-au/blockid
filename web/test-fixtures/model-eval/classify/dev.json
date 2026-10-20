@@ -1,0 +1,568 @@
+{
+ "task": "classify",
+ "split": "dev",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "classify-dev-001-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Numbat Health builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-002-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Paperbark Logic xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-003-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Quokka Logic builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-004-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Paperbark Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-005-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Koala Cloud builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-006-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Ironbark Grid xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-007-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Galah Analytics builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-008-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Ironbark Logic xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-009-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Quokka Health builds B2B software for accounting firms. The product is live with 13 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-010-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Numbat Health xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Sản phẩm đã ra mắt với 10 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-011-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Dingo Works builds remote monitoring for aged-care residents. The product is live with 23 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-012-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Dingo Logic xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Sản phẩm đã ra mắt với 4 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-013-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Quokka Logic builds a maths tutoring platform for high-school students. The product is live with 16 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-014-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Koala Farm xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Sản phẩm đã ra mắt với 23 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-015-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Bluegum Logic builds a two-sided marketplace matching tradies with homeowners. The product is live with 6 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-016-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Mallee Pay xây dựng chip mã hoá an toàn lượng tử. Sản phẩm đã ra mắt với 7 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-017-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Quokka Learn builds B2B software for accounting firms. It just closed its first institutional seed round of A$1,200,000 from a venture fund."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-018-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Koala Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$2,200,000 từ một quỹ đầu tư mạo hiểm."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-019-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Dingo Learn builds remote monitoring for aged-care residents. It just closed its first institutional seed round of A$600,000 from a venture fund."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-020-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Jarrah Grid xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$900,000 từ một quỹ đầu tư mạo hiểm."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-021-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Jarrah Logic builds a maths tutoring platform for high-school students. It just closed its first institutional seed round of A$2,300,000 from a venture fund."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-022-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Numbat Labs xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$2,000,000 từ một quỹ đầu tư mạo hiểm."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-023-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Dingo Health builds a two-sided marketplace matching tradies with homeowners. It just closed its first institutional seed round of A$2,400,000 from a venture fund."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-024-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Brolga Analytics xây dựng chip mã hoá an toàn lượng tử. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,700,000 từ một quỹ đầu tư mạo hiểm."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-025-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Dingo Grid builds B2B software for accounting firms. It has closed a priced Series A round of A$8 million."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-026-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Brolga Farm xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Đã hoàn tất vòng Series A có định giá, huy động A$16 triệu."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-027-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Quokka Farm builds remote monitoring for aged-care residents. It has closed a priced Series A round of A$17 million."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-028-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Galah Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Đã hoàn tất vòng Series A có định giá, huy động A$11 triệu."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-029-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Dingo Works builds a maths tutoring platform for high-school students. It has closed a priced Series A round of A$11 million."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-030-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Tidal Farm xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Đã hoàn tất vòng Series A có định giá, huy động A$15 triệu."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-031-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Tidal Farm builds a two-sided marketplace matching tradies with homeowners. It has closed a priced Series A round of A$18 million."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-032-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Kestrel Works xây dựng chip mã hoá an toàn lượng tử. Đã hoàn tất vòng Series A có định giá, huy động A$7 triệu."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "series_a"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-033-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Dingo Labs builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-034-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Koala Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-035-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Saltbush Learn builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-036-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Echidna Grid xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-037-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Paperbark Works builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-038-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Banksia Health xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-039-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Spinifex Works builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-dev-040-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Coral Health xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "idea"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,429 @@
+{
+ "task": "vision",
+ "split": "heldout",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "vision-heldout-001-en",
+   "lang": "en",
+   "section": "quarterly",
+   "input": {
+    "image": "img/heldout-1-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 36,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 67,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 41,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 14,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 91.9,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-002-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-2-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T7",
+      "value": 72,
+      "tol": 0.05
+     },
+     {
+      "label": "T8",
+      "value": 80,
+      "tol": 0.05
+     },
+     {
+      "label": "T9",
+      "value": 80,
+      "tol": 0.05
+     },
+     {
+      "label": "T10",
+      "value": 51.5,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-003-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-3-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Apr",
+      "value": 101,
+      "tol": 0.05
+     },
+     {
+      "label": "May",
+      "value": 51,
+      "tol": 0.05
+     },
+     {
+      "label": "Jun",
+      "value": 67.7,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 60,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 63,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-004-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/heldout-4-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 43,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 15.7,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 114.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 37,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-005-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-5-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Feb",
+      "value": 15,
+      "tol": 0.05
+     },
+     {
+      "label": "Mar",
+      "value": 20,
+      "tol": 0.05
+     },
+     {
+      "label": "Apr",
+      "value": 96,
+      "tol": 0.05
+     },
+     {
+      "label": "May",
+      "value": 92.4,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-006-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-6-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T2",
+      "value": 80.3,
+      "tol": 0.05
+     },
+     {
+      "label": "T3",
+      "value": 7,
+      "tol": 0.05
+     },
+     {
+      "label": "T4",
+      "value": 119,
+      "tol": 0.05
+     },
+     {
+      "label": "T5",
+      "value": 89,
+      "tol": 0.05
+     },
+     {
+      "label": "T6",
+      "value": 83,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-007-en",
+   "lang": "en",
+   "section": "quarterly",
+   "input": {
+    "image": "img/heldout-7-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 37,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 66.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 60,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 115.5,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-008-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/heldout-8-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 116,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 27,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 106,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 46,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 12,
+      "tol": 0.05
+     },
+     {
+      "label": "Q6",
+      "value": 91,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-009-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-9-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Jun",
+      "value": 13.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 77,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 55,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 9,
+      "tol": 0.05
+     },
+     {
+      "label": "Oct",
+      "value": 94,
+      "tol": 0.05
+     },
+     {
+      "label": "Nov",
+      "value": 35,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-010-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-10-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T9",
+      "value": 108,
+      "tol": 0.05
+     },
+     {
+      "label": "T10",
+      "value": 61,
+      "tol": 0.05
+     },
+     {
+      "label": "T11",
+      "value": 94,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-011-en",
+   "lang": "en",
+   "section": "quarterly",
+   "input": {
+    "image": "img/heldout-11-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 32,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 7.5,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 13,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 97,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-heldout-012-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/heldout-12-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T8",
+      "value": 46,
+      "tol": 0.05
+     },
+     {
+      "label": "T9",
+      "value": 52,
+      "tol": 0.05
+     },
+     {
+      "label": "T10",
+      "value": 109.7,
+      "tol": 0.05
+     }
+    ]
+   }
+  }
+ ]
+}

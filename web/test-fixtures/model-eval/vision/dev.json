@@ -1,0 +1,830 @@
+{
+ "task": "vision",
+ "split": "dev",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "vision-dev-001-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-1-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Apr",
+      "value": 25,
+      "tol": 0.05
+     },
+     {
+      "label": "May",
+      "value": 62,
+      "tol": 0.05
+     },
+     {
+      "label": "Jun",
+      "value": 55,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 70.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 62,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 32,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-002-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-2-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 27,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 96,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 95,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-003-en",
+   "lang": "en",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-3-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 60.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 66,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 37,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 28.6,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-004-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-4-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T8",
+      "value": 103,
+      "tol": 0.05
+     },
+     {
+      "label": "T9",
+      "value": 111,
+      "tol": 0.05
+     },
+     {
+      "label": "T10",
+      "value": 41,
+      "tol": 0.05
+     },
+     {
+      "label": "T11",
+      "value": 37,
+      "tol": 0.05
+     },
+     {
+      "label": "T12",
+      "value": 45,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-005-en",
+   "lang": "en",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-5-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 22,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 28.3,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 38.7,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 31,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 74,
+      "tol": 0.05
+     },
+     {
+      "label": "Q6",
+      "value": 61,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-006-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-6-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T7",
+      "value": 97,
+      "tol": 0.05
+     },
+     {
+      "label": "T8",
+      "value": 87,
+      "tol": 0.05
+     },
+     {
+      "label": "T9",
+      "value": 59.2,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-007-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-7-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Jul",
+      "value": 28.1,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 16,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 79,
+      "tol": 0.05
+     },
+     {
+      "label": "Oct",
+      "value": 118.1,
+      "tol": 0.05
+     },
+     {
+      "label": "Nov",
+      "value": 39,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-008-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-8-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 35,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 86.2,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 21.1,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 52,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 118,
+      "tol": 0.05
+     },
+     {
+      "label": "Q6",
+      "value": 31.2,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-009-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-9-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "May",
+      "value": 104,
+      "tol": 0.05
+     },
+     {
+      "label": "Jun",
+      "value": 105,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 39.1,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-010-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-10-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 15,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 110.7,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 53,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 117.5,
+      "tol": 0.05
+     },
+     {
+      "label": "Q5",
+      "value": 79.4,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-011-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-11-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Aug",
+      "value": 113.2,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 105.3,
+      "tol": 0.05
+     },
+     {
+      "label": "Oct",
+      "value": 113,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-012-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-12-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T4",
+      "value": 37,
+      "tol": 0.05
+     },
+     {
+      "label": "T5",
+      "value": 92.1,
+      "tol": 0.05
+     },
+     {
+      "label": "T6",
+      "value": 33.4,
+      "tol": 0.05
+     },
+     {
+      "label": "T7",
+      "value": 87.5,
+      "tol": 0.05
+     },
+     {
+      "label": "T8",
+      "value": 19,
+      "tol": 0.05
+     },
+     {
+      "label": "T9",
+      "value": 91,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-013-en",
+   "lang": "en",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-13-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 30.5,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 62.9,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 99,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 48.9,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-014-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-14-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T10",
+      "value": 21,
+      "tol": 0.05
+     },
+     {
+      "label": "T11",
+      "value": 26,
+      "tol": 0.05
+     },
+     {
+      "label": "T12",
+      "value": 65,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-015-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-15-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Jun",
+      "value": 15,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 26.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 80,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 106.7,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-016-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-16-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T7",
+      "value": 44,
+      "tol": 0.05
+     },
+     {
+      "label": "T8",
+      "value": 7.7,
+      "tol": 0.05
+     },
+     {
+      "label": "T9",
+      "value": 14,
+      "tol": 0.05
+     },
+     {
+      "label": "T10",
+      "value": 49,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-017-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-17-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Jul",
+      "value": 44,
+      "tol": 0.05
+     },
+     {
+      "label": "Aug",
+      "value": 114.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Sep",
+      "value": 103,
+      "tol": 0.05
+     },
+     {
+      "label": "Oct",
+      "value": 58,
+      "tol": 0.05
+     },
+     {
+      "label": "Nov",
+      "value": 77.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Dec",
+      "value": 52,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-018-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-18-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 95.8,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 77,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 115.7,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 45,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-019-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-19-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Oct",
+      "value": 88,
+      "tol": 0.05
+     },
+     {
+      "label": "Nov",
+      "value": 79.6,
+      "tol": 0.05
+     },
+     {
+      "label": "Dec",
+      "value": 5,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-020-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-20-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 60,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 106.1,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 39,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 79.3,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-021-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-21-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Apr",
+      "value": 83,
+      "tol": 0.05
+     },
+     {
+      "label": "May",
+      "value": 39,
+      "tol": 0.05
+     },
+     {
+      "label": "Jun",
+      "value": 59.6,
+      "tol": 0.05
+     },
+     {
+      "label": "Jul",
+      "value": 86,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-022-vi",
+   "lang": "vi",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-22-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "T2",
+      "value": 80,
+      "tol": 0.05
+     },
+     {
+      "label": "T3",
+      "value": 79,
+      "tol": 0.05
+     },
+     {
+      "label": "T4",
+      "value": 35.6,
+      "tol": 0.05
+     },
+     {
+      "label": "T5",
+      "value": 14.7,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-023-en",
+   "lang": "en",
+   "section": "monthly",
+   "input": {
+    "image": "img/dev-23-en.png",
+    "question": "Read the value of every bar."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Jan",
+      "value": 54,
+      "tol": 0.05
+     },
+     {
+      "label": "Feb",
+      "value": 51,
+      "tol": 0.05
+     },
+     {
+      "label": "Mar",
+      "value": 109.4,
+      "tol": 0.05
+     }
+    ]
+   }
+  },
+  {
+   "id": "vision-dev-024-vi",
+   "lang": "vi",
+   "section": "quarterly",
+   "input": {
+    "image": "img/dev-24-vi.png",
+    "question": "Đọc giá trị của từng cột."
+   },
+   "expected": {
+    "values": [
+     {
+      "label": "Q1",
+      "value": 23,
+      "tol": 0.05
+     },
+     {
+      "label": "Q2",
+      "value": 77.4,
+      "tol": 0.05
+     },
+     {
+      "label": "Q3",
+      "value": 119,
+      "tol": 0.05
+     },
+     {
+      "label": "Q4",
+      "value": 106.6,
+      "tol": 0.05
+     }
+    ]
+   }
+  }
+ ]
+}

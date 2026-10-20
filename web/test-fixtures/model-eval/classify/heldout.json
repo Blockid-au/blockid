@@ -1,0 +1,288 @@
+{
+ "task": "classify",
+ "split": "heldout",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "classify-heldout-001-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Numbat Works builds B2B software for accounting firms. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-002-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Galah Grid xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-003-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Brolga Analytics builds remote monitoring for aged-care residents. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-004-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Wattle Works xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-005-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Echidna Cloud builds a maths tutoring platform for high-school students. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-006-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Dingo Logic xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-007-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Quokka Health builds a two-sided marketplace matching tradies with homeowners. The team has a concept and mock-ups but no product yet."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-008-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Ironbark Pay xây dựng chip mã hoá an toàn lượng tử. Nhóm mới có ý tưởng và bản thiết kế, chưa có sản phẩm."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "idea"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-009-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Spinifex Cloud builds B2B software for accounting firms. The product is live with 21 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-010-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Brolga Farm xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Sản phẩm đã ra mắt với 28 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-011-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Echidna Labs builds remote monitoring for aged-care residents. The product is live with 15 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-012-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Banksia Labs xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Sản phẩm đã ra mắt với 15 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-013-en",
+   "lang": "en",
+   "section": "edtech",
+   "input": {
+    "text": "Numbat Logic builds a maths tutoring platform for high-school students. The product is live with 15 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "edtech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-014-vi",
+   "lang": "vi",
+   "section": "cleantech",
+   "input": {
+    "text": "Brolga Logic xây dựng phần mềm quản lý pin cho điện mặt trời áp mái. Sản phẩm đã ra mắt với 3 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "cleantech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-015-en",
+   "lang": "en",
+   "section": "marketplace",
+   "input": {
+    "text": "Kestrel Labs builds a two-sided marketplace matching tradies with homeowners. The product is live with 14 pilot customers; funded by the founders and friends only."
+   },
+   "expected": {
+    "label": {
+     "sector": "marketplace",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-016-vi",
+   "lang": "vi",
+   "section": "deeptech",
+   "input": {
+    "text": "Numbat Cloud xây dựng chip mã hoá an toàn lượng tử. Sản phẩm đã ra mắt với 26 khách hàng thử nghiệm; vốn chỉ từ nhà sáng lập và bạn bè."
+   },
+   "expected": {
+    "label": {
+     "sector": "deeptech",
+     "stage": "pre_seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-017-en",
+   "lang": "en",
+   "section": "saas",
+   "input": {
+    "text": "Brolga Analytics builds B2B software for accounting firms. It just closed its first institutional seed round of A$1,400,000 from a venture fund."
+   },
+   "expected": {
+    "label": {
+     "sector": "saas",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-018-vi",
+   "lang": "vi",
+   "section": "fintech",
+   "input": {
+    "text": "Dingo Labs xây dựng ứng dụng thanh toán cho cửa hàng bán lẻ nhỏ. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,900,000 từ một quỹ đầu tư mạo hiểm."
+   },
+   "expected": {
+    "label": {
+     "sector": "fintech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-019-en",
+   "lang": "en",
+   "section": "healthtech",
+   "input": {
+    "text": "Dingo Cloud builds remote monitoring for aged-care residents. It just closed its first institutional seed round of A$600,000 from a venture fund."
+   },
+   "expected": {
+    "label": {
+     "sector": "healthtech",
+     "stage": "seed"
+    }
+   }
+  },
+  {
+   "id": "classify-heldout-020-vi",
+   "lang": "vi",
+   "section": "agritech",
+   "input": {
+    "text": "Echidna Learn xây dựng cảm biến độ ẩm đất cho trang trại ngũ cốc. Vừa hoàn tất vòng gọi vốn hạt giống đầu tiên trị giá A$1,100,000 từ một quỹ đầu tư mạo hiểm."
+   },
+   "expected": {
+    "label": {
+     "sector": "agritech",
+     "stage": "seed"
+    }
+   }
+  }
+ ]
+}

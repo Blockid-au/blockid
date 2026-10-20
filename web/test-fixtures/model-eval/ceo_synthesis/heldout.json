@@ -1,0 +1,1208 @@
+{
+ "task": "ceo_synthesis",
+ "split": "heldout",
+ "version": "2026-10-20.1",
+ "source": "synthetic — scripts/ai/build-model-eval-fixtures.mjs (fictional companies, seeded figures; chat context = public AU program facts)",
+ "cases": [
+  {
+   "id": "ceo_synthesis-heldout-001-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Paperbark Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 69,
+      "verdict": "MRR of A$32,000 [ev:e1] across 179 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 66,
+      "verdict": "Gross margin of 57% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 77,
+      "verdict": "Team of 22 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$32,000 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "179 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 57% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2023 in Perth; 22 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 2.5% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$350,000 from angel investors."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-002-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Ironbark Labs",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 45,
+      "verdict": "MRR A$9,400 [ev:e1] với 276 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 67,
+      "verdict": "Biên lợi nhuận gộp 46% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 54,
+      "verdict": "Đội ngũ 26 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$9,400 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 276 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 46% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2022 tại Newcastle; hiện có 26 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 5.9% trong quý 3/2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Đã huy động A$1,550,000 từ nhà đầu tư thiên thần."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-003-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Echidna Health",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 50,
+      "verdict": "MRR of A$76,000 [ev:e1] across 167 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 59,
+      "verdict": "Gross margin of 80% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 46,
+      "verdict": "Team of 17 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$76,000 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "167 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 80% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2021 in Newcastle; 17 full-time staff today."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-004-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Jarrah Health",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 65,
+      "verdict": "MRR A$43,200 [ev:e1] với 293 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 50,
+      "verdict": "Biên lợi nhuận gộp 84% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 82,
+      "verdict": "Đội ngũ 14 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$43,200 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 293 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 84% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2022 tại Perth; hiện có 14 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.1% trong quý 3/2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Đã huy động A$850,000 từ nhà đầu tư thiên thần."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-005-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Paperbark Pay",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 60,
+      "verdict": "MRR of A$36,200 [ev:e1] across 349 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 70,
+      "verdict": "Gross margin of 63% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 61,
+      "verdict": "Team of 2 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$36,200 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "349 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 63% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2021 in Newcastle; 2 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 4.6% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$1,000,000 from angel investors."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-006-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Banksia Works",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 63,
+      "verdict": "MRR A$59,600 [ev:e1] với 158 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 40,
+      "verdict": "Biên lợi nhuận gộp 51% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 80,
+      "verdict": "Đội ngũ 22 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$59,600 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 158 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 51% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2019 tại Sydney; hiện có 22 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 1.1% trong quý 3/2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-007-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Spinifex Learn",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 77,
+      "verdict": "MRR of A$73,500 [ev:e1] across 200 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 56,
+      "verdict": "Gross margin of 55% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 74,
+      "verdict": "Team of 34 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$73,500 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "200 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 55% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2023 in Canberra; 34 full-time staff today."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-008-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Quokka Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 59,
+      "verdict": "MRR A$10,600 [ev:e1] với 349 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 65,
+      "verdict": "Biên lợi nhuận gộp 70% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 69,
+      "verdict": "Đội ngũ 27 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$10,600 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 349 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 70% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2021 tại Canberra; hiện có 27 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 6.0% trong quý 3/2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-009-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Wattle Works",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 79,
+      "verdict": "MRR of A$32,100 [ev:e1] across 458 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 63,
+      "verdict": "Gross margin of 76% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 81,
+      "verdict": "Team of 31 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$32,100 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "458 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 76% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2023 in Melbourne; 31 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 1.5% in Q3 2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-010-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Spinifex Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 65,
+      "verdict": "MRR A$51,100 [ev:e1] với 80 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 39,
+      "verdict": "Biên lợi nhuận gộp 66% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 55,
+      "verdict": "Đội ngũ 24 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$51,100 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 80 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 66% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2023 tại Geelong; hiện có 24 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.7% trong quý 3/2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Đã huy động A$200,000 từ nhà đầu tư thiên thần."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-011-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Galah Health",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 49,
+      "verdict": "MRR of A$94,800 [ev:e1] across 433 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 57,
+      "verdict": "Gross margin of 74% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 72,
+      "verdict": "Team of 24 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$94,800 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "433 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 74% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2025 in Melbourne; 24 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 1.4% in Q3 2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-012-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Tidal Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 80,
+      "verdict": "MRR A$58,800 [ev:e1] với 395 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 43,
+      "verdict": "Biên lợi nhuận gộp 46% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 32,
+      "verdict": "Đội ngũ 8 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$58,800 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 395 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 46% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2023 tại Adelaide; hiện có 8 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 3.2% trong quý 3/2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-013-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Lyrebird Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 44,
+      "verdict": "MRR of A$65,300 [ev:e1] across 115 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 36,
+      "verdict": "Gross margin of 70% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 82,
+      "verdict": "Team of 23 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$65,300 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "115 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 70% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2022 in Adelaide; 23 full-time staff today."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-014-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Lyrebird Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 79,
+      "verdict": "MRR A$85,600 [ev:e1] với 147 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 56,
+      "verdict": "Biên lợi nhuận gộp 42% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 67,
+      "verdict": "Đội ngũ 24 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$85,600 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 147 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 42% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2024 tại Newcastle; hiện có 24 nhân viên toàn thời gian."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-015-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Paperbark Health",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 63,
+      "verdict": "MRR of A$11,300 [ev:e1] across 240 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 66,
+      "verdict": "Gross margin of 52% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 39,
+      "verdict": "Team of 11 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$11,300 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "240 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 52% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2025 in Sydney; 11 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 2.0% in Q3 2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-016-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Banksia Logic",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 49,
+      "verdict": "MRR A$94,300 [ev:e1] với 395 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 55,
+      "verdict": "Biên lợi nhuận gộp 66% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 59,
+      "verdict": "Đội ngũ 28 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$94,300 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 395 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 66% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2020 tại Geelong; hiện có 28 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 2.0% trong quý 3/2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-017-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Paperbark Works",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 59,
+      "verdict": "MRR of A$56,800 [ev:e1] across 462 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 75,
+      "verdict": "Gross margin of 76% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 53,
+      "verdict": "Team of 35 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$56,800 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "462 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 76% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2023 in Hobart; 35 full-time staff today."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-018-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Lyrebird Logic",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 51,
+      "verdict": "MRR A$36,400 [ev:e1] với 20 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 77,
+      "verdict": "Biên lợi nhuận gộp 52% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 32,
+      "verdict": "Đội ngũ 4 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$36,400 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 20 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 52% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2025 tại Melbourne; hiện có 4 nhân viên toàn thời gian."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Tỷ lệ khách hàng rời bỏ hàng tháng là 4.1% trong quý 3/2026."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-019-en",
+   "lang": "en",
+   "section": "executive",
+   "input": {
+    "company": "Coral Cloud",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 54,
+      "verdict": "MRR of A$59,700 [ev:e1] across 311 customers [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 75,
+      "verdict": "Gross margin of 55% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 51,
+      "verdict": "Team of 5 people [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Monthly recurring revenue was A$59,700 in September 2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "311 paying customers as of 30 September 2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Gross margin was 55% for FY2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Founded in 2021 in Sydney; 5 full-time staff today."
+     },
+     {
+      "id": "e5",
+      "label": "Billing analytics",
+      "text": "Monthly customer churn was 5.9% in Q3 2026."
+     },
+     {
+      "id": "e6",
+      "label": "Cap table",
+      "text": "Raised A$750,000 from angel investors."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  },
+  {
+   "id": "ceo_synthesis-heldout-020-vi",
+   "lang": "vi",
+   "section": "executive",
+   "input": {
+    "company": "Wattle Grid",
+    "chapters": [
+     {
+      "section": "traction",
+      "score": 67,
+      "verdict": "MRR A$15,300 [ev:e1] với 346 khách hàng [ev:e2]."
+     },
+     {
+      "section": "financials",
+      "score": 44,
+      "verdict": "Biên lợi nhuận gộp 44% [ev:e3]."
+     },
+     {
+      "section": "team",
+      "score": 56,
+      "verdict": "Đội ngũ 7 người [ev:e4]."
+     }
+    ],
+    "evidence": [
+     {
+      "id": "e1",
+      "label": "Stripe export",
+      "text": "Doanh thu định kỳ hàng tháng (MRR) đạt A$15,300 trong tháng 9/2026."
+     },
+     {
+      "id": "e2",
+      "label": "CRM export",
+      "text": "Có 346 khách hàng trả phí tính đến 30/9/2026."
+     },
+     {
+      "id": "e3",
+      "label": "Management accounts",
+      "text": "Biên lợi nhuận gộp 44% trong năm tài chính 2026."
+     },
+     {
+      "id": "e4",
+      "label": "Company profile",
+      "text": "Thành lập năm 2022 tại Darwin; hiện có 7 nhân viên toàn thời gian."
+     }
+    ]
+   },
+   "expected": {
+    "min_citations": 2,
+    "must_not_mention": [
+     "guaranteed return",
+     "unicorn status",
+     "lợi nhuận đảm bảo"
+    ]
+   }
+  }
+ ]
+}
