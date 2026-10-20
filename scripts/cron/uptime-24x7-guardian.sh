@@ -8,7 +8,13 @@
 #   - blockid-disk-guard.timer (80% on /,/data,/tmp)
 #
 # What this script adds (24/7 focus):
-#   1. Disk-pressure observation; dedicated80% cleanup timer.
+#   1. Disk-pressure observation + alerting on EVERY production mount
+#      (L0-4, 2026-10-20: /data hit 91% unseen because only / was sampled).
+#      scripts/cron/disk-pressure-alert.sh grades DISK_ALERT_MOUNTS
+#      (default "/ /data") warn >= 85% / critical >= 92%, flags a failing
+#      blockid-disk-guard.service, and sends one ops alert (Telegram ->
+#      e-mail fallback) per (mount, level, UTC day). Cleanup itself stays
+#      with the dedicated 80% disk-guard timer.
 #   2. Memory pressure detection + smart offender identification.
 #   3. Shared report history is preserved; retention belongs to its writer.
 #   4. Release retention remains with the deployment controller.
@@ -45,6 +51,15 @@ TS="$(date -u +%FT%TZ)"
 # 1. Sample health.
 # ────────────────────────────────────────────────────────────────────────
 DISK_PCT=$(df / | awk 'NR==2 {gsub("%",""); print $5}')
+# Every production mount (/ and /data by default) + disk-guard unit state.
+# Alerts are deduped inside the helper; it never deletes anything.
+DISK_JSON=$(timeout 90 bash "$REPO/scripts/cron/disk-pressure-alert.sh" 2>> "$LOG" | tail -1)
+case "$DISK_JSON" in
+  '{'*'}') ;;
+  *) DISK_JSON='{"disk_level":"error"}'
+     echo "$TS [DISK-ALERT-ERROR] disk-pressure-alert.sh produced no snapshot" >> "$LOG" ;;
+esac
+DISK_LEVEL=$(printf '%s' "$DISK_JSON" | sed -n 's/.*"disk_level":"\([a-z]*\)".*/\1/p')
 MEM_PCT=$(free | awk '/^Mem:/ {printf "%.0f", ($3/$2)*100}')
 SWAP_MB=$(free -m | awk '/^Swap:/ {print $3}')
 UPTIME_S=$(cut -d' ' -f1 /proc/uptime | cut -d. -f1)
@@ -87,6 +102,11 @@ DISK_ACTION="none"
 if [ "$DISK_PCT" -ge 80 ]; then
   DISK_ACTION="guard_managed_pressure"
 fi
+case "$DISK_LEVEL" in
+  warn|critical)
+    DISK_ACTION="alert_$DISK_LEVEL"
+    echo "$TS [DISK-${DISK_LEVEL^^}] $DISK_JSON" >> "$LOG" ;;
+esac
 
 # ────────────────────────────────────────────────────────────────────────
 # 4. Log rotation — belt-and-braces at 300KB even if the loop's own
@@ -141,7 +161,7 @@ fi
 # 8. Emit health snapshot as JSONL.
 # ────────────────────────────────────────────────────────────────────────
 cat >> "$HISTORY" <<EOF
-{"ts":"$TS","healthy":$HEALTHY,"http_local":"$HTTP_LOCAL","serving_state_valid":$STATE_VALID,"disk_pct":$DISK_PCT,"mem_pct":$MEM_PCT,"swap_mb":$SWAP_MB,"load_1min":$LOAD_1MIN,"nproc":$NPROC,"uptime_s":$UPTIME_S,"blockid_procs":$BLOCKID_PROCS,"fail_count":$FAIL_COUNT,"disk_action":"$DISK_ACTION","mem_action":"$MEM_ACTION","rollback_action":"$ROLLBACK_ACTION"}
+{"ts":"$TS","healthy":$HEALTHY,"http_local":"$HTTP_LOCAL","serving_state_valid":$STATE_VALID,"disk_pct":$DISK_PCT,"mem_pct":$MEM_PCT,"swap_mb":$SWAP_MB,"load_1min":$LOAD_1MIN,"nproc":$NPROC,"uptime_s":$UPTIME_S,"blockid_procs":$BLOCKID_PROCS,"fail_count":$FAIL_COUNT,"disk_action":"$DISK_ACTION","mem_action":"$MEM_ACTION","rollback_action":"$ROLLBACK_ACTION","disk":$DISK_JSON}
 EOF
 
 exit 0
