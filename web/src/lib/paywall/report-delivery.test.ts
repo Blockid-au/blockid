@@ -12,6 +12,7 @@ import { REPORT_ORDER_STATES } from "./report-order-state";
 import {
   ORDER_SELECT_COLUMNS,
   REPORT_POLL_RETRY_SECONDS,
+  REPORT_REVIEW_POLL_RETRY_SECONDS,
   REPORT_SELECT_COLUMNS,
   dispositionForStatus,
   exportFilename,
@@ -54,6 +55,15 @@ describe("dispositionForStatus", () => {
       expect(d.httpStatus).toBe(202);
       expect(d.retryInSeconds).toBe(REPORT_POLL_RETRY_SECONDS);
     }
+  });
+
+  it("maps IN_REVIEW (Pricing v5 Verified) to a slow-polling 202", () => {
+    const d = dispositionForStatus("IN_REVIEW");
+    expect(d.kind).toBe("pending");
+    expect(d.httpStatus).toBe(202);
+    expect(d.reason).toBe("in_review");
+    expect(d.retryInSeconds).toBe(REPORT_REVIEW_POLL_RETRY_SECONDS);
+    expect(d.message).toMatch(/two business days/);
   });
 
   it("maps unpaid states to 402 with no retry hint", () => {

@@ -37,10 +37,20 @@
  *                          assembled report and report_id landed)
  *                        → FAILED            (retry exhausted / permanent
  *                          orchestrator error)
+ *                        → IN_REVIEW         (Pricing v5 Verified tier: the
+ *                          Full report is written and waits for the admin
+ *                          review — migration 0474, plan §6.4.3)
+ *
+ *   IN_REVIEW            → READY             (admin "Mark reviewed",
+ *                          plan §6.6)
+ *                        → REFUNDED          (a Verified order still in
+ *                          review is refunded in full on request, §6.7)
  *
  *   READY                → SHARED            (owner minted a share link)
  *                        → EXPIRED           (paid_at + 90 days elapsed —
  *                          nightly cron flip, §8.4 policy)
+ *                        → REFUNDED          (Pricing v5: `charge.refunded`
+ *                          after delivery — plan §1.5 G5 / §6.4.5)
  *
  *   SHARED               → EXPIRED           (same 90-day policy)
  *
@@ -73,6 +83,7 @@ export const REPORT_ORDER_STATES = [
   "PAYMENT_PENDING",
   "PAID",
   "GENERATING",
+  "IN_REVIEW",
   "READY",
   "SHARED",
   "EXPIRED",
@@ -96,6 +107,8 @@ export const REPORT_ORDER_TRANSITIONS = [
   "queue_picked",
   "generation_succeeded",
   "generation_failed",
+  "review_queued",
+  "review_completed",
   "share_link_minted",
   "expiry_reached",
   "refund_issued",
@@ -139,10 +152,18 @@ const TRANSITIONS: TransitionMap = {
   GENERATING: {
     generation_succeeded: "READY",
     generation_failed: "FAILED",
+    // Pricing v5 Verified: the Full report exists, the human review has not happened yet.
+    review_queued: "IN_REVIEW",
+  },
+  IN_REVIEW: {
+    review_completed: "READY",
+    refund_issued: "REFUNDED",
   },
   READY: {
     share_link_minted: "SHARED",
     expiry_reached: "EXPIRED",
+    // Pricing v5 (plan §1.5 G5): a Stripe refund after delivery closes the order.
+    refund_issued: "REFUNDED",
   },
   SHARED: {
     expiry_reached: "EXPIRED",

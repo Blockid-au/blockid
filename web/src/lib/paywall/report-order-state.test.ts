@@ -25,9 +25,10 @@ import {
 } from "./report-order-state";
 
 describe("report-order-state — enum shape", () => {
-  it("exposes exactly the 10 states the migration allows", () => {
-    // If this fails, migrations/0270_report_orders.sql CHECK clause and the
-    // Zod enum have drifted apart. Fix both together.
+  it("exposes exactly the 11 states the migration allows", () => {
+    // If this fails, the report_orders_status_check CHECK clause
+    // (migrations/0270_report_orders.sql + pending-authority/0474 IN_REVIEW;
+    // NOT_PURCHASED is app-only) and the Zod enum have drifted apart. Fix both together.
     expect([...REPORT_ORDER_STATES].sort()).toEqual(
       [
         "NOT_PURCHASED",
@@ -35,6 +36,7 @@ describe("report-order-state — enum shape", () => {
         "PAYMENT_PENDING",
         "PAID",
         "GENERATING",
+        "IN_REVIEW",
         "READY",
         "SHARED",
         "EXPIRED",
@@ -66,6 +68,8 @@ describe("report-order-state — enum shape", () => {
         "queue_picked",
         "generation_succeeded",
         "generation_failed",
+        "review_queued",
+        "review_completed",
         "share_link_minted",
         "expiry_reached",
         "refund_issued",
@@ -103,9 +107,14 @@ describe("report-order-state — nextState (valid transitions)", () => {
     // GENERATING
     ["GENERATING", "generation_succeeded", "READY"],
     ["GENERATING", "generation_failed", "FAILED"],
+    ["GENERATING", "review_queued", "IN_REVIEW"],
+    // IN_REVIEW (Pricing v5 Verified, 0474)
+    ["IN_REVIEW", "review_completed", "READY"],
+    ["IN_REVIEW", "refund_issued", "REFUNDED"],
     // READY
     ["READY", "share_link_minted", "SHARED"],
     ["READY", "expiry_reached", "EXPIRED"],
+    ["READY", "refund_issued", "REFUNDED"],
     // SHARED
     ["SHARED", "expiry_reached", "EXPIRED"],
     // FAILED
@@ -140,6 +149,13 @@ describe("report-order-state — nextState (illegal transitions)", () => {
     ["PAID", "generation_failed"],
     // Bogus: PAID cannot re-emit payment_settled
     ["PAID", "payment_settled"],
+    // Verified: the review queue is entered only once the report is written
+    ["PAID", "review_queued"],
+    // A delivered order is never sent back to review / review skipped straight to SHARED
+    ["READY", "review_queued"],
+    ["READY", "review_completed"],
+    ["IN_REVIEW", "share_link_minted"],
+    ["IN_REVIEW", "queue_picked"],
   ];
 
   it.each(illegalCases)(
@@ -169,6 +185,7 @@ describe("report-order-state — terminal predicates", () => {
       "PAYMENT_PENDING",
       "PAID",
       "GENERATING",
+      "IN_REVIEW",
       "READY",
       "SHARED",
       "FAILED",
