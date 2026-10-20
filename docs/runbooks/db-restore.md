@@ -9,7 +9,8 @@ Shipped in release QA-3 P0-4 (2026-09-12). Pipeline:
 | Step | Script | Schedule (UTC) | Output |
 |---|---|---|---|
 | Dump | `scripts/db-backup.sh` | daily 02:20 | `/data/backups/db-<ts>.dump.gz` + `.sha256`; Sundays hard-linked to `/data/backups/weekly/` |
-| Off-site | `scripts/db-backup-offsite.mjs` | daily 02:40 | Google Drive `BlockID Evidence Vault/blockid-db-backups/` (30-day retention) |
+| Off-site | `scripts/db-backup-offsite.mjs` → `scripts/db-backup-offsite-gcs.mjs` | daily 02:40 | gpg-AES256-encrypted copy in `gs://blockid-au-backups-990415480608/postgres/` (australia-southeast1, 35-day lifecycle) — § 7 |
+| Off-site check | `scripts/db-backup-offsite-gcs.mjs --verify-only` (end of the restore drill) | Sun 03:45 | download → decrypt → sha256 → `pg_restore -l`; `{job:"offsite-verify"}` |
 | Drill (legacy) | `scripts/db-restore-test.sh` | Sun 03:00 | scratch DB `blockid_restore_test`, 3-table row-count sanity, dropped |
 | **Restore drill** | `scripts/db/restore-drill.sh` | Sun 03:30 | scratch DB `blockid_restore_drill`, 12-table parity ≥ 95 % vs live + audit-chain head, dropped — § 9 |
 | Signal | `/api/status` → `backups` | live | `ok` (dump < 26 h and drill < 8 d) / `stale` / `missing` |
@@ -17,7 +18,7 @@ Shipped in release QA-3 P0-4 (2026-09-12). Pipeline:
 Every run appends one JSON line to `web/content/reports/backup-health.jsonl`
 (`job: db-backup | offsite | restore_test | restore-drill`) and a `cron-health.jsonl` row, and
 posts to Telegram on failure (`scripts/lib/ops-alert.sh`, token from `web/.env`).
-Retention: 14 daily + 8 weekly on `/data` (295 GB volume), 30 days in Drive.
+Retention: 14 daily + 8 weekly on `/data` (295 GB volume), 35 days in GCS (bucket lifecycle).
 
 Measured on 2026-09-12: DB 85 MB on disk → dump **16.9 MB** in **4.4 s**;
 full restore of that dump into a fresh DB in the same cluster **12 s**.
@@ -55,9 +56,8 @@ F=/data/backups/db-20260912T112631Z.dump.gz          # newest good one
 gunzip -c "$F" | docker exec -i supabase-db pg_restore -l | head   # TOC readable
 ```
 
-No local copy? Pull from Drive (`blockid-db-backups/`, file name is the same) and
-verify the sidecar the same way. The `backup-health.jsonl` row for the dump
-carries `sha256` and `drive_file_id`.
+No local copy? Pull the encrypted copy from GCS and decrypt it (§ 7.2). The
+`backup-health.jsonl` `offsite` row carries the dump `sha256` and `gcs_object`.
 
 ## 2. Roles, RLS and what a dump does / does not contain
 
@@ -191,33 +191,72 @@ a `restore` note to `backup-health.jsonl` if you restored manually:
 echo "{\"ts\":\"$(date -u +%FT%TZ)\",\"job\":\"restore_prod\",\"status\":\"ok\",\"file\":\"$F\",\"by\":\"<name>\"}" >> /home/dovanlong/blockid.au/web/content/reports/backup-health.jsonl
 ```
 
-## 7. Off-site (Google Drive) — current state and founder action
+## 7. Off-site (GCS, encrypted) — D30, live from 2026-10-20
 
-`scripts/db-backup-offsite.mjs` uploads the newest dump + sidecar into
-`BlockID Evidence Vault/blockid-db-backups/` (folder id
+The Drive upload failed 41/41 nights (Google gives service accounts no Drive
+quota). The founder approved D30 on 2026-10-20: the off-site copy now goes to a
+GCS bucket in the VM's own GCP project, encrypted on the VM before upload
+(dumps contain personal data).
+
+| Item | Value |
+|---|---|
+| Bucket | `gs://blockid-au-backups-990415480608` (project `longcare-495115`) |
+| Region | `australia-southeast1` (VM runs in `us-central1-b` → geographically off-site, AU data residency) |
+| Access | uniform bucket-level access, public access prevention **enforced**, project-role IAM only; writer = VM compute SA `990415480608-compute@developer.gserviceaccount.com` (scope `cloud-platform`) |
+| Retention | lifecycle **delete age > 35 d**; versioning off; GCS default soft-delete 7 d; no retention lock |
+| Object | `postgres/db-<ts>.dump.gz.gpg`, metadata `sha256` (ciphertext), `plain-sha256` (= dump sidecar), `source`, `enc=gpg-aes256` |
+| Key | passphrase file `~/.config/blockid-backup/offsite.key` (0600, generated once). **Must also live in the founder's password manager** — lose the VM without it and the off-site copies are unreadable. |
+| Cost | ≈ 1.2 GB stored → < US$0.10/month incl. the weekly verify download |
+
+`scripts/db-backup-offsite.mjs` (cron entry point, unchanged) dispatches to
+`scripts/db-backup-offsite-gcs.mjs` unless `OFFSITE_TARGET=drive` (the Drive
+code below is kept but disabled). Each night it: verifies the dump sidecar →
+`gpg --symmetric --cipher-algo AES256` (throw-away GNUPGHOME, staging on disk in
+`~/.cache/blockid-backup/`) → `gcloud storage cp --no-clobber` with the metadata
+→ `objects describe` must match size + md5 + sha256 → `{job:"offsite",
+target:"gcs", offsite_status:"ok"}`. An object already carrying the same
+`plain-sha256` is not re-uploaded. `--dry` changes nothing; `--verify-remote`
+also runs the full remote check below right after the upload.
+
+Failure rows use `error_class` `gcs_permission` / `gcs_bucket_missing`
+(founder-only → `offsite_status: "founder_action_required"` + `founder_command`),
+`network`, `encrypt`, `verify`, `key`, `local_backup`, `other`; alerts go through
+`scripts/lib/ops-alert.sh` (Telegram, e-mail fallback) at most once per ~20 h per
+class (same debounce as § 7.1).
+
+### 7.2 Restore from the off-site copy
+
+```bash
+O=$(gcloud storage ls 'gs://blockid-au-backups-990415480608/postgres/**' | sort | tail -1)
+mkdir -m 700 -p ~/restore && gcloud storage cp "$O" ~/restore/
+G=$(mktemp -d)   # throw-away GNUPGHOME
+gpg --homedir "$G" --batch --pinentry-mode loopback --no-symkey-cache \
+    --passphrase-file ~/.config/blockid-backup/offsite.key \
+    --decrypt --output ~/restore/db.dump.gz ~/restore/"$(basename "$O")"
+gcloud storage objects describe "$O" --format='value(custom_fields.plain-sha256)'   # must equal ↓
+sha256sum ~/restore/db.dump.gz
+gunzip -c ~/restore/db.dump.gz | docker exec -i supabase-db pg_restore -l | head  # then § 3
+```
+
+On a fresh VM: install the Cloud SDK, authenticate as an account with
+`storage.objects.get` on the bucket, and write the passphrase from the password
+manager to `~/.config/blockid-backup/offsite.key` (`chmod 600`, no trailing newline needed).
+
+### 7.3 Google Drive (disabled, kept for reference)
+
+`OFFSITE_TARGET=drive` re-enables the old path: it uploads the newest dump +
+sidecar into `BlockID Evidence Vault/blockid-db-backups/` (folder id
 `1WoH7a2xytmdLf8QnKDS13Aj6PwJTMdIw`), prunes copies older than 30 days and
-re-lists to compare Drive's `md5Checksum` with the local file.
-
-**Blocked on 2026-09-12:** the Drive service account
-(`blockid-drive@…iam.gserviceaccount.com`) owns whatever it uploads and Google
-gives service accounts **zero storage quota** — the upload is rejected with
-`Service Accounts do not have storage quota`. Folders still work (that is how
-the sub-folder got created). The same limit means the data-room
-`uploadToGoogleDrive()` in `web/src/lib/google-drive.ts` cannot upload files
-either. Pick ONE (founder, admin@blockid.au):
+re-lists to compare Drive's `md5Checksum`. It is blocked by the service-account
+quota limit unless one of these is done:
 
 | Option | Effort | Then |
 |---|---|---|
-| **A. Founder OAuth token (recommended)** — `node --env-file=web/.env scripts/db-backup-offsite-auth.mjs`, sign in as admin@blockid.au, paste the redirected URL, add the printed `GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN=` to `web/.env` | 3 min, no Workspace admin | files are owned by admin@blockid.au and use that account's quota |
-| B. Shared Drive — create one in Workspace, add the service account as *Content manager*, set `GOOGLE_DRIVE_SHARED_DRIVE_ID=<driveId>` (or move the vault folder there) | Workspace Business Standard+ | no quota issue for the SA |
-| C. Domain-wide delegation — Admin console → Security → API controls → add the SA client id with scope `https://www.googleapis.com/auth/drive`, set `GOOGLE_DRIVE_IMPERSONATE=admin@blockid.au` | Workspace super-admin | SA acts as the founder |
+| A. Founder OAuth token — `node --env-file=web/.env scripts/db-backup-offsite-auth.mjs`, sign in as admin@blockid.au, add the printed `GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN=` to `web/.env` | 3 min | files owned by admin@blockid.au |
+| B. Shared Drive — add the SA as *Content manager*, set `GOOGLE_DRIVE_SHARED_DRIVE_ID=<driveId>` | Workspace Business Standard+ | no quota issue |
+| C. Domain-wide delegation — scope `https://www.googleapis.com/auth/drive`, `GOOGLE_DRIVE_IMPERSONATE=admin@blockid.au` | Workspace super-admin | SA acts as the founder |
 
-Until one is done the 02:40 cron fails every day and records it — that is
-intentional; do not silence it. Verify afterwards with
-`node --env-file=web/.env scripts/db-backup-offsite.mjs` (prints the Drive
-listing with file ids) and check `/api/status`.
-
-### 7.1 What a failure does and does not do (G15-R3.2, 2026-09-18)
+### 7.1 What a failure does and does not do (G15-R3.2, 2026-09-18; Drive path)
 
 `scripts/db-backup-offsite.mjs` only **reads** `/data/backups`. A Drive
 failure therefore never touches the local 14-daily + 8-weekly retention

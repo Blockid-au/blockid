@@ -42,6 +42,14 @@ import path from "node:path";
 import os from "node:os";
 import { classifyOffsiteError, decideOffsiteAlert, offsiteFailureFields } from "./db-backup-offsite-alert.mjs";
 
+// D30 (2026-10-20): the off-site target is now an encrypted copy in GCS
+// (scripts/db-backup-offsite-gcs.mjs). The Drive path below is kept but only
+// runs with OFFSITE_TARGET=drive — it failed 41/41 nights on SA Drive quota.
+if ((process.env.OFFSITE_TARGET || "gcs").toLowerCase() !== "drive") {
+  const { main } = await import("./db-backup-offsite-gcs.mjs");
+  process.exit(await main(process.argv.slice(2)));
+}
+
 const REPO_ROOT = "/home/dovanlong/blockid.au";
 const require = createRequire(path.join(REPO_ROOT, "web", "package.json"));
 const { google } = require("googleapis");
