@@ -52,11 +52,12 @@ export const LEGACY_PRICE_ALLOWLIST: Readonly<Record<string, LegacyPriceEntry>> 
   "src/app/docs/page.tsx": { kind: "history", note: "the dated G16 / G11 changelog entries; the live pricing section reads the PaygView" },
 
   // ── legacy catalogue (resolution, receipts) ──────────────────────────────
-  "src/config/pricing/stripe-price-catalogue.json": { kind: "legacy-catalogue", note: "names of the A$3 / A$1 Stripe Prices kept for audit + late webhooks" },
+  "src/config/pricing/stripe-price-catalogue.json": { kind: "legacy-catalogue", note: "names of the retired one-off Stripe Prices kept for audit + late webhooks" },
   "src/lib/ab-pricing.ts": { kind: "legacy-catalogue", note: "retired A/B arms (active:false) kept so historic assignments resolve" },
 
   // ── internal (not customer copy) ─────────────────────────────────────────
   "src/lib/privacy/erasure-map.ts": { kind: "internal", note: "erasure note describing the legacy guest_analyses rows" },
+  "src/lib/reseller/gst-reconciliation-delta.ts": { kind: "internal", note: "ops e-mail: the A$1 GST reconciliation tolerance (not a price)" },
 
   // ── assets ───────────────────────────────────────────────────────────────
   "src/remotion/compositions/PitchVideo1MinV2.tsx": { kind: "asset", note: "pitch video — re-render with v5 prices before reuse" },
