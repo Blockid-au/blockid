@@ -1,6 +1,18 @@
 # BlockID.au — Production Cron Schedule (Single Source of Truth)
 # ══════════════════════════════════════════════════════════════
-# All times in UTC. Server in UTC, users in AEST (UTC+10).
+# All times in UTC. Server in UTC, users in Sydney: AEST (UTC+10) Apr–Oct,
+# AEDT (UTC+11) from the first Sunday of October to the first Sunday of April.
+# cron does not follow DST: "22:30 UTC" is 08:30 AEST in winter, 09:30 AEDT in
+# summer. Comments below name the AEST time unless they say otherwise.
+#
+# L1-7 (2026-10-20): this file is EXACTLY what runs (`crontab -l` must match it
+# ignoring comments/whitespace). Check drift with
+#   python3 /home/dovanlong/blockid.au/web/scripts/crontab-drift.py
+# (deploy-auto.sh prints a warning on drift). Jobs that only log "deferred (G30
+# ownership active)" are commented out with a `# G30-DEFERRED` reason instead of
+# running as no-ops.
+# L1-8 (2026-10-20): heavy jobs never share a minute — keep them >= 10 min apart
+# and off the :00/:30 ticks the */2, */5, */10, */30 jobs already use.
 #
 # IMPORTANT: Edit THIS file, then apply with:
 #   crontab /home/dovanlong/blockid.au/web/scripts/crontab.production
@@ -43,15 +55,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 0 */3 * * * bash $RUN ai-health
 
 # Auto-Guardian — monitor thresholds, auto-fix at 80%, alert on critical
-*/10 * * * * bash $RUN agent-guardian --timeout 90
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): */10 * * * * bash $RUN agent-guardian --timeout 90
 
 # Auto-deploy — ONLY at off-peak AEST so users aren't impacted (was every 30m).
 # Push local commits + pull GitHub + deploy new commits.
-0 18 * * * /home/dovanlong/blockid.au/web/scripts/git-sync-deploy.sh
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 18 * * * /home/dovanlong/blockid.au/web/scripts/git-sync-deploy.sh
 
 # Autonomous self-upgrade — Claude Code SUBSCRIPTION (not API). Implements one
 # low-risk improvement, gated deploy + revert-on-failure. 04:30 AEST (off-peak).
-30 18 * * * bash /home/dovanlong/blockid.au/web/scripts/self-upgrade-agent.sh >> /tmp/blockid-self-upgrade.log 2>&1
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — self-upgrade-agent.sh g30_writer_guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 30 18 * * * bash /home/dovanlong/blockid.au/web/scripts/self-upgrade-agent.sh >> /tmp/blockid-self-upgrade.log 2>&1
 
 # ═══════════════════════════════════════════════════════════════
 # DAILY PIPELINE — 2am-10:30am AEST (4pm-12:30am+1 UTC)
@@ -81,7 +93,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 0 20 * * * bash $RUN agent-research --timeout 300
 
 # ── Phase 4: Auto-Improve + CI/CD (7:00am AEST / 21:00 UTC) ──
-0 21 * * * bash $RUN agent-auto-improve --timeout 300
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 21 * * * bash $RUN agent-auto-improve --timeout 300
 # S26-A — data-room investor follow-ups: one email per link, 2 business days after
 # a view with no return, only where the founder switched auto follow-up on and
 # any NDA is accepted. 21:00 UTC = 07:00 AEST so it lands at the start of the
@@ -108,24 +120,29 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # quota-match error text), Telegram alert on new degradations.
 # Both blockid.au (in-process) and startupvalueindex.com (via /api/ai/registry)
 # consume the registry.
-*/30 * * * * bash $RUN ai-health-check
+# L1-8 (20/10/2026): :07/:37, off the :00/:30 tick shared with ai-token-guardian,
+# funding-report-retry and the daily 22:30 report.
+7,37 * * * * bash $RUN ai-health-check
 
 # Weekly Sunday 04:00 UTC: crawl OpenRouter/Groq/SambaNova/Cerebras catalogues,
 # rank by (context length, known-good family, prior-check latency), write top-10
 # candidates to content/ai-model-candidates.json, auto-inject top-3 into the
 # active chain. Falls back to prior candidates on OpenRouter 500.
-0 4 * * 0 bash $RUN ai-model-discovery
-30 21 * * * bash $RUN publish-insight --timeout 120
+# L1-8 (20/10/2026): Sun 04:25 UTC, was 04:00 beside discover-models + refresh-funding-sources.
+25 4 * * 0 bash $RUN ai-model-discovery
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 30 21 * * * bash $RUN publish-insight --timeout 120
 
 # ── Phase 5: QA + Security + Performance (8:00am AEST) ────────
-0 22 * * * bash $RUN agent-healthcheck --timeout 180
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 22 * * * bash $RUN agent-healthcheck --timeout 180
 
 # ── Phase 6: Reporting (8:30-10:00am AEST) ────────────────────
 # Daily admin report — platform KPIs + email
 30 22 * * * bash $RUN daily-admin-report --timeout 180
 
 # Daily traffic + funnel report (GA4 traffic + internal funnel) → email + Telegram
-30 22 * * * bash $RUN traffic-report --timeout 120
+# L1-8 (20/10/2026): 22:43 UTC (08:43 AEST / 09:43 AEDT) — was 22:30 with
+# daily-admin-report + security-posture: 24 nightly watchdog strikes.
+43 22 * * * bash $RUN traffic-report --timeout 120
 
 # Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
@@ -154,7 +171,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # (30-day Drive retention, md5 re-verified). 02:40 UTC. Needs founder-owned
 # GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN (scripts/db-backup-offsite-auth.mjs) — the
 # bare service account has no Drive quota.
-40 2 * * * cd /home/dovanlong/blockid.au && node --env-file=web/.env scripts/db-backup-offsite.mjs >> /tmp/blockid-db-offsite.log 2>&1
+# D30 (20/10/2026, live first, recorded here): own flock + nice/ionice; the
+# script now also ships the encrypted copy to GCS australia-southeast1.
+40 2 * * * cd /home/dovanlong/blockid.au && flock -n /tmp/blockid-db-offsite.lock nice -n 19 ionice -c3 node --env-file=web/.env scripts/db-backup-offsite.mjs >> /tmp/blockid-db-offsite.log 2>&1
 
 # Weekly restore drill — newest dump → scratch DB blockid_restore_test, row-count
 # sanity vs prod, drop. Sun 03:00 UTC = 13:00 AEST. /api/status `backups` goes
@@ -239,7 +258,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Deterministic deep-scan: auth coverage, rate-limit, secrets, CSP headers,
 # npm audit, Supabase RLS, deploy hygiene. Writes content/reports/
 # security-posture.json + history.jsonl. Surfaces into CISO daily brief.
-30 22 * * * bash $RUN security-posture --timeout 60
+# L1-8 (20/10/2026): 22:13 UTC (08:13 AEST / 09:13 AEDT), was 22:30 beside
+# daily-admin-report + traffic-report; still well before clevel-daily-reports 23:45.
+13 22 * * * bash $RUN security-posture --timeout 60
 
 # C-Level Daily Brief fan-out — guarantees every one of the 14 C-Level agents
 # (cpo, cro, ccso, cdo, cmo, cso, cto, cfo, coo, clo, ciso, chro, rnd, ir) has a
@@ -270,10 +291,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ═══════════════════════════════════════════════════════════════
 
 # Off-peak only: 10pm, 12am, 2am, 4am AEST (12,14,16,18 UTC) — full daily pipeline
-0 12 * * * bash $RUN agent-orchestrator --timeout 300
-0 14 * * * bash $RUN agent-orchestrator --timeout 300
-0 16 * * * bash $RUN agent-orchestrator --timeout 300
-0 18 * * * bash $RUN agent-orchestrator --timeout 300
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 12 * * * bash $RUN agent-orchestrator --timeout 300
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 14 * * * bash $RUN agent-orchestrator --timeout 300
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 16 * * * bash $RUN agent-orchestrator --timeout 300
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 18 * * * bash $RUN agent-orchestrator --timeout 300
 
 # ═══════════════════════════════════════════════════════════════
 # AFTERNOON: Second Pass (2:00-4:00pm AEST / 4-6am UTC)
@@ -281,10 +302,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ═══════════════════════════════════════════════════════════════
 
 # Second agent-healthcheck — catch issues from morning deploys
-0 8 * * * bash $RUN agent-healthcheck --timeout 180
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 0 8 * * * bash $RUN agent-healthcheck --timeout 180
 
 # Second auto-improve pass — apply any remaining research
-30 8 * * * bash $RUN agent-auto-improve --timeout 300
+# G30-DEFERRED 20/10/2026 (L1-7: no-op since 22/09 — cron-runner/g30 guard defers while docs/plans/g30-execution-control.json status=active; uncomment when it is "released"): 30 8 * * * bash $RUN agent-auto-improve --timeout 300
 
 # ═══════════════════════════════════════════════════════════════
 # WEEKLY — Sunday only
@@ -294,7 +315,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 30 20 * * 0 bash $RUN weekly-insights --timeout 120
 
 # 3:00am AEST Sunday (17:00 UTC Sat) — Disk cleanup (nested releases, npm cache, /tmp, Docker)
-0 17 * * 0 bash /home/dovanlong/blockid.au/web/scripts/clean-disk.sh --apply >> /tmp/blockid-clean-disk.log 2>&1
+# Replaced by blockid-disk-guard.timer: bounded 80% cleanup, no process sweep (live since G30; recorded here 20/10/2026, L1-7).
+# Was: 0 17 * * 0 bash /home/dovanlong/blockid.au/web/scripts/clean-disk.sh --apply >> /tmp/blockid-clean-disk.log 2>&1
 
 # 2:00pm AEST Sunday (04:00 UTC) — AU funding catalogue refresh (T0243, G11 §4d).
 # Re-fetches every au_grants source page with a browser UA, stamps
@@ -303,7 +325,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # and queues everything else (mismatches, 403/429 blocks, possible new grants)
 # to content/reports/grants-review-queue.jsonl for /admin/funding. Never
 # auto-closes or deletes a row. `?dry=1` on the route previews without writes.
-0 4 * * 0 bash $RUN refresh-funding-sources --timeout 300
+# L1-8 (20/10/2026): Sun 04:15 UTC (2:15pm AEST), was 04:00 beside discover-models + ai-model-discovery.
+15 4 * * 0 bash $RUN refresh-funding-sources --timeout 300
 
 # 3:00pm AEST Sunday (05:00 UTC) — Money Radar sweep (T0245, G11 §4h/§4i D-1).
 # One hour after the catalogue refresh: re-matches every money_radar
@@ -376,7 +399,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # (stale > 26 h), /api/platform-stats (when fresh), /admin/traction and
 # `npm run investor:update`. A missing table is a warnings[] line, never a
 # failure. `?dry=1` builds without writing.
-20 3 * * * bash $RUN traction-snapshot --timeout 120
+# L1-8 (20/10/2026): 03:33 UTC, was 03:20 beside account-erasure (+ Mon stripe-price-audit).
+33 3 * * * bash $RUN traction-snapshot --timeout 120
 
 # S20-A (2026-09-12) — nightly integrity check of the hash-chained
 # audit_events log (every mutating /api/** route writes one row via the
@@ -384,7 +408,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # (migration 0335) and writes content/reports/audit-chain-verify.json, which
 # /api/status surfaces as `audit_chain: ok|broken|unknown` (unknown when
 # stale > 48h). `?dry=1` verifies without writing the state file.
-40 3 * * * bash $RUN audit-chain-verify --timeout 300
+# L1-8 (20/10/2026): 02:57 UTC (12:57 AEST), was 03:40 beside link-check and the
+# Sunday backtest, two minutes before the Sunday 03:45 restore drill.
+57 2 * * * bash $RUN audit-chain-verify --timeout 300
 
 # S20-B (2026-09-12) — every 5 min: outbound webhook dispatcher. Sends the
 # queued webhook_deliveries rows (migration 0336) that the SVI rescore /
@@ -486,6 +512,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ═══════════════════════════════════════════════════════════════
 # SCHEDULE SUMMARY (34+ routines)
 # ═══════════════════════════════════════════════════════════════
+# (historical table — rows marked G30-DEFERRED above are NOT scheduled since
+#  20/10/2026, L1-7; the active lines in this file are the only truth)
 #
 # Time (AEST)     | Job                | AI  | Phase        | Monitored
 # ────────────────┼────────────────────┼─────┼──────────────┼──────────
@@ -598,14 +626,16 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Nightly C-level review scaffold (Goal 5A T-1100) — 04:30 UTC / 14:30 AEST
 30 4 * * * bash $RUN nightly-clevel-review --timeout 300
 
-# Weekly metrics snapshot (Mon 09:00 UTC / 19:00 AEST) — MRR/ARR/churn
-0 9 * * 1 bash $RUN weekly-metrics --timeout 120
+# Weekly metrics snapshot (Mon 09:30 UTC / 19:30 AEST) — MRR/ARR/churn
+# L1-8 (20/10/2026): was 09:00 beside weekly-revenue-report.
+30 9 * * 1 bash $RUN weekly-metrics --timeout 120
 
 # Server cleanup (docker/npm/logs/reports) — every 4h. G15-R3.5: --procs also
 # sweeps stray agent node/python3 processes (> 12 h, cwd/argv under
 # /tmp/claude-*/ or .claude/worktrees/*; never next-server / deploy-live.sh /
 # /data/releases / playwright < 2 h) on every tick, even when the disk is healthy.
-0 */4 * * * bash /home/dovanlong/blockid.au/web/scripts/server-cleanup.sh --disk-only --procs >> /tmp/blockid-cleanup.log 2>&1
+# Replaced by blockid-disk-guard.timer: bounded 80% cleanup, no process sweep (live since G30; recorded here 20/10/2026, L1-7).
+# Was: 0 */4 * * * bash /home/dovanlong/blockid.au/web/scripts/server-cleanup.sh --disk-only --procs >> /tmp/blockid-cleanup.log 2>&1
 
 # Performance audit — REMOVED 2026-09-10.
 # /api/cron/performance-audit has never existed: no route directory, and no
@@ -618,8 +648,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Audit-chain verification (append-only hash chain integrity) — nightly 01:00
 0 1 * * * node /home/dovanlong/blockid.au/web/scripts/verify-audit-chain.ts >> /tmp/blockid-audit-verify.log 2>&1
 
-# Monthly credit reset (H.11) — 1st of each month at 02:15 UTC (12:15 AEST)
-15 2 1 * * bash $RUN credit-reset --timeout 300
+# Monthly credit reset (H.11) — 1st of each month at 02:05 UTC (12:05 AEST)
+# L1-8 (20/10/2026): was 02:15 beside the nightly bq-export.
+5 2 1 * * bash $RUN credit-reset --timeout 300
 
 # Reseller commissions clearance — nightly 03:15 UTC (13:15 AEST)
 15 3 * * * bash $RUN reseller-clear-commissions --timeout 180
@@ -673,8 +704,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Reads prompt_versions rows status IN ('shadow','canary'), attempts to
 # load golden fixtures from web/test-fixtures/prompt-eval/. Returns
 # { evaluated: 0, promoted: 0 } until the eval loop ships (follow-up PR).
-# 02:00 Sydney = 16:00 UTC.
-0 16 * * * bash $RUN prompt-eval-nightly --timeout 300
+# 02:25 Sydney (AEST) = 16:25 UTC. L1-8 (20/10/2026): was 16:00 beside svi-snapshot.
+25 16 * * * bash $RUN prompt-eval-nightly --timeout 300
 
 # 24/7 Uptime Guardian — multi-signal health check every 2 min:
 #   - disk pressure response (60/75/85% escalation, trims old releases)
@@ -863,7 +894,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Exits 1 when broken > 0 (the deploy gate-8 hook relies on it); like error-digest
 # it runs as plain node, not through cron-runner, so the exit never feeds cron-health.
 # Docs: docs/ops/link-check.md.
-40 3 * * * cd /home/dovanlong/blockid.au/web && node scripts/link-check.mjs --base https://blockid.au --include-sitemap --max 1500 >> /data/logs/blockid-link-check.log 2>&1
+# L1-8 (20/10/2026): 05:40 UTC (15:40 AEST), was 03:40 beside audit-chain-verify,
+# the Sunday backtest and the 03:45 restore drill.
+40 5 * * * cd /home/dovanlong/blockid.au/web && node scripts/link-check.mjs --base https://blockid.au --include-sitemap --max 1500 >> /data/logs/blockid-link-check.log 2>&1
 
 # G18-A (2026-09-19) — weekly Stripe price audit (plain node, read-only
 # prices.retrieve, no ids or keys in output). Resolves every STRIPE_PRICE_* in
@@ -875,7 +908,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 20 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/stripe-price-audit.mjs >> /data/logs/blockid-stripe-price-audit.log 2>&1
 
 # G20-F2 (2026-09-20) — weekly public page sweep (docs/ops/page-sweep.md)
-30 4 * * 0 cd /home/dovanlong/blockid.au/web && node scripts/page-sweep.mjs --base https://blockid.au --persona public >> /data/logs/blockid-page-sweep.log 2>&1
+# L1-8 (20/10/2026): Sun 06:20 UTC, was 04:30 beside nightly-clevel-review + reseller-manifest-drift.
+20 6 * * 0 cd /home/dovanlong/blockid.au/web && node scripts/page-sweep.mjs --base https://blockid.au --persona public >> /data/logs/blockid-page-sweep.log 2>&1
 
 # G21 P3-B (2026-09-21) — NOT INSTALLED until migration 0428 is applied (the
 # jobs 503 "apply migration 0428" until then; cron-health would record it).
@@ -890,3 +924,17 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Add ?dry=1 by hand to inspect either.
 25 3 * * * bash $RUN benchmark-segments --timeout 120
 40 4 * * 0 bash $RUN org-retention --timeout 300
+
+# L1-1/L1-7 (2026-10-20) — weekly release retention DRY-RUN report. Never takes
+# the deploy lock and never deletes (no --apply); prints the keep set with
+# reasons and what an --apply would remove. Apply happens after a successful
+# deploy (deploy-auto.sh RELEASE_PRUNE_AFTER_DEPLOY, default on). Sun 03:20 UTC.
+# Log rotated by the 07:50 Sunday content/reports/logs prune (8 weeks).
+20 3 * * 0 cd /home/dovanlong/blockid.au/web && mkdir -p content/reports/logs && nice -n 19 ionice -c3 python3 ../scripts/cron/g30-release-retention.py --web /home/dovanlong/blockid.au/web --keep 6 >> content/reports/logs/release-retention-$(date +\%G-W\%V).log 2>&1
+
+# L1-9 (2026-10-20) — weekly merged-worktree cleanup + `git worktree prune`.
+# Removes ONLY worktrees whose branch has >= 1 commit of its own, is merged
+# into origin/master, is clean (no untracked files), unlocked (running Claude
+# agents lock theirs), idle >= 48 h and with no process inside it; never
+# --force, never deletes branches. Sun 06:40 UTC (16:40 AEST), before live QA.
+40 6 * * 0 cd /home/dovanlong/blockid.au && mkdir -p web/content/reports/logs && nice -n 19 ionice -c3 bash scripts/cleanup-merged-worktrees.sh --apply >> web/content/reports/logs/worktree-cleanup-$(date +\%G-W\%V).log 2>&1

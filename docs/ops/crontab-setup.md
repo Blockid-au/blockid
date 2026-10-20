@@ -1,5 +1,19 @@
 # Crontab setup — catalogue of host crons
 
+> **2026-10-20 (L1-7 / L1-8 / L1-9):** `crontab -l` must equal `web/scripts/crontab.production`
+> ignoring comments — check with `python3 web/scripts/crontab-drift.py` (deploy-auto prints a
+> warning on drift); install with `crontab -n web/scripts/crontab.production && crontab web/scripts/crontab.production`.
+> The 12 G30 no-op rows (agent-guardian, agent-orchestrator ×4, agent-healthcheck ×2,
+> agent-auto-improve ×2, publish-insight, git-sync-deploy, self-upgrade-agent) are commented
+> `# G30-DEFERRED`; clean-disk / server-cleanup are replaced by `blockid-disk-guard.timer`.
+> Heavy jobs were spread so none share a minute: security-posture 22:13, daily-admin-report 22:30,
+> traffic-report 22:43, audit-chain-verify 02:57, traction-snapshot 03:33, link check **05:40**,
+> page sweep Sun 06:20, refresh-funding-sources Sun 04:15, ai-model-discovery Sun 04:25,
+> prompt-eval-nightly 16:25, weekly-metrics Mon 09:30, credit-reset 02:05 on the 1st,
+> ai-health-check :07/:37 (all UTC). New: release-retention dry-run Sun 03:20 and merged-worktree
+> cleanup Sun 06:40 (`scripts/cleanup-merged-worktrees.sh --apply`), logs under
+> `web/content/reports/logs/` (8-week prune). Times quoted below predate this pass.
+
 > Last verified: 2026-09-19 (G18-B). **Single source of truth for the schedule is
 > `web/scripts/crontab.production`** — edit it, then `crontab /home/dovanlong/blockid.au/web/scripts/crontab.production`.
 > The deploy pipeline never touches the host crontab. Every `/api/cron/*` job runs through
