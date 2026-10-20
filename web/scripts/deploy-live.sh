@@ -646,7 +646,12 @@ if [ "$G30_RECEIPT_STAGE" = "1" ]; then
   python3 "$WEB_DIR/scripts/g30-receipt-candidate.py" preflight --source-web "$WEB_DIR" \
     --control-web "$G30_CONTROL_WEB" "${G30_STAGE_BASELINE_PORTS[@]}" --lock-fd 200 >/dev/null || fail "Exact receipt staging preflight refused"
 else
-g30_state --init --listen-port 4001 --pid "$(cat "$PID_FILE")" \
+# The legacy PID file is only needed to bootstrap a missing state; once the
+# G30 state exists --init ignores --pid, and /tmp may have been cleaned.
+INIT_PID_ARGS=()
+LEGACY_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+[[ "$LEGACY_PID" =~ ^[0-9]+$ ]] && INIT_PID_ARGS=(--pid "$LEGACY_PID")
+g30_state --init --listen-port 4001 "${INIT_PID_ARGS[@]}" \
   --release "$(readlink -f "$CURRENT_LINK")" --lock-fd 200 >/dev/null || fail "Cannot establish/verify known-good serving state"
 fi
 PROD_PORT=$(g30_state --port) || fail "Serving origin is not stable"
