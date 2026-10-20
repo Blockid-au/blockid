@@ -12,12 +12,18 @@
 #   3. issue the pinned 2 h resource permit bound to HEAD and the current
 #      retained set (g30-resource-admission.json, owner-only 0600);
 #   4. run scripts/deploy-live.sh --quick (DEPLOY_ALLOW_DIRTY passes through);
-#   5. after the 60 s operational soak, mark-good --review-deferred.
+#   5. after the 60 s operational soak, mark-good --review-deferred;
+#   6. OPTIONAL (RELEASE_PRUNE_AFTER_DEPLOY=1, default off): after a successful
+#      mark-good, run g30-release-retention.py --apply under the deploy lock —
+#      drops dead retained origins from serving state and deletes releases
+#      outside the keep set (active, previous, live, LKG, newest
+#      RELEASES_KEEP verified-good). Failure never fails the deploy.
 # Nothing here bypasses a gate: deploy-live.sh still runs every check and
 # refuses on its own. Exit code = deploy-live.sh's (or 2 for preflight).
 #
 #   bash scripts/deploy-auto.sh            # deploy HEAD
 #   DEPLOY_NO_RETIRE=1 bash scripts/deploy-auto.sh   # never retire; fail if at cap
+#   RELEASE_PRUNE_AFTER_DEPLOY=1 bash scripts/deploy-auto.sh   # + prune releases after mark-good
 set -uo pipefail
 WEB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$WEB_DIR"
@@ -112,11 +118,23 @@ grep -E "Production verified|DEPLOY GATES|GATE FAILED|refused|Unit:" "$LOGF" | h
 [ $drc -eq 0 ] && grep -q "DEPLOY GATES COMPLETE" "$LOGF" || { say "deploy failed (exit $drc) — see $LOGF"; exit "${drc:-1}"; }
 
 # 5 — mark-good after the soak
+MARKED_GOOD=0
 for _ in $(seq 1 20); do
   out=$( ( exec 200>"$LOCK"; flock -x -w 120 200 || exit 1; python3 scripts/g30-serving-state.py --web "$WEB_DIR" --mark-good --lock-fd 200 --review-deferred 2>&1 | tail -1; exit "${PIPESTATUS[0]}" ) ); mrc=$?
-  if [ $mrc -eq 0 ]; then say "mark-good ok"; break; fi
+  if [ $mrc -eq 0 ]; then say "mark-good ok"; MARKED_GOOD=1; break; fi
   echo "$out" | grep -q "60 seconds" || { say "mark-good refused: $out"; break; }
   sleep 20
 done
 rm -rf scripts/__pycache__
+
+# 6 — optional release retention (L1-1). Only after a successful mark-good, so
+# the new release is LKG + active and the old active is previous.
+if [ "${RELEASE_PRUNE_AFTER_DEPLOY:-0}" = "1" ] && [ "$MARKED_GOOD" = "1" ]; then
+  PRUNE_LOG="/tmp/blockid-release-retention-$(date -u +%Y%m%dT%H%M%S).log"
+  ( exec 200>"$LOCK"; flock -x -w 120 200 || exit 75
+    python3 "$WEB_DIR/../scripts/cron/g30-release-retention.py" --web "$WEB_DIR" \
+      --keep "${RELEASES_KEEP:-6}" --lock-fd 200 --apply ) > "$PRUNE_LOG" 2>&1
+  prc=$?; rm -rf scripts/__pycache__
+  say "release retention exit $prc — $(head -1 "$PRUNE_LOG") (log $PRUNE_LOG)"
+fi
 say "live: $(curl -s -m 10 https://blockid.au/api/status | grep -o '"git_sha":"[a-f0-9]*"')"
