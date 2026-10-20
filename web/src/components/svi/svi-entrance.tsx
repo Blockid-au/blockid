@@ -44,7 +44,8 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
-import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { CREDIT_PACKS, smallestCreditPackForSale } from "@/lib/credit-packs";
+import { usePaygView } from "@/components/pricing/payg-view-context";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { FREE_SIGNUP_CREDITS, SVI_ANALYSIS_CREDITS, freeSignupAnalyses } from "@/lib/credits-public";
@@ -1855,6 +1856,19 @@ function SVIPaywall({
   // /api/stripe/analysis.
   const [quickConfirm, setQuickConfirm] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
+  // G35 P5 — Pricing v5 switch from the page's PaygViewProvider (default OFF =
+  // today's Quick Report + 5-pack). ON: Snapshot at the view's price (D26) and
+  // the smallest pack still on sale (D27 retires the 5-pack).
+  const payg = usePaygView();
+  const quickPrice = payg.enabled ? payg.snapshot : formatAud(PAYWALL_QUICK_REPORT_AUD);
+  const smallPack = payg.enabled ? smallestCreditPackForSale(true) : PAYWALL_PACK_5;
+
+  /** payg ON: the Snapshot report is bought through the PAYG guest flow (review + pay live there). */
+  const handlePaygSnapshot = () => {
+    setCheckoutLoading("single");
+    trackEvent("svi_paywall_analysis_click", { price: payg.snapshotCents / 100 });
+    window.location.assign("/analyze?tier=paid&payg=snapshot");
+  };
 
   /**
    * G25-D: a credit-pack click opens the review step for the pack
@@ -1954,14 +1968,17 @@ function SVIPaywall({
 
         {/* Three options: Quick Report / Custom Sections / Founder Plan */}
         <div className="space-y-3">
-          {/* Option A: Quick Report — one-off A$3 inc. GST, no account needed
-              (books STRIPE_PRICE_ONE_CLICK_REPORT via /api/stripe/analysis). */}
+          {/* Option A: Quick Report — the legacy one-off report price inc. GST, no account needed
+              (books STRIPE_PRICE_ONE_CLICK_REPORT via /api/stripe/analysis).
+              G35 P5 — payg_enabled ON (D26): the card is the Snapshot report
+              at the view's price and its Pay step opens the PAYG guest flow
+              (/analyze?tier=paid&payg=snapshot) instead of the legacy SKU. */}
           <CreditPackCard
             credits={1}
             creditsLabel="one report · inc. GST"
-            price={formatAud(PAYWALL_QUICK_REPORT_AUD)}
-            label="A. Quick Report"
-            desc="3-page scan — all 10 sections at a glance"
+            price={quickPrice}
+            label={payg.enabled ? "A. Snapshot report" : "A. Quick Report"}
+            desc={payg.enabled ? "SVI score, 8-dimension radar, top 3 strengths and risks — 1-page PDF" : "3-page scan — all 10 sections at a glance"}
             onClick={() => setQuickConfirm((v) => !v)}
             highlight={quickConfirm}
             loading={checkoutLoading === "single"}
@@ -1970,17 +1987,17 @@ function SVIPaywall({
             <div data-testid="quick-report-review" className="rounded-xl border border-line-subtle bg-surface-sunken p-4 text-sm text-ink-muted">
               <p className="font-semibold text-ink">Review before you pay</p>
               <p className="mt-1">
-                Quick Report · {formatAud(PAYWALL_QUICK_REPORT_AUD)} inc. GST · one-off, no subscription · the PDF is e-mailed to you and an ATO tax invoice follows every charge.
+                {payg.enabled ? "Snapshot report" : "Quick Report"} · {quickPrice} inc. GST · one-off, no subscription · the PDF is e-mailed to you and an ATO tax invoice follows every charge.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={handleSingleAnalysis}
+                  onClick={payg.enabled ? handlePaygSnapshot : handleSingleAnalysis}
                   disabled={!!checkoutLoading}
                   data-testid="quick-report-pay"
                   className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-60"
                 >
-                  {checkoutLoading === "single" ? "Opening checkout…" : `Pay ${formatAud(PAYWALL_QUICK_REPORT_AUD)} now`}
+                  {checkoutLoading === "single" ? "Opening checkout…" : payg.enabled ? `Continue — Snapshot ${quickPrice}` : `Pay ${quickPrice} now`}
                 </button>
                 <button
                   type="button"
@@ -2038,11 +2055,11 @@ function SVIPaywall({
         <div className="mt-4 flex justify-center gap-3">
           <button
             type="button"
-            onClick={() => handleCreditPack(PAYWALL_PACK_5.credits, "starter")}
+            onClick={() => handleCreditPack(smallPack.credits, "starter")}
             disabled={!!checkoutLoading}
             className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {checkoutLoading === "starter" ? "..." : `Buy ${PAYWALL_PACK_5.credits} credits (${formatAud(PAYWALL_PACK_5.price)})`}
+            {checkoutLoading === "starter" ? "..." : `Buy ${smallPack.credits} credits (${formatAud(smallPack.price)})`}
           </button>
           <span className="text-xs text-muted">|</span>
           <button

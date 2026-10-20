@@ -26,6 +26,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getActiveProject, getCurrentProjectIsSandbox, roleCanWrite } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProjectAnalyzeShell } from "./project-analyze-shell";
+import { PaygViewProvider } from "@/components/pricing/payg-view-context";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,9 @@ export default async function ProjectAnalyzePage({
   }
 
   const queryParam = typeof sp.query === "string" ? sp.query : "";
+  // G35 P5 — Pricing v5 switch for the SVI paywall / credit gate / R&D rail
+  // deep inside the (client) SVIEntrance tree. OFF = today's copy.
+  const payg = await getPaygView();
 
   return (
     <WorkspaceLayout user={user} startupName={project.name} isSandbox={isSandbox}>
@@ -101,12 +106,14 @@ export default async function ProjectAnalyzePage({
           </p>
         </header>
 
-        <Suspense>
-          <ProjectAnalyzeShell
-            projectSlug={project.slug}
-            initialQuery={queryParam}
-          />
-        </Suspense>
+        <PaygViewProvider value={payg}>
+          <Suspense>
+            <ProjectAnalyzeShell
+              projectSlug={project.slug}
+              initialQuery={queryParam}
+            />
+          </Suspense>
+        </PaygViewProvider>
       </div>
     </WorkspaceLayout>
   );
