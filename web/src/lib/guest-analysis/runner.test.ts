@@ -14,10 +14,20 @@ vi.mock("server-only", () => ({}));
 // ── Supabase double ────────────────────────────────────────────────────────
 
 type Row = Record<string, unknown>;
-const db: { row: Row | null; updates: Array<{ patch: Row; filters: Array<[string, unknown]> }>; uploads: string[] } = {
+const db: {
+  row: Row | null;
+  updates: Array<{ patch: Row; filters: Array<[string, unknown]> }>;
+  uploads: string[];
+  /** G35 claim race: the paid→analyzing compare-and-set matched no row. */
+  claimLost: boolean;
+  /** Error returned for an update whose patch matches (null = none). */
+  updateError: ((patch: Row) => { message: string } | null) | null;
+} = {
   row: null,
   updates: [],
   uploads: [],
+  claimLost: false,
+  updateError: null,
 };
 
 function fakeSupabase() {
@@ -29,12 +39,17 @@ function fakeSupabase() {
       update: (patch: Row) => {
         const entry = { patch, filters: [] as Array<[string, unknown]> };
         db.updates.push(entry);
+        const error = db.updateError?.(patch) ?? null;
         const chain = {
           eq: (col: string, val: unknown) => {
             entry.filters.push([col, val]);
             return chain;
           },
-          then: (resolve: (v: { error: null }) => unknown) => resolve({ error: null }),
+          select: (_cols: string) => ({
+            then: (resolve: (v: { data: Row[] | null; error: { message: string } | null }) => unknown) =>
+              resolve({ data: error ? null : patch.status === "analyzing" && db.claimLost ? [] : [{ id: ID }], error }),
+          }),
+          then: (resolve: (v: { error: { message: string } | null }) => unknown) => resolve({ error }),
         };
         return chain;
       },
@@ -102,6 +117,9 @@ vi.mock("@/lib/email/report-order-emails", () => ({
   sendGuestFullReportPaid: (a: Record<string, unknown>) => sendGuestFullReportPaid(a),
 }));
 
+const sendTelegram = vi.fn(async (_t: string) => true);
+vi.mock("@/lib/telegram", () => ({ sendTelegram: (t: string) => sendTelegram(t) }));
+
 import { runGuestAnalysis } from "./runner";
 
 const ID = "11111111-2222-4333-8444-555555555555";
@@ -125,6 +143,9 @@ beforeEach(() => {
   db.row = null;
   db.updates = [];
   db.uploads = [];
+  db.claimLost = false;
+  db.updateError = null;
+  sendTelegram.mockClear();
   pdfCalls.length = 0;
   sendGuestReport.mockClear();
   handOff.mockClear();
@@ -163,6 +184,28 @@ describe("runGuestAnalysis — flag OFF / legacy A$3 (no payg stamp)", () => {
   });
 });
 
+describe("runGuestAnalysis — claim race (every guest order)", () => {
+  it("the paid→analyzing flip is a compare-and-set: 0 rows changed → stop, nothing analysed or sent", async () => {
+    db.row = baseRow();
+    db.claimLost = true;
+    const out = await runGuestAnalysis(ID);
+    expect(out).toEqual({ success: false, error: "claim_lost" });
+    expect(db.updates).toHaveLength(1);
+    expect(db.updates[0].filters).toEqual([["id", ID], ["status", "paid"]]);
+    expect(pdfCalls).toHaveLength(0);
+    expect(sendGuestReport).not.toHaveBeenCalled();
+    expect(handOff).not.toHaveBeenCalled();
+  });
+
+  it("a guest Full order that lost the claim is never handed off twice", async () => {
+    db.row = baseRow({ report_data: { payg: { tier: "full", sku: "report_full", pricing_version: "v5" } } });
+    db.claimLost = true;
+    expect(await runGuestAnalysis(ID)).toEqual({ success: false, error: "claim_lost" });
+    expect(handOff).not.toHaveBeenCalled();
+    expect(sendGuestFullReportPaid).not.toHaveBeenCalled();
+  });
+});
+
 describe("runGuestAnalysis — guest Snapshot (payg tier snapshot)", () => {
   it("keeps the SVI path with the preview cut and the tier on the tax-invoice line", async () => {
     db.row = baseRow({ report_data: { payg: { tier: "snapshot", sku: "report_snapshot", pricing_version: "v5" } }, paid_amount_aud_cents: 1900 });
@@ -196,11 +239,16 @@ describe("runGuestAnalysis — guest Full (payg tier full)", () => {
     expect(db.uploads).toHaveLength(0);
     expect(sendGuestReport).not.toHaveBeenCalled();
 
-    // paid → analyzing, then analyzing → delivered (handed to the pipeline).
+    // paid → analyzing (compare-and-set), then the link is written and the
+    // order STAYS analyzing ("handed to the report job") — the job settles
+    // it (G35 P2-3, full-settle.ts).
     expect(db.updates[0].patch).toEqual({ status: "analyzing" });
+    expect(db.updates[0].filters).toContainEqual(["status", "paid"]);
+    expect(db.updates).toHaveLength(2);
     const last = db.updates[db.updates.length - 1];
     expect(last.filters).toContainEqual(["status", "analyzing"]);
-    expect(last.patch.status).toBe("delivered");
+    expect(last.patch).not.toHaveProperty("status");
+    expect(last.patch).not.toHaveProperty("delivered_at");
     expect(last.patch.report_pdf_url).toBeNull();
     const rd = last.patch.report_data as { payg: Row; fullReport: Row };
     expect(rd.payg).toEqual(FULL.payg);
@@ -231,6 +279,19 @@ describe("runGuestAnalysis — guest Full (payg tier full)", () => {
     expect(await runGuestAnalysis(ID)).toEqual({ success: true });
     // No amount on the row → the Full catalogue amount on the receipt.
     expect(sendGuestFullReportPaid.mock.calls[0][0].amountCents).toBe(4900);
+  });
+
+  it("G35 P2-3: a failed link write after the hand-off never marks the order failed (the job holds it); ops alerted", async () => {
+    db.row = baseRow({ report_data: FULL, paid_amount_aud_cents: 4900 });
+    db.updateError = (patch) => ("report_data" in patch ? { message: "connection reset" } : null);
+    const out = await runGuestAnalysis(ID);
+    expect(out).toEqual({ success: true });
+    expect(db.updates.some((u) => u.patch.status === "failed")).toBe(false);
+    expect(sendTelegram).toHaveBeenCalledTimes(1);
+    expect(sendTelegram.mock.calls[0][0]).toContain(ID);
+    expect(sendTelegram.mock.calls[0][0]).not.toContain("founder@acme.com.au");
+    // The guest still gets the receipt with the signed link.
+    expect(sendGuestFullReportPaid).toHaveBeenCalledTimes(1);
   });
 
   it("only a paid row runs (duplicate webhook / reconcile is a no-op)", async () => {

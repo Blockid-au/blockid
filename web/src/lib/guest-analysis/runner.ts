@@ -249,18 +249,29 @@ export async function runGuestAnalysis(
     : null;
 
   // ── 2. Flip to analyzing ────────────────────────────────────────────────
+  // Compare-and-set: a parallel run (duplicate webhook + reconcile) that
+  // flipped the row first wins; this one matches 0 rows and stops, so an
+  // order is never analysed (or handed off) twice.
   {
-    const { error: updErr } = await supabase
+    const { data: claimed, error: updErr } = await supabase
       .from("guest_analyses")
       .update({ status: "analyzing" })
       .eq("id", guestAnalysisId)
-      .eq("status", "paid");
+      .eq("status", "paid")
+      .select("id");
     if (updErr) {
       console.error(
         "[blockid:guest-analysis] status→analyzing update failed",
         updErr.message,
       );
       return { success: false, error: `status_flip_failed: ${updErr.message}` };
+    }
+    if (!Array.isArray(claimed) || claimed.length === 0) {
+      console.warn(
+        "[blockid:guest-analysis] claim lost — another run took this order",
+        { id: guestAnalysisId },
+      );
+      return { success: false, error: "claim_lost" };
     }
   }
 
@@ -634,12 +645,17 @@ export async function runGuestAnalysis(
 const GUEST_FULL_FALLBACK_CENTS = 4900;
 
 /**
- * Hand a paid guest Full order to the ReportV2 job and close the guest
- * order: `delivered` here means "handed to the report pipeline" — the
- * `analyses` row (report_data.fullReport.analysisId) owns generation,
- * retries and the report e-mail (page link + TBR PDF) from now on. Throws
- * on a failed hand-off; the caller's catch marks the order `failed`, as it
- * does for the A$3 SKU.
+ * Hand a paid guest Full order to the ReportV2 job. The guest order STAYS
+ * `analyzing` (G35 P2-3) with `report_data.fullReport.analysisId` linking
+ * the `analyses` row, which owns generation, retries and the report e-mail
+ * (page link + TBR PDF) from now on; the job settles the order when it
+ * finishes (full-settle.ts): `delivered` on done, `failed` + a
+ * "refund needed" ops alert once every attempt is exhausted.
+ *
+ * Throws only on a failed hand-off (the caller's catch marks the order
+ * `failed`, as it does for the A$3 SKU). Once the job holds the order, a
+ * failed link write never marks it failed — the report is still written and
+ * e-mailed; ops are alerted to link it by hand.
  */
 async function runGuestFullOrder(
   supabase: SupabaseAdmin,
@@ -673,18 +689,35 @@ async function runGuestFullOrder(
     fullReport: { analysisId: handoff.analysisId, pipeline: "tbr-v2", handedOffAt: now },
     generatedAt: now,
   };
-  const { error: writeErr } = await supabase
-    .from("guest_analyses")
-    .update({
-      report_data: reportData,
-      report_pdf_url: null,
-      status: "delivered",
-      delivered_at: now,
-    })
-    .eq("id", args.guestAnalysisId)
-    .eq("status", "analyzing");
-  if (writeErr) {
-    throw new Error(`persist_failed: ${writeErr.message}`);
+  // Status stays `analyzing` ("handed to the report job") until the job
+  // settles it. Past this point the order is the job's: never throw.
+  let linkErr: string | null = null;
+  try {
+    const { error: writeErr } = await supabase
+      .from("guest_analyses")
+      .update({
+        report_data: reportData,
+        report_pdf_url: null,
+      })
+      .eq("id", args.guestAnalysisId)
+      .eq("status", "analyzing");
+    if (writeErr) linkErr = writeErr.message ?? "update_failed";
+  } catch (err) {
+    linkErr = err instanceof Error ? err.message : String(err);
+  }
+  if (linkErr) {
+    console.error(
+      "[blockid:guest-analysis] guest Full handed off but the order link was not saved — manual follow-up",
+      { id: args.guestAnalysisId, analysisId: handoff.analysisId, msg: linkErr },
+    );
+    try {
+      const { sendTelegram } = await import("@/lib/telegram");
+      await sendTelegram(
+        `⚠️ [P2] Guest Full order link write failed\nGuest order ${args.guestAnalysisId} was handed to analysis ${handoff.analysisId} (the report is still written and e-mailed) but report_data was not saved: ${linkErr.slice(0, 200)}\nAction: set report_data.fullReport.analysisId on the row so the order settles.`,
+      );
+    } catch {
+      /* the log line above is the record */
+    }
   }
 
   // Receipt + tax-invoice line + the signed report link. Non-fatal: the
