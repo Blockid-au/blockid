@@ -98,7 +98,8 @@ content/reports/logs/*
 # project-state.json + implementing-plan.md + architecture.md (CEO ledger the
 # orchestrator git-adds), ceo-current-plan.json, clevel-kpi-matrix.json,
 # kb-equity-methodologies.json, svi-exchange-tasks.json, validation-tracker.json,
-# claims-backfill.json, self-fix-playbook.json, _daily-report-template.md and
+# claims-backfill.json, self-fix-playbook.json, _daily-report-template.md,
+# svi-backtest-latest.json (published figures; the deck appendix test quotes its caveats) and
 # the hand-written audit / review .md files.
 content/reports/ai-free-models.json
 content/reports/ai-free-models-verified.json
@@ -137,7 +138,6 @@ content/reports/routine-heartbeat.jsonl
 content/reports/security-posture.json
 content/reports/security-posture-history.jsonl
 content/reports/svi-backtest-history.jsonl
-content/reports/svi-backtest-latest.json
 content/reports/svi-exchange-orchestrator.jsonl
 content/reports/traction-history.jsonl
 content/reports/traction-snapshot.json
