@@ -33,6 +33,12 @@ vi.mock("@/components/analyze/analyze-root", () => ({
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: vi.fn(async () => null),
 }));
+// G35 P5: the Pricing v5 switch (OFF = today's copy).
+const paygState = vi.hoisted(() => ({ enabled: false }));
+vi.mock("@/lib/pricing/payg-view.server", async () => {
+  const { PAYG_OFF_VIEW, PAYG_ON_VIEW } = await import("@/lib/pricing/payg-copy");
+  return { getPaygView: async () => (paygState.enabled ? PAYG_ON_VIEW : PAYG_OFF_VIEW) };
+});
 // G25-C: the page resolves the locale from the cookie jar (no request scope here).
 vi.mock("@/lib/i18n", () => ({ getLocale: vi.fn(async () => "en") }));
 
@@ -99,6 +105,23 @@ describe("/analyze — marketing shell (F4)", () => {
     expect(props.freeReportCopy.email.consent).toMatch(/Auschain/);
     expect(props.freeReportCopy.pay.body).toContain("A$3 inc. GST");
     expect(props.freeReportCopy.email.body).toContain("first 2 business reports");
+    // G35 P5 — flag OFF: the view rides along disabled, tier defaults to Full.
+    expect(props.payg.enabled).toBe(false);
+    expect(props.paygTier).toBe("full");
+  });
+
+  it("G35 P5: payg_enabled ON passes the v5 view + the ?payg tier, and the pay copy quotes the Full price", async () => {
+    paygState.enabled = true;
+    try {
+      const out = await html(await AnalyzePage({ searchParams: Promise.resolve({ tier: "paid", payg: "snapshot" }) }));
+      const props = JSON.parse(/data-props="([^"]+)"/.exec(out)![1].replace(/&quot;/g, '"'));
+      expect(props.payg.enabled).toBe(true);
+      expect(props.paygTier).toBe("snapshot");
+      expect(props.freeReportCopy.pay.body).toContain("A$49 inc. GST");
+      expect(props.freeReportCopy.pay.body).not.toContain("A$3 inc. GST");
+    } finally {
+      paygState.enabled = false;
+    }
   });
 
   it("keeps the pageMetadata contract", () => {

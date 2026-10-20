@@ -26,6 +26,7 @@ import { SmartIntake, type SmartIntakeSubmission } from "./smart-intake";
 import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
 import { SavedAnalysisPanel } from "./saved-analysis-panel";
 import { FreeSummaryPanel } from "./free-summary-panel";
+import { LEGACY_REPORT_CENTS, PAYG_OFF_VIEW, audFromCents, tierPriceLabel, type PaygView } from "@/lib/pricing/payg-copy";
 import { FreeReportEmailPanel, type FreeReportEmailError } from "./free-report-email-panel";
 import { FreeReportPayPanel, type FreeReportCreditQuote, type FreeReportPayQuote } from "./free-report-pay-panel";
 import { ArtefactGatePanel } from "./artefact-gate-panel";
@@ -114,9 +115,45 @@ export function fillFreeReportLine(template: string, tokens: Record<string, stri
   });
 }
 
+/**
+ * Guest paid-report copy (G35 P5). Flag OFF → today's legacy one-off wording,
+ * byte-identical; flag ON (D26) → the PAYG tier (Snapshot / Full, default
+ * Full) at the view's display price. Copy only — the request / checkout path
+ * is unchanged. Pure; pinned by analyze-root.test.tsx.
+ */
+export function guestPaidCopy(view: PaygView, tier: "snapshot" | "full" = "full") {
+  if (!view.enabled) {
+    const price = audFromCents(LEGACY_REPORT_CENTS);
+    return {
+      banner: `Paid report · ${price} inc. GST · emailed as a PDF`,
+      cta: `Continue — ${price} report`,
+      title: `Your ${price} report`,
+      oneOff: `One-off ${price} inc. GST`,
+      checkoutPrice: price,
+      tierName: undefined as string | undefined,
+      quoteLabel: null as string | null,
+    };
+  }
+  const tierName = tier === "snapshot" ? "Snapshot" : "Full";
+  const price = tierPriceLabel(view, tier);
+  return {
+    banner: `Paid report · ${tierName} ${price} inc. GST · emailed as a PDF`,
+    cta: `Continue — ${tierName} report ${price}`,
+    title: `Your ${tierName} report — ${price}`,
+    oneOff: `One-off ${tierName} report ${price} inc. GST`,
+    checkoutPrice: price,
+    tierName: tierName as string | undefined,
+    quoteLabel: `${tierName} ${price} inc. GST` as string | null,
+  };
+}
+
 interface AnalyzeRootProps {
   /** ?tier=free|paid — controls whether a paid tier is pre-selected. */
   tier?: "free" | "paid";
+  /** G35 P5 — server-read Pricing v5 view. Omitted → flag OFF (today's copy). */
+  payg?: PaygView;
+  /** G35 P5 (D26) — `?payg=snapshot|full` from a /pricing link; Full by default. Flag ON only. */
+  paygTier?: "snapshot" | "full";
   /** G25-C: the free-allowance copy, resolved server-side (EN / VI). */
   freeReportCopy: FreeReportCopy;
   /**
@@ -356,6 +393,8 @@ export function guestUrlFor(
 
 export function AnalyzeRoot({
   tier = "free",
+  payg = PAYG_OFF_VIEW,
+  paygTier = "full",
   freeReportCopy,
   authenticated,
   initialQuery,
@@ -363,6 +402,8 @@ export function AnalyzeRoot({
   resumedFromSignup = false,
   claimed = 0,
 }: AnalyzeRootProps) {
+  // G35 P5 — the paid-guest copy for this view / tier (OFF = today's words).
+  const paidCopy = guestPaidCopy(payg, paygTier);
   const [phase, setPhase] = React.useState<Phase>("intake");
   const [submission, setSubmission] =
     React.useState<SmartIntakeSubmission | null>(null);
@@ -851,6 +892,7 @@ export function AnalyzeRoot({
         <FreeReportPayPanel
           copy={freeReportCopy.pay}
           quote={payInfo?.quote ?? null}
+          paygQuoteLabel={paidCopy.quoteLabel}
           payHref={payInfo?.payHref ?? "/workspace/reports/business"}
           credits={authenticated === true ? (payInfo?.credits ?? null) : null}
           creditsError={payInfo?.creditsError === true}
@@ -884,6 +926,8 @@ export function AnalyzeRoot({
             file={submission?.file ?? null}
             url={guestUrlFor(null, submission)}
             initialEmail={reportEmail ?? undefined}
+            priceLabel={paidCopy.checkoutPrice}
+            tierName={paidCopy.tierName}
           />
         )}
       </div>
@@ -962,7 +1006,7 @@ export function AnalyzeRoot({
         )}
         <p className="text-[11px] uppercase tracking-wider text-tertiary">
           {tier === "paid"
-            ? "Paid report · A$3 inc. GST · emailed as a PDF"
+            ? paidCopy.banner
             : "Your first two business reports are free · e-mailed as a PDF"}
         </p>
       </div>
@@ -1006,11 +1050,11 @@ export function AnalyzeRoot({
             ? "/auth/login?next=/analyze"
             : undefined
         }
-        ctaLabel={guestSellable ? "Continue — A$3 report" : "Run analysis"}
-        title={guestSellable ? "Your A$3 report" : "Confirm the analysis"}
+        ctaLabel={guestSellable ? paidCopy.cta : "Run analysis"}
+        title={guestSellable ? paidCopy.title : "Confirm the analysis"}
         subtitle={
           guestSellable
-            ? `Detected stage: ${stageLabel} · ${lineupCount} agents run on your input. One-off A$3 inc. GST — emailed as a PDF, no account needed.`
+            ? `Detected stage: ${stageLabel} · ${lineupCount} agents run on your input. ${paidCopy.oneOff} — emailed as a PDF, no account needed.`
             : `Detected stage: ${stageLabel} · ${lineupCount} agents will run.`
         }
       />
@@ -1022,6 +1066,8 @@ export function AnalyzeRoot({
           inputType={guestInputType}
           file={submission?.file ?? null}
           url={guestUrlFor(intake, submission)}
+          priceLabel={paidCopy.checkoutPrice}
+          tierName={paidCopy.tierName}
         />
       )}
 
@@ -1139,6 +1185,7 @@ export function AnalyzeRoot({
                 the email buys the portable written version, not the result
                 itself. Never rendered before `phase === "results"`. */}
             <FreeSummaryPanel
+              payg={payg}
               analysisId={analysisId}
               onSent={() => setUnlockNonce((n) => n + 1)}
             />

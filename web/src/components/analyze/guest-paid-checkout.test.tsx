@@ -42,6 +42,16 @@ describe("GuestPaidCheckout render", () => {
     expect(out).toContain("guest-paid-checkout");
     expect(out).toContain("guest-paid-email");
     expect(out).toContain("A$3");
+    expect(out).toContain("Get your full report — A$3");
+  });
+
+  it("G35 P5 (D26): with a tier name + view price the heading and Pay button name the PAYG tier", () => {
+    const out = html(
+      <GuestPaidCheckout open onClose={() => {}} inputType="website_url" url="https://example.com" priceLabel="A$49" tierName="Full" />,
+    );
+    expect(out).toContain("Get your Full report — A$49");
+    expect(out).toContain("Pay A$49 &amp; get my report");
+    expect(out).not.toContain("A$3");
   });
 });
 

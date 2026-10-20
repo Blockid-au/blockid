@@ -10,6 +10,8 @@
 import type { Messages } from "@/lib/i18n/t";
 import { t } from "@/lib/i18n/t";
 import { trustReportPriceLabelLong } from "@/lib/pricing/trust-report-price";
+import { withGst } from "@/lib/plans-v2";
+import { PAYG_OFF_VIEW, type PaygView } from "@/lib/pricing/payg-copy";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import { FREE_REPORTS_PER_EMAIL, FREE_REPORTS_PER_IP_PER_DAY } from "./free-grants-rules";
 
@@ -54,9 +56,14 @@ function fill(text: string, tokens: Record<string, string | number>): string {
   return text.replace(/\{([a-zA-Z0-9]+)\}/g, (whole, key: string) => (key in tokens ? String(tokens[key]) : whole));
 }
 
-export function freeReportCopy(m: Messages, locale: "en" | "vi" = "en"): FreeReportCopy {
+/**
+ * `view` — G35 P5 Pricing v5 switch (server-read). OFF (default) = the legacy
+ * one-off price; ON = the Full PAYG report price (D26: the paid guest report
+ * defaults to Full), e.g. "A$49 inc. GST".
+ */
+export function freeReportCopy(m: Messages, locale: "en" | "vi" = "en", view: Pick<PaygView, "enabled" | "full"> = PAYG_OFF_VIEW): FreeReportCopy {
   const count = FREE_REPORTS_PER_EMAIL;
-  const price = trustReportPriceLabelLong();
+  const price = view.enabled ? withGst(view.full) : trustReportPriceLabelLong();
   const k = (key: string) => t(m, key);
   return {
     email: {

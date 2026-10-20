@@ -64,6 +64,12 @@ export interface FreeReportPayPanelProps {
   onRecheck?: () => void;
   busy?: boolean;
   className?: string;
+  /**
+   * G35 P5 (D26) — when payg_enabled is ON, the quote line shown in place of
+   * the legacy SKU label (e.g. "Full A$49 inc. GST"). Omitted → `quote.label`
+   * (today). The quote's sku / amount are untouched.
+   */
+  paygQuoteLabel?: string | null;
 }
 
 export function FreeReportPayPanel({
@@ -80,6 +86,7 @@ export function FreeReportPayPanel({
   onRecheck,
   busy = false,
   className,
+  paygQuoteLabel = null,
 }: FreeReportPayPanelProps) {
   const payByCredits = authenticated && Boolean(credits?.canAfford) && Boolean(onPayWithCredits);
   const signupHref = `/auth/login?mode=register&next=${encodeURIComponent(payHref)}`;
@@ -104,7 +111,7 @@ export function FreeReportPayPanel({
           <p className="mt-2 text-sm leading-relaxed text-secondary">{copy.body}</p>
           {quote && (
             <p className="mt-2 text-sm font-semibold text-primary" data-testid="analyze-free-report-quote">
-              {quote.label}
+              {paygQuoteLabel ?? quote.label}
             </p>
           )}
           {authenticated && <p className="mt-1 text-xs text-tertiary">{copy.accountHint}</p>}

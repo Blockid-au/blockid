@@ -15,6 +15,7 @@ import { FreeReportPayPanel } from "./free-report-pay-panel";
 import { fillFreeReportLine, guestInputTypeForSubmission } from "./analyze-root";
 import { freeReportCopy, fillStatusLine } from "@/lib/reports/free-report-copy";
 import { getMessagesSync } from "@/lib/i18n/t";
+import { PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import { FREE_REPORT_HONEYPOT_FIELD } from "@/lib/reports/free-grants-rules";
 
@@ -34,6 +35,15 @@ describe("freeReportCopy — EN / VI from the catalogue", () => {
     expect(VI.email.body).toContain("2 báo cáo");
     expect(VI.pay.body).toContain("A$3 inc. GST");
     expect(VI.ipLimit).toContain("Tối đa 3");
+  });
+
+  it("G35 P5: payg_enabled ON fills {price} with the Full PAYG price (EN / VI), never the legacy one", () => {
+    const enOn = freeReportCopy(getMessagesSync("en"), "en", PAYG_ON_VIEW);
+    const viOn = freeReportCopy(getMessagesSync("vi"), "vi", PAYG_ON_VIEW);
+    expect(enOn.pay.body).toContain(`${PAYG_ON_VIEW.full} inc. GST`);
+    expect(viOn.pay.body).toContain(`${PAYG_ON_VIEW.full} inc. GST`);
+    expect(enOn.pay.body).not.toMatch(/A\$3(?!\d)/);
+    expect({ ...enOn, pay: { ...enOn.pay, body: EN.pay.body } }).toEqual(EN);
   });
 
   it("carries the approved data-principle sentence verbatim (EN = the constant) and the Spam Act lines", () => {
@@ -132,6 +142,13 @@ describe("FreeReportPayPanel — the quote before the pay", () => {
     expect(out).toContain('data-sku="sku_trust_report_5aud"');
     expect(out).toContain("A$3 inc. GST");
     expect(out).toContain("Nothing was run and nothing was charged");
+  });
+
+  it("G35 P5: a payg quote label replaces the legacy label on screen; the sku attribute is untouched", () => {
+    const out = html(<FreeReportPayPanel {...base} authenticated={false} guestSellable={false} paygQuoteLabel="Full A$49 inc. GST" />);
+    expect(out).toContain("Full A$49 inc. GST");
+    expect(out).not.toContain("A$3 inc. GST");
+    expect(out).toContain('data-sku="sku_trust_report_5aud"');
   });
 
   it("AF03: signed-in without a usable credit quote → top up in a NEW tab, never the workspace (old) report", () => {

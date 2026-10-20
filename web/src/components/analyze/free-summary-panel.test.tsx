@@ -22,6 +22,7 @@ import {
 } from "@/lib/analyses/free-summary";
 
 import { FreeSummaryPanel, parseSummaryResponse } from "./free-summary-panel";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 
 function render(props: Parameters<typeof FreeSummaryPanel>[0]) {
   return renderToStaticMarkup(<FreeSummaryPanel {...props} />);
@@ -80,6 +81,14 @@ describe("FreeSummaryPanel", () => {
     expect(html).toContain("/one-click-report");
     // One button on this card, and it is the free one.
     expect(html.match(/<button/g) ?? []).toHaveLength(1);
+  });
+
+  it("G35 P5: flag OFF (explicit) renders exactly the default; ON names the PAYG entry price, never the legacy one", () => {
+    expect(render({ analysisId: "abc-123", payg: PAYG_OFF_VIEW })).toBe(render({ analysisId: "abc-123" }));
+    const html = render({ analysisId: "abc-123", payg: PAYG_ON_VIEW });
+    expect(html).toContain(`Later decks or sites: a single report is from ${PAYG_ON_VIEW.snapshot}`);
+    expect(html).not.toMatch(/A\$3(?!\d)/);
+    expect(html).toContain("/one-click-report");
   });
 
   it("labels the input rather than relying on the placeholder", () => {
