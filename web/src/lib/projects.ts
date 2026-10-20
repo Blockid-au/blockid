@@ -945,10 +945,18 @@ export async function findLatestAnalysisWithFallback(
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-/** Get a project by its ID. */
-export async function getProjectById(projectId: string): Promise<Project | null> {
+/**
+ * Get a project by its ID. `null` = not found — and, by default, also "could
+ * not look it up" (no database / query error). `throwOnError: true` (G35
+ * P2-2, the paid-order generator) throws `project_lookup_failed` for the
+ * latter instead, so a transient outage is not mistaken for a missing project.
+ */
+export async function getProjectById(projectId: string, opts?: { throwOnError?: boolean }): Promise<Project | null> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
+  if (!supabase) {
+    if (opts?.throwOnError) throw new Error("project_lookup_failed: supabase_not_configured");
+    return null;
+  }
 
   const { data, error } = await supabase
     .from("projects")
@@ -958,6 +966,7 @@ export async function getProjectById(projectId: string): Promise<Project | null>
 
   if (error) {
     console.error("[blockid:projects] getProjectById failed", error);
+    if (opts?.throwOnError) throw new Error(`project_lookup_failed: ${error.message ?? "query error"}`);
     return null;
   }
   if (!data) return null;

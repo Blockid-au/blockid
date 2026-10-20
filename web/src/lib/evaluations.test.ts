@@ -439,7 +439,8 @@ describe("canAccessProjectAsEvaluator", () => {
     state.queue.push({ table: "evaluations", data: [] });
     expect(await canAccessProjectAsEvaluator("u-stranger", "p-1")).toEqual({ allowed: false });
     state.queue.push({ table: "evaluations", error: { message: "boom" } });
-    expect(await canAccessProjectAsEvaluator("u-eval", "p-1")).toEqual({ allowed: false });
+    // G35 P2-2: still denied, but flagged as "could not check" (not a verdict).
+    expect(await canAccessProjectAsEvaluator("u-eval", "p-1")).toEqual({ allowed: false, error: true });
   });
 });
 

@@ -138,15 +138,20 @@ export function isEvaluatorOrderMetadata(metadata: unknown): boolean {
   return Boolean(metadata) && typeof metadata === "object" && (metadata as Row).buyer_role === "evaluator";
 }
 
-async function defaultEvaluatorBaseline(projectId: string): Promise<{ ownerEmail: string }> {
+export async function defaultEvaluatorBaseline(projectId: string): Promise<{ ownerEmail: string }> {
   const { prepareProjectReportBaseline } = await import("@/lib/report-pipeline/run-for-project");
-  const { ownerEmail } = await prepareProjectReportBaseline(projectId);
+  // strictLookups: a DB error reads as *_lookup_failed (retryable), never as
+  // the permanent project_not_found / owner_not_found (G35 P2-2).
+  const { ownerEmail } = await prepareProjectReportBaseline(projectId, { strictLookups: true });
   return { ownerEmail };
 }
 
-async function defaultEvaluatorAccess(userId: string, projectId: string): Promise<boolean> {
+export async function defaultEvaluatorAccess(userId: string, projectId: string): Promise<boolean> {
   const { canAccessProjectAsEvaluator } = await import("@/lib/evaluations");
   const access = await canAccessProjectAsEvaluator(userId, projectId);
+  // G35 P2-2: a check that could not run is not "revoked" — throw so the
+  // caller retries (fail(true)) instead of failing + refunding a paid order.
+  if (!access.allowed && access.error) throw new Error("evaluations_lookup_failed");
   return access.allowed && access.via === "evaluator";
 }
 

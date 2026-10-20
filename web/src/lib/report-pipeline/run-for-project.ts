@@ -690,10 +690,18 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
 // Evaluator entry points
 // ---------------------------------------------------------------------------
 
-async function resolveOwnerEmail(projectUserId: string): Promise<string | null> {
+/**
+ * `strict` (G35 P2-2, paid-order generator only): a lookup that could not run
+ * throws `owner_lookup_failed` (retryable) instead of reading as "no owner".
+ */
+async function resolveOwnerEmail(projectUserId: string, strict = false): Promise<string | null> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  const { data } = await supabase.from("app_users").select("email").eq("id", projectUserId).maybeSingle();
+  if (!supabase) {
+    if (strict) throw new Error("owner_lookup_failed: supabase_not_configured");
+    return null;
+  }
+  const { data, error } = await supabase.from("app_users").select("email").eq("id", projectUserId).maybeSingle();
+  if (strict && error) throw new Error(`owner_lookup_failed: ${(error as { message?: string }).message ?? "query error"}`);
   const email = (data as Row | null)?.email;
   return typeof email === "string" && email ? email : null;
 }
@@ -906,16 +914,26 @@ async function loadEvaluationIntake(projectId: string): Promise<{ website: strin
  * the evaluation intake when the startup was never analysed. Throws on any
  * failure (project_not_found / owner_not_found / account_unavailable /
  * analysis_insert_failed / the loader's error).
+ *
+ * `strictLookups` (G35 P2-2, the paid-order generator): a project / owner
+ * lookup that could not run throws `project_lookup_failed` /
+ * `owner_lookup_failed` (retryable) instead of the permanent
+ * `project_not_found` / `owner_not_found`. Default off — other callers keep
+ * today's behaviour.
  */
-export async function prepareProjectReportBaseline(projectId: string): Promise<{
+export async function prepareProjectReportBaseline(
+  projectId: string,
+  opts: { strictLookups?: boolean } = {},
+): Promise<{
   project: NonNullable<Awaited<ReturnType<typeof getProjectById>>>;
   ownerEmail: string;
   ctx: Extract<Awaited<ReturnType<typeof loadProjectReportContext>>, { ok: true }>["ctx"];
   synthesisedAnalysis: boolean;
 }> {
-  const project = await getProjectById(projectId);
+  const strict = opts.strictLookups === true;
+  const project = strict ? await getProjectById(projectId, { throwOnError: true }) : await getProjectById(projectId);
   if (!project) throw new Error("project_not_found");
-  const ownerEmail = await resolveOwnerEmail(project.userId);
+  const ownerEmail = await resolveOwnerEmail(project.userId, strict);
   if (!ownerEmail) throw new Error("owner_not_found");
 
   const account = await ensureAccount(ownerEmail, project.id, project.name);

@@ -1161,6 +1161,11 @@ describe("evaluator card order (G35 deal flow)", () => {
     expect(transient).toMatchObject({ ok: false, transient: true });
     const accessErr = await run(evaluatorState(), { evaluatorAccess: async () => { throw new Error("db down"); }, evaluatorBaseline: async () => ({ ownerEmail: OWNER_EMAIL }) });
     expect(accessErr).toMatchObject({ ok: false, transient: true });
+    // G35 P2-2: a project / owner lookup that could not run is retried, never refunded.
+    for (const msg of ["project_lookup_failed: connection reset", "owner_lookup_failed: connection reset"]) {
+      const lookup = await run(evaluatorState(), { evaluatorAccess: access, evaluatorBaseline: async () => { throw new Error(msg); } });
+      expect(lookup).toMatchObject({ ok: false, transient: true });
+    }
   });
 
   it("a founder / legacy order never takes the evaluator path (buyer e-mail, 3-arg lookups)", async () => {

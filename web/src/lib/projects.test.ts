@@ -55,6 +55,7 @@ import {
   getProjectIdFromRequest,
   getProjectScope,
   projectCookieValue,
+  getProjectById,
 } from "./projects";
 
 const UNLIMITED = Number.MAX_SAFE_INTEGER;
@@ -755,5 +756,31 @@ describe("S17-A review P2-1 — legacy null-project fallback is owner-only", () 
     expect(asOwner?.id).toBe("an-owner-legacy");
     expect(db.calls.some((c) => c.table === "svi_analyses" && c.op === "update")).toBe(true);
     expect(db.tables.svi_analyses[0].project_id).toBe("p-own-2");
+  });
+});
+
+describe("getProjectById — throwOnError (G35 P2-2)", () => {
+  function client(result: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    Object.assign(chain, { select: () => chain, eq: () => chain, maybeSingle: async () => result });
+    return { from: () => chain };
+  }
+
+  it("default: a query error / no database reads as null (every existing caller unchanged)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    getSupabaseAdminMock.mockReturnValue(client({ data: null, error: { message: "connection reset" } }));
+    expect(await getProjectById("p-1")).toBeNull();
+    getSupabaseAdminMock.mockReturnValue(null);
+    expect(await getProjectById("p-1")).toBeNull();
+  });
+
+  it("throwOnError: a query error / no database throws project_lookup_failed (retryable); a missing row is still null", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    getSupabaseAdminMock.mockReturnValue(client({ data: null, error: { message: "connection reset" } }));
+    await expect(getProjectById("p-1", { throwOnError: true })).rejects.toThrow("project_lookup_failed: connection reset");
+    getSupabaseAdminMock.mockReturnValue(null);
+    await expect(getProjectById("p-1", { throwOnError: true })).rejects.toThrow("project_lookup_failed");
+    getSupabaseAdminMock.mockReturnValue(client({ data: null, error: null }));
+    expect(await getProjectById("p-1", { throwOnError: true })).toBeNull();
   });
 });
