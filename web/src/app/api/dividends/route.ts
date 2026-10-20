@@ -166,11 +166,15 @@ async function POST_handler(request: Request) {
 
   if (shareholders.length === 0) {
     return NextResponse.json(
+      // An empty cap table is a normal state for a new founder (the revenue
+      // page previews dividends on load), not a malformed request: answer 200
+      // with ok:false + a code so the browser logs no failed request.
       {
         ok: false,
+        code: "no_shareholders",
         error: "No shareholders found. Set up your cap table first.",
       },
-      { status: 400 },
+      { status: 200 },
     );
   }
 

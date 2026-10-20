@@ -595,14 +595,15 @@ describe("POST /api/dividends — cap-table gathering", () => {
     expect(mocks.calculateDividendsMock).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when the founder has no shareholders — never runs the engine on an empty roster", async () => {
+  it("answers 200 ok:false no_shareholders when the founder has no shareholders — never runs the engine on an empty roster", async () => {
     const { client, state } = makeFakeSupabase();
     state.shareholderRows = [];
     mocks.getSupabaseAdminMock.mockReturnValue(client);
     const res = await POST(jsonPost({ netIncome: 1000 }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       ok: false,
+      code: "no_shareholders",
       error: "No shareholders found. Set up your cap table first.",
     });
     expect(mocks.calculateDividendsMock).not.toHaveBeenCalled();
