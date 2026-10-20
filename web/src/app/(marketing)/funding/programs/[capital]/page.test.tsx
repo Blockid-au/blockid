@@ -3,7 +3,7 @@
 // are mocked; the marketing shell is a pass-through; rendered through
 // renderToReadableStream so nested async JSON-LD components resolve.
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToReadableStream } from "react-dom/server";
 import type { AuProgram } from "@/lib/funding/data";
 
@@ -78,6 +78,20 @@ import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import ProgramsDirectoryPage, { metadata as indexMetadata } from "../page";
 import CapitalProgramsPage, { generateMetadata, generateStaticParams } from "./page";
 import ProgramDetailPage, { generateMetadata as detailMetadata } from "./[id]/page";
+
+// Startmate closes 2026-11-08 ("Applications close · 8 November", open
+// counts, the twelve-month calendar) — pin the clock inside that window so
+// the open / upcoming / overdue verdicts do not drift with the real date.
+const NOW = new Date("2026-09-20T00:00:00Z");
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 async function toHtml(el: React.ReactElement): Promise<string> {
   const stream = await renderToReadableStream(el);

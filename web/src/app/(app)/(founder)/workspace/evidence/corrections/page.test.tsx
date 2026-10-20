@@ -1,5 +1,5 @@
 import type React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // G21 P1-C render test for /workspace/evidence/corrections: the h1 sits
 // outside any gate, the owner gets the form (kind / target / message fields),
@@ -89,7 +89,18 @@ async function html(): Promise<string> {
 
 const state = await scopeState;
 
+// Fixtures (connector sync, investor-link views, corrections) are dated
+// 2026-09-18..20 — pin the clock just after them so "fresh" / "stale"
+// verdicts do not drift with the real date.
+const NOW = new Date("2026-09-21T00:00:00Z");
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   state.role = "owner";
   state.projectId = "proj-1";
   state.calls.length = 0;

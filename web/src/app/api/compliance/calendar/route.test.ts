@@ -55,7 +55,7 @@
 //     mirror onto the DB free-text — the R&D deadline events would
 //     silently swallow every FY as `not_registered`.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUserMock = vi.fn<
   () => Promise<{ id: string; email: string } | null>
@@ -419,12 +419,23 @@ describe("GET /api/compliance/calendar — ASIC anniversary", () => {
 });
 
 describe("GET /api/compliance/calendar — WGEA + Modern Slavery fold-in", () => {
+  // The route only emits events inside a 12-month horizon from "now", and
+  // "next year's 31 May / 30 June" falls outside it from January to May —
+  // pin the clock so the due dates below are always inside the horizon.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-20T00:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("folds a WGEA report event when the latest wgea snapshot marks the founder as a relevant employer", async () => {
-    const nextYear = new Date().getFullYear() + 1;
     setTable("compliance_wgea_status", {
       result_json: {
         is_relevant_employer: true,
-        next_report_due_iso: `${nextYear}-05-31`,
+        next_report_due_iso: "2027-05-31",
       },
     });
     const res = await GET(
@@ -440,11 +451,10 @@ describe("GET /api/compliance/calendar — WGEA + Modern Slavery fold-in", () =>
   });
 
   it("folds a Modern Slavery statement event when the latest MSA snapshot marks the founder as a reporting entity", async () => {
-    const nextYear = new Date().getFullYear() + 1;
     setTable("compliance_modern_slavery_status", {
       result_json: {
         is_reporting_entity: true,
-        statement_due_iso: `${nextYear}-06-30`,
+        statement_due_iso: "2027-06-30",
       },
     });
     const res = await GET(

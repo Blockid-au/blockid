@@ -7,7 +7,7 @@
 // no-mandate empty state, and the saved views (≤ 10, same name replaces,
 // delete).
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -110,9 +110,20 @@ function seed() {
   prefsState.writeOk = true;
 }
 
+// Fixtures are dated around 2026-09-16 (fit computed_at) and the Δ30d
+// baseline is "newest snapshot ≥ 30 d before now" — pin the clock so the
+// expected deltas do not drift with the real date.
+const NOW = new Date("2026-09-17T00:00:00Z");
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   state.configured = true;
   seed();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("getDealFlowV2 — the project_id join", () => {
