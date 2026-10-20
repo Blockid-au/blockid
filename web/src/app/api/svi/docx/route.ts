@@ -28,6 +28,7 @@ import { generateTbrDocx } from "@/lib/docx/tbr-docx";
 import { fromAssembledReport } from "@/lib/report-v2/adapter";
 import { readAssembledReportJson } from "@/lib/report-v2/storage";
 import type { ReportV2 } from "@/lib/report-v2/schema";
+import { isReportAccessTier, projectReportForTier, tierForStoredDocument, type ReportAccessTier } from "@/lib/report-v2/tier-projection";
 // Row → AssembledReport reconstruction is shared with the order-scoped
 // delivery route (/api/reports/[orderId]) so both surfaces rebuild a
 // stored report identically. Lifted verbatim out of this file.
@@ -102,6 +103,8 @@ async function POST_handler(request: Request) {
   let reportV2: ReportV2 | null = null;
   let tbrSource: "stored" | "adapter" | "legacy" = "legacy";
   let assembledRowId: string | null = null;
+  // G35 Pricing v5 P2: assembled_reports.payg_tier (0474; absent before it — `select("*")` simply omits it).
+  let paygTier: ReportAccessTier | null = null;
   // G21 P1: the project behind the export (stored row → its project_id; live path → the scope).
   let exportProjectId: string | null = null;
   let adapterCtx: { industry?: string | null; stageLabel?: string | null; stage?: number | null; sviTotal?: number | null } = {};
@@ -137,6 +140,7 @@ async function POST_handler(request: Request) {
     // Reconstruct AssembledReport from stored data
     report = reconstructAssembledReport(reportRow);
     assembledRowId = String(reportRow.id ?? body.reportId);
+    paygTier = isReportAccessTier(reportRow.payg_tier) ? reportRow.payg_tier : null;
     tbrSource = "adapter";
     exportProjectId = typeof reportRow.project_id === "string" ? reportRow.project_id : null;
   } else {
@@ -184,6 +188,7 @@ async function POST_handler(request: Request) {
     if (latestReportRaw) {
       report = reconstructAssembledReport(latestReportRaw as any);
       assembledRowId = String((latestReportRaw as any).id ?? "");
+      paygTier = isReportAccessTier((latestReportRaw as any).payg_tier) ? (latestReportRaw as any).payg_tier : null;
       tbrSource = "adapter";
     } else {
       // Fallback: build a minimal report from the latest full_report content
@@ -249,7 +254,8 @@ async function POST_handler(request: Request) {
 
   // ── 5. Generate DOCX ───────────────────────────────────────────────────
   try {
-    if (body.legacy === true) tbrSource = "legacy";
+    // A Snapshot-tier report never takes the legacy full-markdown builder.
+    if (body.legacy === true && paygTier !== "snapshot") tbrSource = "legacy";
     if (tbrSource !== "legacy") {
       const stored = assembledRowId ? await readAssembledReportJson(supabase, assembledRowId) : null;
       if (stored) {
@@ -265,8 +271,12 @@ async function POST_handler(request: Request) {
         });
       }
     }
+    const assessment = reportV2 ? assessmentCardOptionsFromContext(await loadAssessmentContext(exportProjectId, reportV2.cover.stage, reportV2.cover.sector)) : undefined;
+    // G35 Pricing v5 P2 (plan §6.5): the stored report's payg_tier (an
+    // upgrade raises it), else the tier the document was generated at.
+    if (reportV2) reportV2 = projectReportForTier(reportV2, paygTier ?? tierForStoredDocument(reportV2), { assessment });
     const docxBuffer = reportV2
-      ? await generateTbrDocx(reportV2, { assessment: assessmentCardOptionsFromContext(await loadAssessmentContext(exportProjectId, reportV2.cover.stage, reportV2.cover.sector)) })
+      ? await generateTbrDocx(reportV2, { assessment })
       : await generateSVIDocx(report);
 
     // Sanitise filename

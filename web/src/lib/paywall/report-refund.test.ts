@@ -444,6 +444,27 @@ describe("refundFailedOrder — guards", () => {
     expect(db.updates).toHaveLength(0);
   });
 
+  it("refuses to auto-refund an IN_REVIEW (Verified) order — that is the charge.refunded path", async () => {
+    const db = new FakeDb({
+      rows: {
+        report_orders: {
+          id: "order-6b",
+          user_id: "user-6",
+          status: "IN_REVIEW",
+          amount_aud: 14900,
+          credits_used: 0,
+          stripe_payment_intent_id: "pi_test_456",
+          metadata: {},
+        },
+      },
+    });
+    const { stripe, create } = makeStripeSpy();
+    const outcome = await refundFailedOrder({ orderId: "order-6b", reason: "boom" }, { supabase: db.client(), stripe, now });
+    expect(outcome).toEqual({ ok: false, reason: "illegal_refund_from_IN_REVIEW" });
+    expect(create).not.toHaveBeenCalled();
+    expect(db.updates).toHaveLength(0);
+  });
+
   it("allows a PAID order to be refunded (support-side, pre-generation)", async () => {
     const db = new FakeDb({
       rows: {

@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
+import { projectPersistedForTier, projectReportForTier, tierForStoredDocument } from "@/lib/report-v2/tier-projection";
 import { loadRevisionPosition, loadTrendBaseline, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -192,7 +193,12 @@ export default async function ViTbrSharePage({
   const loaded = await loadReportV2ByShareToken(token, { locale: "vi" });
   const result = (await fetchByToken(token)) ?? revisionOnlyResult(loaded);
   if (!result) notFound();
-  const initialReportV2 = loaded?.report ?? null;
+  // G35 Pricing v5 P2 (plan §6.5): served at the tier the document was
+  // generated for — a free document's locked chapter bodies never reach the page payload.
+  const storedReportV2 = loaded?.report ?? null;
+  const shareTier = storedReportV2 ? tierForStoredDocument(storedReportV2) : "full";
+  const initialReportV2 = storedReportV2 ? projectReportForTier(storedReportV2, shareTier) : null;
+  const initialData = projectPersistedForTier(result.persisted, shareTier);
   // G34 F02/S3: the previous same-project revision → the scorecard trend (same method only).
   const trendBaseline = await loadTrendBaseline(token, getSupabaseAdmin());
   // G34 BT3 (spec §3): "Viewing rev N · Latest rev M" — the latest link only for the project owner.
@@ -203,7 +209,7 @@ export default async function ViTbrSharePage({
     <div className="min-h-screen bg-surface text-primary">
       <BusinessReportClient
         projectId={result.row.project_id ?? "shared"}
-        initialData={result.persisted}
+        initialData={initialData}
         initialReportV2={initialReportV2}
         shareToken={token}
         pdfMode={pdfMode}

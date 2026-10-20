@@ -28,6 +28,9 @@ import {
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { isUuid } from "@/lib/security/request-guards";
 import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { projectPersistedForTier, projectReportForTier } from "@/lib/report-v2/tier-projection";
+import { resolveFounderReportTier } from "@/lib/report-v2/tier-access";
+import { assessmentCardOptionsFromContext, loadAssessmentContext } from "@/lib/svi/assessment-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -253,7 +256,27 @@ export async function GET(
   // landed and the pipeline wrote one; null otherwise (the client lifts
   // `persisted` through src/lib/report-v2/adapter.ts). Separate best-effort
   // read so a missing column never fails this route.
-  const reportV2 = await readSnapshotReportV2(supabase, row.id);
+  const storedV2 = await readSnapshotReportV2(supabase, row.id);
 
-  return NextResponse.json({ ok: true, persisted, snapshotId: row.id, reportV2 });
+  // G35 Pricing v5 P2 (plan §6.5, gap G6): the free cut is made HERE, before
+  // serialising — locked chapter bodies never reach the browser. The tier
+  // follows the caller's entitlement (plan `report.premium`, or a paid
+  // Full / Verified report order for this project); `report.tsx` renders the
+  // locked cards from the metadata the projection keeps.
+  const tier = await resolveFounderReportTier(supabase, {
+    userId: user.id,
+    plan: user.plan,
+    projectId: scopedProjectId && isUuid(scopedProjectId) ? scopedProjectId : null,
+  });
+  let reportV2 = storedV2;
+  if (storedV2 && tier !== "full" && tier !== "verified") {
+    // Same Assessment Card inputs as the page, so the investment view computed
+    // from the full document before the cut is the one the client reuses.
+    const assessment = assessmentCardOptionsFromContext(
+      await loadAssessmentContext(scopedProjectId, storedV2.cover.stage, storedV2.cover.sector).catch(() => ({ unverifiedMaterialClaims: null, benchmark: null, evidenceConfidence: null })),
+    );
+    reportV2 = projectReportForTier(storedV2, tier, { assessment });
+  }
+
+  return NextResponse.json({ ok: true, persisted: projectPersistedForTier(persisted, tier), snapshotId: row.id, reportV2, tier });
 }

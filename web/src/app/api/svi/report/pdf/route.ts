@@ -26,6 +26,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
 import { renderTbrPdf } from "@/lib/pdf/tbr-pdf";
+import { projectReportForTier, tierForStoredDocument } from "@/lib/report-v2/tier-projection";
 import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
 import { PDF_RETRY_AFTER_SECONDS, pdfCacheKey, tbrPdfCache, tbrPdfSemaphore, type CachedPdf } from "@/lib/pdf/render-gate";
 
@@ -101,7 +102,10 @@ export async function GET(request: Request) {
       if (raced) return pdfResponse(raced, "hit");
       // G21 P1 (review): the same Assessment Card numbers as the web report.
       const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(loaded.projectId, loaded.report.cover.stage, loaded.report.cover.sector));
-      const { buffer, pages, level } = await renderTbrPdf(loaded.report, { assessment });
+      // G35 Pricing v5 P2: the share token's tier (a free document → the free
+      // cut with locked chapter bodies removed) before the PDF twin renders it.
+      const report = projectReportForTier(loaded.report, tierForStoredDocument(loaded.report), { assessment });
+      const { buffer, pages, level } = await renderTbrPdf(report, { assessment });
       const pdf: CachedPdf = { buffer, pages, level, source: loaded.path, filename: safeFilename(loaded.report.cover.startupName) };
       tbrPdfCache.set(key, pdf);
       return pdfResponse(pdf, "miss");

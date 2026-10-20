@@ -50,6 +50,7 @@ import { stripCitationMarkers } from "@/lib/report-v2/citations";
 import type { CriterionResult } from "@/lib/report-pipeline/run-report-pipeline";
 import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import { loadLatestReportV2ForAccount, loadReportV2BySnapshotId } from "@/lib/report-v2/load";
+import { projectReportForTier, tierForStoredDocument } from "@/lib/report-v2/tier-projection";
 import { isReportV2, type DimensionChapter, type InvestmentView, type ReportV2 } from "@/lib/report-v2/schema";
 import { investmentLocale, investmentViewFor, type InvestmentLocale } from "@/lib/report-v2/investment-view";
 import { buildDashboardView, type DashboardView } from "@/lib/report-v2/dashboard-view";
@@ -546,7 +547,12 @@ export async function sendReportEmail(args: SendReportEmailArgs): Promise<SendRe
   const dashboardUrl = `${base}/workspace/reports/business${args.projectId ? `?pid=${encodeURIComponent(args.projectId)}` : ""}`;
   const shareUrl = shareToken ? `${base}/tbr/${shareToken}` : null;
 
-  const { report, source } = await resolveReport(args, { accountId, snapshotId, startupName });
+  const resolved = await resolveReport(args, { accountId, snapshotId, startupName });
+  const source = resolved.source;
+  // G35 Pricing v5 P2 (plan §6.5): the e-mail body and the attached PDF use
+  // the document's own tier — a free document goes out at the free cut with
+  // the locked chapter bodies removed before anything is rendered.
+  const report = projectReportForTier(resolved.report, tierForStoredDocument(resolved.report), { assessment: args.assessment });
   const totalSvi = Math.round(report.cover.svi.total);
   const bnd = bandLabelForEmail(report.cover.svi.band);
 

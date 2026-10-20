@@ -8,6 +8,7 @@
 // (the email ask after the answer); nothing new is walled.
 
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
+import { projectReportForTier, tierForStoredDocument } from "@/lib/report-v2/tier-projection";
 import type { FullReportRow } from "./store";
 import {
   defaultStageEtas,
@@ -171,7 +172,10 @@ export function buildFullReportView(row: FullReportRow, opts: BuildViewOptions =
     // The v3 document is never a preview: a v2 row always has a destination
     // (G25-C requires the address before the run) or an owner, so `locked`
     // is false for it in practice; the gate still applies by construction.
-    reportV2: locked ? null : (envelope?.report ?? null),
+    // G35 Pricing v5 P2: served at the tier the document was generated for
+    // (the two free first analyses run at "standard" — full, by the G25-C
+    // decision; a free-tier document would get the free cut).
+    reportV2: locked || !envelope?.report ? null : projectReportForTier(envelope.report, tierForStoredDocument(envelope.report)),
     progressV2: envelope?.progress ?? null,
     chaptersV2: locked || envelope?.report ? [] : (envelope?.draftChapters ?? []),
     report: locked || !isFirstAnalysisReport(json) ? null : toReportView(json),

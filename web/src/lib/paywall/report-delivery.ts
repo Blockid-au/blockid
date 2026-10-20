@@ -58,6 +58,9 @@ type Row = Record<string, unknown>;
  */
 export const REPORT_POLL_RETRY_SECONDS = 15;
 
+/** IN_REVIEW (Pricing v5 Verified): a human review takes up to two business days — poll every 5 minutes. */
+export const REPORT_REVIEW_POLL_RETRY_SECONDS = 300;
+
 export type DeliveryKind =
   /** Report exists and the caller has paid for it — serve the artifact. */
   | "deliver"
@@ -118,6 +121,16 @@ const DISPOSITIONS = {
     message:
       "Your report is being written by the C-Level agent team right now. This usually takes about four minutes.",
     retryInSeconds: REPORT_POLL_RETRY_SECONDS,
+  },
+  // Pricing v5 Verified (0474): the Full report exists and waits for the
+  // human review (≤ 2 Sydney business days) — nothing to hand out yet, poll slowly.
+  IN_REVIEW: {
+    kind: "pending",
+    httpStatus: 202,
+    reason: "in_review",
+    message:
+      "Your report is written and is now with the BlockID review team. Verified reports are delivered within two business days.",
+    retryInSeconds: REPORT_REVIEW_POLL_RETRY_SECONDS,
   },
   CHECKOUT_INITIATED: {
     kind: "unpaid",

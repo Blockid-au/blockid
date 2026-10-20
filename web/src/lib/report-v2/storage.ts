@@ -204,6 +204,24 @@ export async function readAssembledReportJson(db: Db, reportId: string): Promise
   }
 }
 
+/**
+ * G35 Pricing v5: `assembled_reports.payg_tier` (pending-authority/0474) —
+ * the tier the stored report is served at (an upgrade raises it; the
+ * document is never regenerated). Null when unset, the column is absent
+ * (0474 not applied yet) or the read fails — callers fall back to the order
+ * SKU (`order-tier.ts`). Separate single-column select, like report_json.
+ */
+export async function readAssembledReportPaygTier(db: Db, reportId: string): Promise<"snapshot" | "full" | "verified" | null> {
+  try {
+    const { data, error } = await db.from("assembled_reports").select("payg_tier").eq("id", reportId).maybeSingle();
+    if (error) return null;
+    const tier = (data as { payg_tier?: unknown } | null)?.payg_tier;
+    return tier === "snapshot" || tier === "full" || tier === "verified" ? tier : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Best-effort write of `evaluation_reports.report_v2` (migration 0401, S-R4); returns true when stored. */
 export async function writeEvaluationReportV2(db: Db, evaluationReportId: string, report: ReportV2): Promise<boolean> {
   try {
