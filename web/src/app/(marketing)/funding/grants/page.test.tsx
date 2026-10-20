@@ -20,8 +20,12 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
 }));
 
 const rows: AuGrant[] = [];
+const listGrantsCalls: Array<Record<string, unknown> | undefined> = [];
 vi.mock("@/lib/funding/data", () => ({
-  listGrants: async () => rows,
+  listGrants: async (opts?: Record<string, unknown>) => {
+    listGrantsCalls.push(opts);
+    return rows;
+  },
   getGrant: async (id: string) => rows.find((r) => r.id === id) ?? null,
 }));
 
@@ -29,7 +33,8 @@ import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import { parseGrantFilters, type SearchParamsLike } from "@/lib/funding/directory";
 import { GrantsDirectory, grantsMetadata } from "./grants-directory";
 import { revalidate } from "./page";
-import { dynamicParams, generateStaticParams, revalidate as stateRevalidate } from "./state/[state]/page";
+import * as statePage from "./state/[state]/page";
+import GrantsStatePage, { generateStaticParams, revalidate as stateRevalidate } from "./state/[state]/page";
 import { dynamic as viewDynamic } from "./view/page";
 
 async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParamsLike> }) {
@@ -82,11 +87,14 @@ rows.push(
   grant({ id: "wa-only", name: "WA Innovation Booster", state: "WA", level: "state", funding_type: "voucher", amount_max_aud: 40000, last_verified_at: "2026-09-01" }),
 );
 
-async function render(sp: Record<string, string> = {}): Promise<string> {
-  const el = await GrantsDirectory({ filters: parseGrantFilters(sp) });
+async function renderHtml(el: React.ReactNode): Promise<string> {
   const stream = await renderToReadableStream(el);
   await stream.allReady;
   return new Response(stream).text();
+}
+
+async function render(sp: Record<string, string> = {}): Promise<string> {
+  return renderHtml(await GrantsDirectory({ filters: parseGrantFilters(sp) }));
 }
 
 describe("/funding/grants — metadata and caching", () => {
@@ -102,11 +110,37 @@ describe("/funding/grants — metadata and caching", () => {
     expect(revalidate).toBe(3600);
   });
 
-  it("S31-D route split: base + per-state are static (ISR 1 h, one page per AU state, no on-demand params); the filtered view is dynamic", () => {
+  it("S31-D route split: base + per-state are static (ISR 1 h, one page per AU state); the filtered view is dynamic", () => {
     expect(stateRevalidate).toBe(3600);
-    expect(dynamicParams).toBe(false);
+    // L0-5: `dynamicParams = false` made Next 16 answer 404 (NoFallbackError)
+    // for every prerendered state once revalidateTag("au-funding", { expire: 0 })
+    // expired the cached entry — 9 state pages 404'd from 2026-10-04. Junk
+    // slugs are rejected by notFound() in the page instead (test below).
+    expect((statePage as Record<string, unknown>).dynamicParams).not.toBe(false);
     expect(generateStaticParams().map((p) => p.state)).toEqual(["national", "NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"]);
     expect(viewDynamic).toBe("force-dynamic");
+  });
+
+  it("L0-5: the state route 404s only for an unknown slug and asks for a strict (throw-on-outage) catalogue read", async () => {
+    for (const junk of ["XX", "nsw", "national%20", ""]) {
+      await expect(GrantsStatePage({ params: Promise.resolve({ state: junk }) })).rejects.toMatchObject({
+        digest: expect.stringMatching(/^NEXT_HTTP_ERROR_FALLBACK;404/),
+      });
+    }
+    listGrantsCalls.length = 0;
+    const html = await renderHtml(await GrantsStatePage({ params: Promise.resolve({ state: "NSW" }) }));
+    expect(html).toContain("NSW startup grants");
+    expect(listGrantsCalls).toEqual([{ excludeNonMatching: true, throwOnUnavailable: true }]);
+  });
+
+  it("L0-5: base ISR page reads strictly; the dynamic view keeps the degrade-to-empty read", async () => {
+    listGrantsCalls.length = 0;
+    await renderHtml(await GrantsDirectory({ filters: parseGrantFilters({}), throwOnUnavailable: true }));
+    await renderHtml(await GrantsDirectory({ filters: parseGrantFilters({ type: "grant" }) }));
+    expect(listGrantsCalls).toEqual([
+      { excludeNonMatching: true, throwOnUnavailable: true },
+      { excludeNonMatching: true, throwOnUnavailable: false },
+    ]);
   });
 
   it("a state-only filter is its own '<state> startup grants' landing page: self-canonical + state title; other filter combos canonicalise to the base (S8-A)", async () => {

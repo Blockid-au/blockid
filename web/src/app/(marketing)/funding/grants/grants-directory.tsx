@@ -87,11 +87,16 @@ export function grantsMetadata(filters: GrantFilters): Metadata {
   return pageMetadata({ title: GRANTS_TITLE, description: GRANTS_DESCRIPTION, path: PATH });
 }
 
-export async function GrantsDirectory({ filters }: { filters: GrantFilters }) {
+/**
+ * `throwOnUnavailable` — set by the ISR routes (base + per-state): a degraded
+ * catalogue read throws so Next keeps the last good page instead of caching
+ * an empty directory. The dynamic `/view` keeps the degrade-to-empty render.
+ */
+export async function GrantsDirectory({ filters, throwOnUnavailable = false }: { filters: GrantFilters; throwOnUnavailable?: boolean }) {
   const stateOnly = stateOnlyFilter(filters);
   const stateSeo = stateOnly ? grantsStateSeo(stateOnly) : null;
   const pagePath = stateOnly ? grantsStatePath(stateOnly) : PATH;
-  const all = await listGrants({ excludeNonMatching: true });
+  const all = await listGrants({ excludeNonMatching: true, throwOnUnavailable });
   const stats = grantStats(all);
   const rows = applyGrantFilters(all, filters);
   const filterState = (AU_STATES as readonly string[]).includes(filters.state ?? "") ? (filters.state as AuState) : null;

@@ -41,6 +41,9 @@ import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
+/** Strict catalogue reads for this ISR page — see lib/funding/data.ts. */
+const ISR_READ = { throwOnUnavailable: true } as const;
+
 type Params = { capital: string; id: string };
 
 export async function generateStaticParams(): Promise<Params[]> {
@@ -51,7 +54,7 @@ export async function generateStaticParams(): Promise<Params[]> {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { capital: slug, id } = await params;
   const capital = capitalFromSlug(slug);
-  const p = await getProgram(id);
+  const p = await getProgram(id, ISR_READ);
   if (!capital || !p || p.capital !== capital) {
     return pageMetadata({ title: { absolute: "Program not found" }, description: "This program is not in the BlockID directory.", path: "/funding/programs", index: false });
   }
@@ -62,10 +65,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 export default async function ProgramDetailPage({ params }: { params: Promise<Params> }) {
   const { capital: slug, id } = await params;
   const capital = capitalFromSlug(slug);
-  const p = await getProgram(id);
+  // ISR_READ: a DB failure throws (Next keeps the last good page); only a row
+  // that genuinely does not exist (or sits under another capital) 404s (L0-5).
+  const p = await getProgram(id, ISR_READ);
   if (!capital || !p || p.capital !== capital) notFound();
 
-  const [programs, grants] = await Promise.all([listPrograms({ capital }), listGrants()]);
+  const [programs, grants] = await Promise.all([listPrograms({ capital, ...ISR_READ }), listGrants(ISR_READ)]);
   const e = enrichProgram(p, { programs, grants });
 
   const capitalPath = `/funding/programs/${capitalSlug(capital)}`;

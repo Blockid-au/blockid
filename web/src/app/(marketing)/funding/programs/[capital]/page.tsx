@@ -65,7 +65,9 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
   if (!capital) notFound();
 
   const path = `/funding/programs/${capitalSlug(capital)}`;
-  const all = await listPrograms();
+  // Strict: a DB failure throws so ISR keeps the last good page instead of
+  // caching an empty city directory for an hour (L0-5).
+  const all = await listPrograms({ throwOnUnavailable: true });
   const counts = countByCapital(all);
   const rows = sortByStatusThenName(all.filter((p) => p.capital === capital));
   const calendar = buildIntakeCalendar(rows, new Date());

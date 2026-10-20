@@ -40,6 +40,9 @@ import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
+/** Strict catalogue reads for this ISR page — see lib/funding/data.ts. */
+const ISR_READ = { throwOnUnavailable: true } as const;
+
 type Params = { id: string };
 
 export async function generateStaticParams(): Promise<Params[]> {
@@ -49,7 +52,7 @@ export async function generateStaticParams(): Promise<Params[]> {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { id } = await params;
-  const g = await getGrant(id);
+  const g = await getGrant(id, ISR_READ);
   if (!g || g.exclude_from_matching) {
     return pageMetadata({ title: { absolute: "Grant not found" }, description: "This grant is not in the BlockID directory.", path: "/funding/grants", index: false });
   }
@@ -60,10 +63,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 export default async function GrantDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const g = await getGrant(id);
+  // ISR_READ: a DB failure throws (Next keeps the last good page); only a row
+  // that genuinely does not exist reaches notFound() (L0-5).
+  const g = await getGrant(id, ISR_READ);
   if (!g || g.exclude_from_matching) notFound();
 
-  const [grants, programs] = await Promise.all([listGrants(), listPrograms()]);
+  const [grants, programs] = await Promise.all([listGrants(ISR_READ), listPrograms(ISR_READ)]);
   const e = enrichGrant(g, { grants, programs });
 
   const eligibleHref = `/funding?grant=${encodeURIComponent(g.id)}`;

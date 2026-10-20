@@ -16,5 +16,5 @@ export const revalidate = 3600;
 export const metadata: Metadata = grantsMetadata(EMPTY_GRANT_FILTERS);
 
 export default function GrantsDirectoryPage() {
-  return <GrantsDirectory filters={EMPTY_GRANT_FILTERS} />;
+  return <GrantsDirectory filters={EMPTY_GRANT_FILTERS} throwOnUnavailable />;
 }

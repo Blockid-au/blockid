@@ -17,5 +17,8 @@ ProtectSystem=strict
 ReadWritePaths=/tmp /var/lib/blockid-maintenance
 ProtectHome=read-only
 PrivateTmp=false
-StandardOutput=null
+# L0-4: keep the one-line JSON summary (residual_pressure, action_needed) in
+# the journal so scripts/cron/disk-pressure-alert.sh can name the mount when
+# it alerts on a failed run. Was StandardOutput=null (silent failures).
+StandardOutput=journal
 StandardError=journal
