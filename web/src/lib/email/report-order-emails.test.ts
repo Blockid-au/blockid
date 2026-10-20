@@ -13,7 +13,9 @@ vi.mock("@/lib/email", () => ({
 import { nextStepsText, sendReportOrderInReview, sendReportOrderPaid, sendReportOrderReady, sydneyDueLabel } from "./report-order-emails";
 import { verifiedSlaDueAt } from "@/lib/time/au-business-days";
 
-beforeEach(() => sendEmailMock.mockClear());
+beforeEach(() => {
+  sendEmailMock.mockClear();
+});
 
 describe("report order e-mails", () => {
   it("paid: tier, amount (GST incl.), what happens next, order link", async () => {
@@ -21,7 +23,7 @@ describe("report order e-mails", () => {
     const a = sendEmailMock.mock.calls[0][0];
     expect(a.subject).toBe("Payment received — your BlockID Snapshot report");
     expect(a.html).toContain("A$19.00");
-    expect(a.html).toContain("GST included");
+    expect(a.html).toContain("A$19.00 inc. GST");
     expect(a.html).toContain("usually ready within an hour");
     expect(a.html).toContain("/workspace/reports/business?order=o1");
     expect(a.template).toBe("report_order_paid");

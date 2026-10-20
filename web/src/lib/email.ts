@@ -2629,7 +2629,7 @@ export async function sendGuestReport(params: {
   reportData: Record<string, unknown>;
   pdfUrl: string;
   guestAnalysisId: string;
-  /** G35 D26: the amount actually paid (cents, GST-incl.) — the tax-invoice line. Default 300 (the A$3 SKU). */
+  /** G35 D26: the amount actually paid (cents, inc. GST) — the tax-invoice line. Default 300 (the A$3 SKU). */
   amountPaidCents?: number | null;
   /** G35 D26: "Snapshot report" / "Full report" on a Pricing v5 guest order. */
   tierLabel?: string | null;

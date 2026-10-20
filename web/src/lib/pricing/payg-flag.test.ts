@@ -12,7 +12,9 @@ import { PAYG_CONFIG_DEFAULTS } from "./v5-payg";
 import { oneOffInvoiceCreation } from "@/lib/stripe/one-off-invoice";
 import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 
-beforeEach(() => getPlatformConfigMock.mockReset());
+beforeEach(() => {
+  getPlatformConfigMock.mockReset();
+});
 
 describe("readPaygConfig", () => {
   it("defaults (off) when platform_config says nothing", async () => {
@@ -32,7 +34,9 @@ describe("readPaygConfig", () => {
   });
 
   it("fails closed when platform_config cannot be read", async () => {
-    getPlatformConfigMock.mockRejectedValue(new Error("db down"));
+    getPlatformConfigMock.mockImplementation(() => {
+      throw new Error("db down");
+    });
     expect(await isPaygEnabled()).toBe(false);
   });
 });

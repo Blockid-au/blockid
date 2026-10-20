@@ -96,7 +96,7 @@ export async function sendReportOrderPaid(args: {
   const html = card(
     "BlockID — Payment received",
     `Thank you — your ${name} is paid`,
-    para(`We received ${esc(audCents(args.amountCents))} (GST included) for your ${esc(name)}. Stripe e-mails your tax invoice separately.`) +
+    para(`We received ${esc(audCents(args.amountCents))} inc. GST for your ${esc(name)}. Stripe e-mails your tax invoice separately.`) +
       para(esc(nextStepsText(args.tier, args.slaBusinessDays, args.isTierChange === true))),
     { href: orderUrl(args.orderId), label: "Track your report" },
     footerHtml,

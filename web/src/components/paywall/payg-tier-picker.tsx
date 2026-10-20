@@ -225,7 +225,7 @@ export function PaygTierPicker({ offer, businessId, surface, creditBalance = 0, 
           type="button"
           onClick={pay}
           disabled={pending !== null || !choice || !choice.offer.available}
-          aria-label={choice ? `Confirm and pay ${choice.offer.priceLabel}, GST included, via Stripe for the ${choiceTitle(choice)}` : "Confirm and pay"}
+          aria-label={choice ? `Confirm and pay ${choice.offer.priceLabel} inc. GST via Stripe for the ${choiceTitle(choice)}` : "Confirm and pay"}
           data-testid="payg-pay"
           className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-60"
         >

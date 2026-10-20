@@ -39,6 +39,9 @@ const recordMock = vi.fn();
 const findRecentMock = vi.fn();
 vi.mock("@/lib/evaluations/report-quota", () => ({
   REPORT_KIND_FEATURE: { full: "trust_report", rescore: "trust_report_rescore" },
+  // G35: beyond the quota a full report is report_full when payg_enabled (flag off here → today's features).
+  reportKindFeature: (kind: "full" | "rescore", payg: boolean) =>
+    payg && kind === "full" ? "report_full" : kind === "full" ? "trust_report" : "trust_report_rescore",
   previewReportCharge: (u: unknown, k: string) => previewMock(u, k),
   recordEvaluationReport: (i: unknown) => recordMock(i),
   findRecentEvaluationReport: (i: unknown) => findRecentMock(i),
