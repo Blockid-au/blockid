@@ -128,13 +128,29 @@
     "claim": "Annual plans are refunded pro-rata within 14 days; monthly plans carry a 7-day money-back guarantee on the first payment.",
     "class": "proven",
     "value": "14 days / 7 days",
-    "source": "content/legal/terms-v2.mdx #refunds; src/components/landing/faq-v2.tsx",
+    "source": "content/legal/terms-v2.mdx #refunds; src/lib/pricing/pricing-faq-copy.ts (shared by faq-v2.tsx and the /pricing FAQ JSON-LD since Pricing v5 P5)",
     "surfaces": [
       "/pricing"
     ],
     "reviewed": "2026-09-20",
     "patterns": [
       "within 14 days"
+    ]
+  },
+  {
+    "id": "snapshot-one-page",
+    "claim": "The Snapshot report (Pricing v5 PAYG, shown only with payg_enabled on) is a one-page PDF.",
+    "class": "proven",
+    "value": "1 page",
+    "source": "src/lib/pricing/v5-payg.ts PAYG_SKUS.report_snapshot.included (\"1-page PDF\"), docs/pricing-v5-plan.md §6.1",
+    "surfaces": [
+      "/",
+      "/one-click-report",
+      "/pricing"
+    ],
+    "reviewed": "2026-10-20",
+    "patterns": [
+      "1 page"
     ]
   },
   {

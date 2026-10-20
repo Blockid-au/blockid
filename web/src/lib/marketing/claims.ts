@@ -47,6 +47,9 @@ export const CLAIM_TREES: readonly string[] = [
   "src/components/marketing",
   "src/lib/marketing/hero-variants.ts",
   "src/lib/i18n/messages/en.json",
+  // Pricing v5 P5: the /pricing FAQ answers (refund window, Money Finder
+  // ladder) moved here so the FAQ JSON-LD and <FAQV2 /> share one string.
+  "src/lib/pricing/pricing-faq-copy.ts",
 ];
 
 /**

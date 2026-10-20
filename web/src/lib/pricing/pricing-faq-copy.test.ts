@@ -3,13 +3,8 @@
 
 import { describe, expect, it } from "vitest";
 import { PAYG_OFF_VIEW, PAYG_ON_VIEW, paygRefundSentence, paygView } from "@/lib/pricing/payg-copy";
-import {
-  moneyFinderFaqAnswer,
-  refundFaqAnswer,
-  refundFaqAnswerVi,
-  singleReportFaqSentence,
-  singleReportFaqSentenceVi,
-} from "./pricing-faq-copy";
+import { moneyFinderFaqAnswer, refundFaqAnswer, singleReportFaqSentence } from "./pricing-faq-copy";
+import { refundFaqAnswerVi, singleReportFaqSentenceVi } from "./pricing-faq-copy-vi";
 
 const PRE_V5_REFUND =
   "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.";

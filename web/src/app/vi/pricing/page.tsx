@@ -12,7 +12,7 @@ import { getMessages, t } from "@/lib/i18n/t";
 import { OG_IMAGE } from "@/lib/seo/page-meta";
 import { getPaygView } from "@/lib/pricing/payg-view.server";
 import type { PaygView } from "@/lib/pricing/payg-copy";
-import { refundFaqAnswerVi, singleReportFaqSentenceVi } from "@/lib/pricing/pricing-faq-copy";
+import { refundFaqAnswerVi, singleReportFaqSentenceVi } from "@/lib/pricing/pricing-faq-copy-vi";
 import { PaygBlock } from "@/components/pricing/payg-block";
 
 export const dynamic = "force-dynamic";

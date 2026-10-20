@@ -8,12 +8,7 @@
 // character-for-character (the amounts are derived from the legacy SKU rows,
 // never typed); flag ON returns the v5 copy. Pure, isomorphic.
 
-import {
-  paygRefundSentence,
-  paygSingleReportSentence,
-  paygSingleReportSentenceVi,
-  type PaygView,
-} from "@/lib/pricing/payg-copy";
+import { paygRefundSentence, paygSingleReportSentence, type PaygView } from "@/lib/pricing/payg-copy";
 
 /** "Without a subscription, …" — the single-report sentence closing the plan-switch FAQ answer. */
 export function singleReportFaqSentence(view: PaygView): string {
@@ -32,19 +27,4 @@ export function moneyFinderFaqAnswer(view: PaygView): string {
   return `A ranked scan of Australian grants, programs and events your startup qualifies for. Free = the preview (how many you match, top 3 named) and the open-grants directory · ${view.funding} = the full Money Finder report per startup — ranked matches, eligibility checklist, 12-month timeline, PDF · Starter A$29 = Founder Radar deadline alerts and monthly re-match, with full reports included · Growth A$69 = the same, with 45 credits a month for application drafts. A grants consultant charges A$500–2,000 for this scan.`;
 }
 
-// ─── Vietnamese mirrors (/vi/pricing) ───────────────────────────────────────
-
-/** VI single-report sentence. OFF = today's /vi/pricing text. */
-export function singleReportFaqSentenceVi(view: PaygView): string {
-  return view.enabled
-    ? paygSingleReportSentenceVi(view)
-    :`Không có gói thì mỗi Trusted Business Report là ${view.reportEntry} cho một startup.`;
-}
-
-/** VI refund answer. OFF = today's /vi/pricing text. */
-export function refundFaqAnswerVi(view: PaygView): string {
-  const oneOff = view.enabled
-    ? "Báo cáo lẻ (Snapshot, Full, Verified, Money Finder) và gói tín dụng không hoàn tiền sau khi đã giao, trừ khi Luật Người tiêu dùng Úc yêu cầu; báo cáo Verified còn đang được xem xét sẽ được hoàn đủ khi bạn yêu cầu."
-    : `Báo cáo lẻ ${view.reportEntry} và gói tín dụng không hoàn tiền sau khi đã giao, trừ khi Luật Người tiêu dùng Úc yêu cầu.`;
-  return `Hoàn tiền 100% trong 7 ngày cho khoản thanh toán gói tháng đầu tiên, không cần lý do — email hỗ trợ và chúng tôi hoàn tiền trong 3 ngày làm việc. Gói năm được hoàn theo tỷ lệ nếu huỷ trong 14 ngày. ${oneOff} Quyền lợi của bạn theo Luật Người tiêu dùng Úc không bao giờ bị loại trừ. Chính sách đầy đủ: /legal/terms#refunds.`;
-}
+// Vietnamese mirrors live in ./pricing-faq-copy-vi.ts.
