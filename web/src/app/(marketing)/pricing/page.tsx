@@ -17,13 +17,19 @@ import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 import { GST_POLICY_LINE } from "@/lib/plans-v2";
 import { checkoutReviewHref } from "@/lib/billing/checkout-review";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
+import type { PaygView } from "@/lib/pricing/payg-copy";
+import { moneyFinderFaqAnswer, refundFaqAnswer, singleReportFaqSentence } from "@/lib/pricing/pricing-faq-copy";
+import { PaygBlock } from "@/components/pricing/payg-block";
 
 // S31-D: static + ISR (300 s, the edge TTL in
 // lib/security/public-cacheable-routes.ts). The catalogue is code
-// (`lib/plans-v2`), there is no Supabase read on this page any more, and
-// the `?segment=` deep link is resolved client-side by
-// <PricingSegmentSwitch> instead of via `searchParams` (which would force a
-// per-request render).
+// (`lib/plans-v2`); the one data read is `getPaygView()` (Pricing v5 P5 —
+// `platform_config.payg_enabled` + the PAYG display prices), which goes
+// through getPlatformConfig's 60 s cache, never throws and falls back to the
+// flag-OFF view, so the page stays ISR. The `?segment=` deep link is
+// resolved client-side by <PricingSegmentSwitch> instead of via
+// `searchParams` (which would force a per-request render).
 export const revalidate = 300;
 
 // 2026-09-07 (Workstream B5) retired the four persona tabs (Founder /
@@ -57,7 +63,11 @@ export const metadata: Metadata = pageMetadata({
   viPath: "/vi/pricing",
 });
 
-const FAQ_JSONLD = [
+// Pricing v5 P5: the three answers that name a one-off price come from
+// lib/pricing/pricing-faq-copy (shared with <FAQV2 />) and follow the
+// payg_enabled flag — OFF reproduces the pre-v5 text exactly.
+function pricingFaqJsonLd(view: PaygView): { question: string; answer: string }[] {
+  return [
   {
     question: "What happens after the 7-day free trial?",
     // QA-3 (2026-09-12): mirrors Terms v2.1 clause 3 + faq-v2.tsx.
@@ -77,7 +87,8 @@ const FAQ_JSONLD = [
   {
     question: "Founder, Evaluator or Programs — which plans do I see?",
     answer:
-      "Use the Founder / Evaluator / Programs switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149, Program A$349 and Fund A$999 for angels, advisory firms, VC teams and funds — each with a 7-day free trial, card required, cancel anytime. Programs shows the Intake link (A$2,490 a year), Cohort 25 (A$5,000 a year) and Cohort 100 (A$15,000 a year) for accelerators, incubators and university programs, billed annually with a 14-day free trial. Without a subscription, every full Trusted Business Report is A$3 per startup.",
+      "Use the Founder / Evaluator / Programs switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149, Program A$349 and Fund A$999 for angels, advisory firms, VC teams and funds — each with a 7-day free trial, card required, cancel anytime. Programs shows the Intake link (A$2,490 a year), Cohort 25 (A$5,000 a year) and Cohort 100 (A$15,000 a year) for accelerators, incubators and university programs, billed annually with a 14-day free trial. " +
+      singleReportFaqSentence(view),
   },
   {
     question: "What does Fund add over Program, and what is the Intake link?",
@@ -88,18 +99,17 @@ const FAQ_JSONLD = [
     question: "What's the refund policy?",
     // QA-3 (2026-09-12): the ONE refund policy — Terms v2.1 clause 3A
     // (/legal/terms#refunds). Keep identical to faq-v2.tsx.
-    answer:
-      "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.",
+    answer: refundFaqAnswer(view),
   },
   {
     // G11 (2026-09-10, T0249): Money Finder ladder — mirrors faq-v2.tsx.
     // `grant_finder` is a plain plan flag (Starter, Growth, Package) with
     // no monthly quota in code, so the copy says "included", not "1/mo".
     question: "What is the Grant & Program Finder (Money Finder)?",
-    answer:
-      "A ranked scan of Australian grants, programs and events your startup qualifies for. Free = the preview (how many you match, top 3 named) and the open-grants directory · A$3 = the full Money Finder report per startup — ranked matches, eligibility checklist, 12-month timeline, PDF · Starter A$29 = Founder Radar deadline alerts and monthly re-match, with full reports included · Growth A$69 = the same, with 45 credits a month for application drafts. A grants consultant charges A$500–2,000 for this scan.",
+    answer: moneyFinderFaqAnswer(view),
   },
-];
+  ];
+}
 
 // ---------------------------------------------------------------------------
 // Page
@@ -108,7 +118,7 @@ const FAQ_JSONLD = [
 export default async function PricingPage() {
   // Annual toggle honesty (2026-09-16 audit): only rungs with a yearly
   // Stripe Price render a per-year figure + carry `interval=annual`.
-  const [annualAvailable, purchasable] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds()]);
+  const [annualAvailable, purchasable, payg] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds(), getPaygView()]);
   // Founding-50 promo sunset 2026-09-01 (Phase 3b) — the urgency banner
   // that used to live here linked to the (now deleted) /founding-50 route
   // and has been removed outright. `getFoundingPromoState()` still exists
@@ -116,7 +126,7 @@ export default async function PricingPage() {
   // consumed by this page.
   return (
     <MarketingShell>
-      <FAQJsonLd items={FAQ_JSONLD} />
+      <FAQJsonLd items={pricingFaqJsonLd(payg)} />
       <BreadcrumbListJsonLd
         items={[
           { name: "Home", href: "/" },
@@ -179,7 +189,10 @@ export default async function PricingPage() {
         {/* G25: the Programs tab is the sold ladder only (Intake link /
             Cohort 25 / Cohort 100, card-required trial) — the G21 pilot rung
             was retired 2026-09-21. */}
-        <PricingSegmentSwitch annualAvailable={annualAvailable} purchasable={purchasable} />
+        <PricingSegmentSwitch annualAvailable={annualAvailable} purchasable={purchasable} payg={payg} />
+        {/* Pricing v5 P5: "Pay as you go" (Snapshot / Full / Verified) —
+            renders nothing while platform_config.payg_enabled is off. */}
+        <PaygBlock view={payg} />
         {/* G11 §4g anchor line (T0249): prices the Money Finder scan against
             what a grants consultant charges. Sits under the ladder, outside
             <PricingMatrix /> so the matrix component stays untouched. */}
@@ -188,7 +201,7 @@ export default async function PricingPage() {
           className="mx-auto mt-6 max-w-3xl text-center text-sm text-secondary"
         >
           Every Founder plan includes the Grant &amp; Program Finder — free
-          preview, A$3 for a full report, alerts and re-match from Starter. A
+          preview, {payg.funding} for a full report, alerts and re-match from Starter. A
           grants consultant charges A$500–2,000 for this scan.{" "}
           <Link
             href="/funding"
@@ -208,7 +221,7 @@ export default async function PricingPage() {
 
       {/* FAQ — <FAQV2 /> carries its own heading; the JSON-LD above mirrors it. */}
       <Section id="faq-band" ariaLabel="Frequently asked questions" spacing="sm">
-        <FAQV2 />
+        <FAQV2 payg={payg} />
       </Section>
 
       {/* Enterprise */}

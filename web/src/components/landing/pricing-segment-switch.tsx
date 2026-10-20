@@ -49,6 +49,7 @@ import {
   pricingViewVia,
   type PricingTab,
 } from "@/components/landing/pricing-tab";
+import type { PaygView } from "@/lib/pricing/payg-copy";
 
 export { TAB_TO_SEGMENT, resolvePricingTab };
 export type { PricingTab };
@@ -74,6 +75,11 @@ export interface PricingSegmentSwitchProps {
   // only: Intake link / Cohort 25 / Cohort 100 with the card-required trial.
   /** G25-D: `vi` → the card CTAs link to `/vi/checkout/review`. */
   locale?: "en" | "vi";
+  /**
+   * Pricing v5 P5: the server-read `payg_enabled` view, forwarded to
+   * <PricingMatrix>. Omitted = flag OFF (today's founder footnote / bullets).
+   */
+  payg?: PaygView;
 }
 
 const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
@@ -113,6 +119,7 @@ export function PricingSegmentSwitch({
   annualAvailable,
   purchasable,
   locale = "en",
+  payg,
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
   // server document), the deep-linked tab on the first client render. A
@@ -234,7 +241,7 @@ export function PricingSegmentSwitch({
         id={`pricing-panel-${tab}`}
         aria-labelledby={`pricing-tab-${tab}`}
       >
-        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} locale={locale} />
+        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} locale={locale} payg={payg} />
       </div>
     </div>
   );
