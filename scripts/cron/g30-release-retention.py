@@ -288,6 +288,10 @@ def retention_plan(web: Path, keep: int, ss=None):
         for name, record in transitions:
             if references_port(record, port):
                 reasons.append(f"unfinished transition {name} :{port}")
+        # g30-origin-retire.py recovery needs the entry until its journal says stopped.
+        for record in (state.get("originRetirements") or {}).values():
+            if isinstance(record, dict) and record.get("entry") == entry and record.get("status") != "stopped":
+                reasons.append(f"retirement in progress :{port} ({record.get('status')})")
         if reasons:
             keep_entries.append(entry)
             for reason in reasons:

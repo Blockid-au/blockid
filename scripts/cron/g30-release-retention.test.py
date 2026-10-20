@@ -259,6 +259,16 @@ class RetentionTest(unittest.TestCase):
         self.assertIn("build-5", self.names())
         self.assertIn(4105, {e["port"] for e in self.read_state()["retained"]})
 
+    def test_unfinished_retirement_journal_keeps_origin(self):
+        self.state["originRetirements"] = {
+            "f1": {"entry": self.entries[4], "status": "signal_requested"},
+            "f2": {"entry": self.entries[5], "status": "stopped"}}
+        self.write_state()
+        self.assertEqual(self.run_helper("--apply").returncode, 0)
+        self.assertIn("build-4", self.names())
+        self.assertNotIn("build-5", self.names())
+        self.assertIn("f2", self.read_state()["originRetirements"])
+
     def test_unknown_liveness_is_kept(self):
         with patch.object(retention, "liveness", return_value="unknown"):
             plan = retention.retention_plan(self.web, 2, SS)
