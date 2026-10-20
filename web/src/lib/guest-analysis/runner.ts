@@ -41,6 +41,7 @@ import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import { sendGuestReport } from "@/lib/email";
+import { guestPaygStamp, guestPdfTier, guestTierLabel } from "./payg-stamp";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -184,29 +185,6 @@ async function ensureBucket(supabase: SupabaseAdmin): Promise<void> {
       );
     }
   }
-}
-
-// ── G35 D26: Pricing v5 guest tier ─────────────────────────────────────────
-
-export interface GuestPaygStamp {
-  tier: "snapshot" | "full";
-  sku: string;
-  pricing_version: string;
-}
-
-/** The tier create-order stamped on `report_data.payg` (null on the A$3 SKU or anything malformed). */
-export function guestPaygStamp(reportData: unknown): GuestPaygStamp | null {
-  if (!reportData || typeof reportData !== "object") return null;
-  const p = (reportData as { payg?: unknown }).payg;
-  if (!p || typeof p !== "object") return null;
-  const { tier, sku, pricing_version } = p as Record<string, unknown>;
-  if (tier !== "snapshot" && tier !== "full") return null;
-  return { tier, sku: typeof sku === "string" ? sku : `report_${tier}`, pricing_version: typeof pricing_version === "string" ? pricing_version : "v5" };
-}
-
-/** PDF depth per guest tier: Snapshot → the short "preview" cut; Full / legacy A$3 → "standard" (unchanged). */
-export function guestPdfTier(stamp: GuestPaygStamp | null): "preview" | "standard" {
-  return stamp?.tier === "snapshot" ? "preview" : "standard";
 }
 
 // ── Main entry ─────────────────────────────────────────────────────────────
@@ -595,7 +573,7 @@ export async function runGuestAnalysis(
         reportData,
         pdfUrl: reportPdfUrl ?? "",
         guestAnalysisId,
-        ...(paygStamp ? { amountPaidCents: paidCents, tierLabel: paygStamp.tier === "snapshot" ? "Snapshot report" : "Full report" } : {}),
+        ...(paygStamp ? { amountPaidCents: paidCents, tierLabel: guestTierLabel(paygStamp) } : {}),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
