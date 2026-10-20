@@ -17,6 +17,7 @@ import catalogue from "@/config/pricing/stripe-price-catalogue.json";
 import { GENERATED_PLANS } from "@/config/pricing/plans.generated";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { REPORT_SKUS } from "@/lib/pricing/v3-skus";
+import { PAYG_SKU_LIST } from "@/lib/pricing/v5-payg";
 import { EQUITY_ADDON_MONTHLY_AUD } from "@/lib/plans-v2";
 
 export type CatalogueInterval = "month" | "year" | "one_off";
@@ -33,6 +34,8 @@ export interface CataloguePrice {
   retired?: boolean;
   /** G21 P0-C: sold by the site, price not yet minted by the founder (env var unset → contact fallback). */
   founder_mints?: boolean;
+  /** G35 P1: "v5" for the pay-as-you-go rows (lib/pricing/v5-payg.ts). */
+  pricing_version?: string;
 }
 
 export const STRIPE_PRICE_CATALOGUE: Readonly<Record<string, CataloguePrice>> =
@@ -46,7 +49,7 @@ export interface StripeMapRow {
   /** A$ the site advertises, in cents, GST-inclusive. */
   expected_cents: number;
   /** Where the row's expectation comes from. */
-  source: "plans.csv" | "credit-packs" | "v3-skus" | "plans-v2";
+  source: "plans.csv" | "credit-packs" | "v3-skus" | "plans-v2" | "v5-payg";
 }
 
 /**
@@ -104,6 +107,18 @@ export function stripeMapRows(): StripeMapRow[] {
       interval: "one_off",
       expected_cents: sku.unit_amount_incl_gst_cents,
       source: "v3-skus",
+    });
+  }
+
+  // G35 P1 — Pricing v5 PAYG (behind platform_config.payg_enabled). The
+  // catalogue rows are `founder_mints` until the founder mints them.
+  for (const sku of PAYG_SKU_LIST) {
+    rows.push({
+      plan_id: sku.id,
+      env_var: sku.envVar,
+      interval: "one_off",
+      expected_cents: sku.amountCents,
+      source: "v5-payg",
     });
   }
 

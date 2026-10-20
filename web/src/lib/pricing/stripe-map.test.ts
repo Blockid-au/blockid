@@ -13,6 +13,7 @@ import { GENERATED_PLANS, GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.g
 import { PLANS_V2, PUBLIC_HIDDEN_PLAN_IDS, publicPlansForSegment } from "@/lib/plans-v2";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { TRUST_REPORT_AMOUNT_CENTS } from "@/lib/pricing/trust-report-price";
+import { PAYG_SKU_LIST } from "@/lib/pricing/v5-payg";
 import {
   STRIPE_PRICE_CATALOGUE,
   legacyCatalogueEnvVars,
@@ -125,6 +126,34 @@ describe("stripe-map — every sold SKU resolves to a catalogue price at the adv
     expect(STRIPE_PRICE_CATALOGUE.STRIPE_PRICE_FOUNDER_SCALE!.active).toBe(false);
     expect(PUBLIC_HIDDEN_PLAN_IDS).toContain("founder_scale");
     expect(GENERATED_PLANS_BY_ID.founder_scale!.active).toBe(false);
+  });
+});
+
+describe("stripe-map — G35 P1 Pricing v5 PAYG rows", () => {
+  it("maps all six v5 SKUs to their env var at the catalogue amount, one-off, GST-inclusive, founder_mints", () => {
+    const v5 = ROWS.filter((r) => r.source === "v5-payg");
+    expect(v5.map((r) => [r.plan_id, r.env_var, r.expected_cents])).toEqual(
+      PAYG_SKU_LIST.map((s) => [s.id, s.envVar, s.amountCents]),
+    );
+    for (const r of v5) {
+      const c = STRIPE_PRICE_CATALOGUE[r.env_var]!;
+      expect(c.plan_id, r.env_var).toBe(r.plan_id);
+      expect(c.interval, r.env_var).toBe("one_off");
+      expect(c.tax_behavior, r.env_var).toBe("inclusive");
+      expect(c.founder_mints, r.env_var).toBe(true);
+      expect(c.pricing_version, r.env_var).toBe("v5");
+    }
+  });
+
+  it("every row's env var is unique (no two SKUs bill through one Price)", () => {
+    const vars = ROWS.map((r) => r.env_var);
+    expect(new Set(vars).size).toBe(vars.length);
+  });
+
+  it("the legacy A$3 rows stay mapped until the cut-over (late webhooks + archive step)", () => {
+    for (const env of ["STRIPE_PRICE_TRUST_REPORT_5AUD", "STRIPE_PRICE_ONE_CLICK_REPORT", "STRIPE_PRICE_FUNDING_REPORT"]) {
+      expect(ROWS.find((r) => r.env_var === env), env).toBeDefined();
+    }
   });
 });
 

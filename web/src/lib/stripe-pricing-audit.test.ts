@@ -629,3 +629,115 @@ describe("stripe-pricing-audit — createFreshStripePrice", () => {
     expect(res.envVarName).toBe("STRIPE_PRICE_GROWTH_ANNUAL");
   });
 });
+
+// ─── G35 P1 — Pricing v5 PAYG rows ───────────────────────────────────────────
+
+describe("stripe-pricing-audit — G35 P1 Pricing v5 PAYG rows", () => {
+  const V5_ENV = [
+    "STRIPE_PRICE_REPORT_SNAPSHOT",
+    "STRIPE_PRICE_REPORT_FULL",
+    "STRIPE_PRICE_REPORT_VERIFIED",
+    "STRIPE_PRICE_UPGRADE_SNAPSHOT_FULL",
+    "STRIPE_PRICE_UPGRADE_FULL_VERIFIED",
+    "STRIPE_PRICE_REPORT_FUNDING",
+  ] as const;
+
+  beforeEach(() => {
+    for (const k of V5_ENV) delete process.env[k];
+  });
+
+  function paygConfig(overrides: Record<string, unknown> = {}) {
+    return {
+      ...makeConfig(),
+      payg_enabled: false,
+      payg_snapshot_cents: 1900,
+      payg_full_cents: 4900,
+      payg_verified_cents: 14900,
+      ...overrides,
+    } as unknown as Awaited<ReturnType<typeof getPlatformConfigMock>>;
+  }
+
+  it("lists the six v5 Prices after the v2 rows, one-off, at the catalogue amounts, tagged v5", async () => {
+    getStripeMock.mockReturnValue(makeStripe().stripe);
+    getPlatformConfigMock.mockResolvedValue(paygConfig());
+    const { rows } = await runStripePricingAudit();
+    const v5 = rows.filter((r) => r.pricingVersion === "v5");
+    expect(v5.map((r) => [r.planId, r.expectedCents])).toEqual([
+      ["report_snapshot", 1900],
+      ["report_full", 4900],
+      ["report_verified", 14900],
+      ["upgrade_snapshot_full", 3000],
+      ["upgrade_full_verified", 10000],
+      ["report_funding", 1900],
+    ]);
+    for (const r of v5) expect(r.cadence).toBe("one-off");
+    // v5 rows come last.
+    expect(rows.slice(-6).map((r) => r.planId)).toEqual(v5.map((r) => r.planId));
+  });
+
+  it("unminted v5 Prices are pendingMint while payg_enabled is off — they do not raise hasMissingIds on their own", async () => {
+    getStripeMock.mockReturnValue(makeStripe().stripe);
+    getPlatformConfigMock.mockResolvedValue(paygConfig());
+    const { rows } = await runStripePricingAudit();
+    const full = rowFor(rows, "report_full");
+    expect(full.status).toBe("missing_price_id");
+    expect(full.pendingMint).toBe(true);
+    expect(full.remediation).toContain("mint-payg-v5.mjs");
+    expect(full.remediation).toContain("STRIPE_PRICE_REPORT_FULL");
+  });
+
+  it("once payg_enabled is ON a missing v5 Price is a real missing id", async () => {
+    getStripeMock.mockReturnValue(makeStripe().stripe);
+    getPlatformConfigMock.mockResolvedValue(paygConfig({ payg_enabled: true }));
+    const result = await runStripePricingAudit();
+    expect(rowFor(result.rows, "report_full").pendingMint).toBe(false);
+    expect(result.hasMissingIds).toBe(true);
+  });
+
+  it("a minted v5 Price matching both the catalogue and the display price is clean", async () => {
+    process.env.STRIPE_PRICE_REPORT_FULL = "price_full";
+    const { stripe } = makeStripe({ prices: { price_full: { unit_amount: 4900, currency: "aud", active: true, type: "one_time" } } });
+    getStripeMock.mockReturnValue(stripe);
+    getPlatformConfigMock.mockResolvedValue(paygConfig());
+    const result = await runStripePricingAudit();
+    const full = rowFor(result.rows, "report_full");
+    expect(full.status).toBe("match");
+    expect(full.displayCents).toBe(4900);
+    expect(full.displayDrift).toBe(false);
+    expect(result.hasDisplayDrift).toBe(false);
+  });
+
+  it("flags display drift when platform_config shows a different price than Stripe charges", async () => {
+    process.env.STRIPE_PRICE_REPORT_FULL = "price_full";
+    const { stripe } = makeStripe({ prices: { price_full: { unit_amount: 4900, currency: "aud", active: true, type: "one_time" } } });
+    getStripeMock.mockReturnValue(stripe);
+    getPlatformConfigMock.mockResolvedValue(paygConfig({ payg_full_cents: 5900 }));
+    const result = await runStripePricingAudit();
+    const full = rowFor(result.rows, "report_full");
+    expect(full.status).toBe("match"); // Stripe still equals the catalogue
+    expect(full.displayCents).toBe(5900);
+    expect(full.displayDrift).toBe(true);
+    expect(full.remediation).toMatch(/Display drift/);
+    expect(result.hasDisplayDrift).toBe(true);
+    expect(result.hasDrift).toBe(false);
+  });
+
+  it("a v5 Price minted at the wrong amount is drift (charged ≠ catalogue) and also display drift", async () => {
+    process.env.STRIPE_PRICE_REPORT_SNAPSHOT = "price_snap";
+    const { stripe } = makeStripe({ prices: { price_snap: { unit_amount: 300, currency: "aud", active: true, type: "one_time" } } });
+    getStripeMock.mockReturnValue(stripe);
+    getPlatformConfigMock.mockResolvedValue(paygConfig());
+    const result = await runStripePricingAudit();
+    const snap = rowFor(result.rows, "report_snapshot");
+    expect(snap.status).toBe("drift");
+    expect(snap.displayDrift).toBe(true);
+    expect(result.hasDrift).toBe(true);
+  });
+
+  it("createFreshStripePrice refuses v5 SKUs without touching Stripe", async () => {
+    const res = await createFreshStripePrice("report_verified");
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain("mint-payg-v5.mjs");
+    expect(getStripeMock).not.toHaveBeenCalled();
+  });
+});

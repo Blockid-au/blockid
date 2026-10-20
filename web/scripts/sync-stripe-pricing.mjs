@@ -96,6 +96,17 @@ const PLANS = [
   { planId: "accelerator_growth_annual", label: "Cohort 100 — annual",   configCents: 1500000, cadence: "yearly",  envVar: "STRIPE_PRICE_ACCEL_GROWTH_ANNUAL",      taxBehavior: "inclusive" },
   { planId: "index_api",                label: "Index API — monthly",    configCents: 29900,   cadence: "monthly", envVar: "STRIPE_PRICE_INDEX_API",                taxBehavior: "inclusive" },
   { planId: "index_api_annual",         label: "Index API — annual",     configCents: 299000,  cadence: "yearly",  envVar: "STRIPE_PRICE_INDEX_API_ANNUAL",         taxBehavior: "inclusive" },
+  // Pricing v5 pay-as-you-go (G35 P1). Cents MUST equal PAYG_SKUS[].amountCents
+  // in src/lib/pricing/v5-payg.ts (pinned by scripts/stripe/mint-payg-v5.test.mjs).
+  // Audited here like every other row, but NEVER minted by --fix: v5 Products
+  // are keyed by metadata.sku and minted only by scripts/stripe/mint-payg-v5.mjs
+  // (test mode first, refuses to mutate an existing Price).
+  { planId: "report_snapshot",       label: "PAYG Snapshot (v5)",           configCents: 1900,  cadence: "one-off", envVar: "STRIPE_PRICE_REPORT_SNAPSHOT",       taxBehavior: "inclusive", mintVia: "mint-payg-v5" },
+  { planId: "report_full",           label: "PAYG Full (v5)",               configCents: 4900,  cadence: "one-off", envVar: "STRIPE_PRICE_REPORT_FULL",           taxBehavior: "inclusive", mintVia: "mint-payg-v5" },
+  { planId: "report_verified",       label: "PAYG Verified (v5)",           configCents: 14900, cadence: "one-off", envVar: "STRIPE_PRICE_REPORT_VERIFIED",       taxBehavior: "inclusive", mintVia: "mint-payg-v5" },
+  { planId: "upgrade_snapshot_full", label: "PAYG Upgrade Snapshot→Full",   configCents: 3000,  cadence: "one-off", envVar: "STRIPE_PRICE_UPGRADE_SNAPSHOT_FULL", taxBehavior: "inclusive", mintVia: "mint-payg-v5" },
+  { planId: "upgrade_full_verified", label: "PAYG Upgrade Full→Verified",   configCents: 10000, cadence: "one-off", envVar: "STRIPE_PRICE_UPGRADE_FULL_VERIFIED", taxBehavior: "inclusive", mintVia: "mint-payg-v5" },
+  { planId: "report_funding",        label: "Money Finder report (v5)",     configCents: 1900,  cadence: "one-off", envVar: "STRIPE_PRICE_REPORT_FUNDING",        taxBehavior: "inclusive", mintVia: "mint-payg-v5" },
 ];
 
 // Stripe cadence for a plan row: one-off → "one_time"; monthly / yearly →
@@ -132,7 +143,8 @@ for (const plan of PLANS) {
     const price = await stripe.prices.retrieve(priceId);
     const cadenceLabel = price.type === "recurring" ? `/${price.recurring?.interval ?? "?"}` : " once";
     const actual = `${price.currency.toUpperCase()} ${price.unit_amount}¢${cadenceLabel}`;
-    const amountOk = price.unit_amount === plan.configCents && price.currency === "aud";
+    const amountOk = price.unit_amount === plan.configCents && price.currency === "aud"
+      && (!plan.taxBehavior || plan.mintVia !== "mint-payg-v5" || price.tax_behavior === plan.taxBehavior);
     const cadenceOk = cadenceMatches(plan, price);
     const match = amountOk && cadenceOk && price.active;
     const status = !price.active ? "ARCHIVED" : !amountOk ? "DRIFT" : !cadenceOk ? "CADENCE_DRIFT" : "MATCH";
@@ -164,6 +176,7 @@ console.log(`\nCreating new Stripe Prices...\n`);
 
 for (const { plan } of drifts) {
   if (RETIRED.has(plan.planId)) { console.log(`  ⏭  ${plan.planId}: retired SKU — archive in Stripe, not re-minted`); continue; }
+  if (plan.mintVia === "mint-payg-v5") { console.log(`  ⏭  ${plan.planId}: Pricing v5 SKU — mint with node scripts/stripe/mint-payg-v5.mjs (keyed by metadata.sku), never here`); continue; }
   console.log(`→ ${plan.label} (planId=${plan.planId})`);
 
   // Find or create the parent Product

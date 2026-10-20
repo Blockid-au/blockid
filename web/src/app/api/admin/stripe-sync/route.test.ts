@@ -157,3 +157,16 @@ describe("POST /api/admin/stripe-sync", () => {
     );
   });
 });
+
+describe("POST /api/admin/stripe-sync — G35 P1 Pricing v5 SKUs", () => {
+  it("409s for every v5 SKU (minted only by scripts/stripe/mint-payg-v5.mjs) and never calls createFreshStripePrice", async () => {
+    for (const planId of ["report_snapshot", "report_full", "report_verified", "upgrade_snapshot_full", "upgrade_full_verified", "report_funding"]) {
+      const res = await POST(postReq({ planId }));
+      expect(res.status, planId).toBe(409);
+      const body = await json(res);
+      expect(body.error as string).toContain("mint-payg-v5.mjs");
+    }
+    expect(mocks.createFreshStripePrice).not.toHaveBeenCalled();
+  });
+});
+
