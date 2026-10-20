@@ -16,6 +16,7 @@ import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { SolutionsPageShell } from "../../../(marketing)/solutions/solutions-shared";
 import { buildAdvisorProps } from "../../../(marketing)/solutions/evaluator-page-props";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const SITE_URL = "https://blockid.au";
 const CANONICAL_EN = `${SITE_URL}/solutions/advisor`;
@@ -51,5 +52,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ViSolutionsAdvisorPage() {
   const m = await getMessages("vi");
-  return <SolutionsPageShell {...buildAdvisorProps(m, "vi")} />;
+  return <SolutionsPageShell {...buildAdvisorProps(m, "vi", await getPaygView())} />;
 }

@@ -35,7 +35,7 @@ export const ALLOW: Readonly<Record<string, string>> = {
   "components/analyze/guest-paid-checkout.tsx":
     "A$3 guest report quote panel — price inc. GST + e-mail, posts to /api/guest-analysis/create-order from the 'Pay {price} & get my report' button only.",
   "app/(marketing)/one-click-report/one-click-form.tsx":
-    "The /one-click-report checkout landing — the price IS the offer (A$3 inc. GST, invoice note); the submit reads 'Pay A$3 & get my report'.",
+    "The /one-click-report checkout landing — the price IS the offer (A$3 inc. GST, invoice note); the submit reads 'Pay A$3 & get my report'. Pricing v5 P5 (payg_enabled, D26): the visitor picks Snapshot / Full on the form (price inc. GST shown per option) and the submit reads 'Review and pay — Snapshot A$19' / '— Full A$49'.",
   "components/funding/funding-paywall.tsx":
     "Money Finder A$3 paywall — price inc. GST, one-off, posts to /api/funding/checkout from the 'Pay A$3 & unlock' button only.",
   "components/paywall/ReportPaywallGate.tsx":

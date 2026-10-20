@@ -6,6 +6,7 @@ import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
 import { JOURNEY_VOCAB_VERSION } from "@/lib/journey-vocabulary";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { paygView, rescoreLabel } from "@/lib/pricing/payg-copy";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import { WEBHOOK_VERIFY_EXPRESS_EXAMPLE, WEBHOOK_VERIFY_SNIPPET } from "@/lib/webhooks/sign";
 
@@ -248,6 +249,9 @@ const WORKFLOW_DOCS: DocEntry[] = [
 
 export default async function DocsPage() {
   const cfg = await getPlatformConfig();
+  // Pricing v5 P5: the one-off report copy follows platform_config.payg_enabled
+  // (same config read — paygView is pure). OFF = the pre-v5 single price.
+  const payg = paygView(cfg);
   // Prices come from the generated catalogue (plans.csv), not from
   // platform_config: `growth_price_monthly_cents` there still defaults to
   // the legacy 9900 (A$99), which is how this page said "reverts to A$99/mo"
@@ -422,7 +426,9 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               that investors, accelerators and advisors use to compare deals, and
               that founders use to see where they stand. Evaluators pay for the
               workspace, the reports and the API; founders score for free and
-              can unlock the full Trusted Business Report for A$3. The founder
+              {payg.enabled
+                ? ` can buy a single Trusted Business Report from ${payg.snapshot} (Snapshot, Full or Verified).`
+                : ` can unlock the full Trusted Business Report for ${payg.reportEntry}.`} The founder
               journey — Idea → Validation → MVP / Early Revenue → Seed → Series A
               → Series B/C → Late-stage → Public / Exit — is the same 8-stage
               vocabulary every report, dashboard and data-room row uses. Every
@@ -569,21 +575,41 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
             <h2 className="text-2xl font-bold text-ink-800 mb-2">
               Pricing ladder
             </h2>
-            <p className="text-sm text-ink-600 mb-4">
-              One report price for everyone — <strong>A$3</strong> buys the full
-              Trusted Business Report (8 dimensions, AUD valuation range,
-              C-suite review, auditor flags, next-step plan) on any startup,
-              whether you are its founder or someone evaluating it.
-              Subscriptions sell the workspace that keeps the score, not
-              access to the report.
-            </p>
+            {payg.enabled ? (
+              <p className="text-sm text-ink-600 mb-4" data-testid="docs-payg-ladder">
+                The same single-report prices for everyone, founder or
+                evaluator: <strong>Snapshot {payg.snapshot}</strong> (SVI
+                score, 8-dimension radar, top strengths and risks, 1-page
+                PDF), <strong>Full {payg.full}</strong> (all 16 sections,
+                Australian comparables, evidence register) or{" "}
+                <strong>Verified {payg.verified}</strong> (the Full report with
+                the evidence reviewed by the BlockID team, within{" "}
+                {payg.slaDays} business days; sign-in required). Re-scoring a
+                report you already hold costs {rescoreLabel(payg)}.
+                Subscriptions sell the workspace that keeps the score, not
+                access to the report.
+              </p>
+            ) : (
+              <p className="text-sm text-ink-600 mb-4">
+                One report price for everyone — <strong>{payg.reportEntry}</strong> buys the full
+                Trusted Business Report (8 dimensions, AUD valuation range,
+                C-suite review, auditor flags, next-step plan) on any startup,
+                whether you are its founder or someone evaluating it.
+                Subscriptions sell the workspace that keeps the score, not
+                access to the report.
+              </p>
+            )}
             <div className="rounded-xl border border-brand-500/40 bg-surface-50 p-5">
               <p className="text-sm text-ink-700 mb-2">
                 <strong>Founders</strong>
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside mb-4">
                 <li>Free — first SVI analysis, no signup</li>
-                <li>A$3 — full Trusted Business Report</li>
+                {payg.enabled ? (
+                  <li>Single reports — Snapshot {payg.snapshot} · Full {payg.full} · Verified {payg.verified}, pay as you go</li>
+                ) : (
+                  <li>{payg.reportEntry} — full Trusted Business Report</li>
+                )}
                 <li>{starterMonthly} — Starter: workspace, data room, investor links, Founder Radar</li>
                 <li>{growthMonthly} — Growth: cap table, term sheets, evidence vault, weekly snapshots</li>
               </ul>
@@ -592,7 +618,11 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                 accelerators, incubators, service providers)
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside">
-                <li>A$3 per Trusted Business Report on any startup you enter, pay as you go</li>
+                {payg.enabled ? (
+                  <li>Single reports on any startup you enter — Snapshot {payg.snapshot}, Full {payg.full}, Verified {payg.verified}; re-score {rescoreLabel(payg)}</li>
+                ) : (
+                  <li>{payg.reportEntry} per Trusted Business Report on any startup you enter, pay as you go</li>
+                )}
                 <li>{evaluatorLadder} — reports included, tracked startups, seats, white-label</li>
                 <li>Fund A$999/mo (investor firms, API access) · Intake link A$249/mo (program intake at /apply/[slug]) · Index API A$299/mo</li>
                 <li>Accelerator cohorts: Cohort 25 A$5K/yr · Cohort 100 A$15K/yr (batch scoring + LP report)</li>

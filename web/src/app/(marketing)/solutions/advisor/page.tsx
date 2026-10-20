@@ -17,6 +17,7 @@ import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 import { buildAdvisorProps } from "../evaluator-page-props";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const PATH = "/solutions/advisor";
 const VI_PATH = "/vi/solutions/advisor";
@@ -35,5 +36,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SolutionsAdvisorPage() {
   const m = await getMessages("en");
-  return <SolutionsPageShell {...buildAdvisorProps(m, "en")} />;
+  return <SolutionsPageShell {...buildAdvisorProps(m, "en", await getPaygView())} />;
 }

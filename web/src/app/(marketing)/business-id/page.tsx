@@ -15,6 +15,7 @@ import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { BusinessIdBody } from "./business-id-shared";
+import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
 
 const PATH = "/business-id";
 const VI_PATH = "/vi/business-id";
@@ -32,5 +33,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function BusinessIdPage() {
   const m = await getMessages("en");
-  return <BusinessIdBody m={m} lang="en" />;
+  return <BusinessIdBody m={m} lang="en" paygEnabled={await isPaygEnabled()} />;
 }

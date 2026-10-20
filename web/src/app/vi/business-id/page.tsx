@@ -11,6 +11,7 @@
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { BusinessIdBody } from "../../(marketing)/business-id/business-id-shared";
+import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
 
 const SITE_URL = "https://blockid.au";
 const CANONICAL_EN = `${SITE_URL}/business-id`;
@@ -46,5 +47,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ViBusinessIdPage() {
   const m = await getMessages("vi");
-  return <BusinessIdBody m={m} lang="vi" />;
+  return <BusinessIdBody m={m} lang="vi" paygEnabled={await isPaygEnabled()} />;
 }

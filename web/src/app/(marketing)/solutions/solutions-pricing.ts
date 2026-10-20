@@ -55,6 +55,7 @@ import { FREE_SUMMARY_PAGE_COUNT } from "@/lib/analyses/free-summary";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import { EQUITY_ADDON_MONTHLY_AUD } from "@/lib/plans-v2";
+import { PAYG_OFF_VIEW, reportFromLabel, type PaygView } from "@/lib/pricing/payg-copy";
 
 /** A$ from cents, with no trailing `.00` on a whole dollar amount. */
 function aud(cents: number): string {
@@ -169,17 +170,63 @@ export const SOLUTION_PRICE_TOKENS: Readonly<Record<string, string>> = {
 
 const TOKEN_PATTERN = /\{([a-zA-Z0-9]+)\}/g;
 
+export type PriceLang = "en" | "vi";
+
+/**
+ * Pricing v5 P5 — the token table for a PaygView.
+ *
+ * Flag OFF returns `SOLUTION_PRICE_TOKENS` itself (today's pages). Flag ON:
+ *   reportPrice      "from A$19" / "từ A$19" — the Snapshot entry price
+ *                    (`reportFromLabel`), wherever one number stands for "a
+ *                    report";
+ *   fullReportPrice  "A$49" — used only where the copy names the FULL report
+ *                    (see `PAYG_PHRASE_REWRITES`), so a sentence never prices
+ *                    the full report at the Snapshot figure.
+ */
+export function solutionPriceTokens(
+  view: PaygView = PAYG_OFF_VIEW,
+  lang: PriceLang = "en",
+): Readonly<Record<string, string>> {
+  if (!view.enabled) return SOLUTION_PRICE_TOKENS;
+  return {
+    ...SOLUTION_PRICE_TOKENS,
+    reportPrice: lang === "vi" ? `từ ${view.snapshot}` : reportFromLabel(view),
+    fullReportPrice: view.full,
+  };
+}
+
+/**
+ * Flag-ON phrase fixes applied before substitution, so "from A$19" reads as
+ * English (no "at from A$19") and the full report is never quoted at the
+ * Snapshot price. Each pattern matches catalogue copy in en.json / vi.json.
+ */
+const PAYG_PHRASE_REWRITES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/What do I get for \{reportPrice\}\?/g, "What do I get for {fullReportPrice}?"],
+  [/the full report is \{reportPrice\}/g, "the full report is {fullReportPrice}"],
+  [/\{reportPrice\} for a full /g, "{fullReportPrice} for a full "],
+  [/\bat \{reportPrice\}/g, "{reportPrice}"],
+  [/Tôi nhận được gì với \{reportPrice\}\?/g, "Tôi nhận được gì với {fullReportPrice}?"],
+  [/báo cáo đầy đủ là \{reportPrice\}/g, "báo cáo đầy đủ là {fullReportPrice}"],
+  [/\{reportPrice\} cho một Trusted Business Report đầy đủ/g, "{fullReportPrice} cho một Trusted Business Report đầy đủ"],
+  [/với \{reportPrice\}/g, "{reportPrice}"],
+];
+
 /**
  * Substitute every `{token}` in a persona string.
  *
  * Unknown tokens are returned untouched — a `{slug}` in "publish to
  * /listings/{slug}" is a URL shape, not a price, and blanking it would make
  * the sentence say something else. The colocated suite pins that behaviour.
+ *
+ * Pricing v5 P5: `view` (default flag OFF = exactly the pre-v5 output) and
+ * `lang` (the VI mirror's "từ A$19") select the token table.
  */
-export function fillPrices(text: string): string {
-  return text.replace(TOKEN_PATTERN, (whole, name: string) =>
-    Object.prototype.hasOwnProperty.call(SOLUTION_PRICE_TOKENS, name)
-      ? SOLUTION_PRICE_TOKENS[name]
-      : whole,
+export function fillPrices(text: string, view: PaygView = PAYG_OFF_VIEW, lang: PriceLang = "en"): string {
+  const tokens = solutionPriceTokens(view, lang);
+  const source = view.enabled
+    ? PAYG_PHRASE_REWRITES.reduce((s, [rx, to]) => s.replace(rx, to), text)
+    : text;
+  return source.replace(TOKEN_PATTERN, (whole, name: string) =>
+    Object.prototype.hasOwnProperty.call(tokens, name) ? tokens[name] : whole,
   );
 }

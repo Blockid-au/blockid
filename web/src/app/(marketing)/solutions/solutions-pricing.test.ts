@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   SOLUTION_PRICE_TOKENS,
   fillPrices,
+  solutionPriceTokens,
 } from "./solutions-pricing";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
+import en from "@/lib/i18n/messages/en.json";
+import vi from "@/lib/i18n/messages/vi.json";
 import { FREE_SUMMARY_PAGE_COUNT } from "@/lib/analyses/free-summary";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
@@ -138,5 +142,52 @@ describe("fillPrices", () => {
 
   it("is a no-op on a string with no tokens", () => {
     expect(fillPrices("eight dimensions")).toBe("eight dimensions");
+  });
+});
+
+// Pricing v5 P5 — the `{reportPrice}` token follows platform_config.payg_enabled.
+describe("fillPrices(text, view, lang) — Pricing v5 P5", () => {
+  const ALL_STRINGS = [...Object.values(en as Record<string, string>), ...Object.values(vi as Record<string, string>)].filter(
+    (s) => s.includes("{reportPrice}"),
+  );
+
+  it("flag OFF: identical to the pre-v5 output for every catalogue string, in both languages", () => {
+    expect(solutionPriceTokens(PAYG_OFF_VIEW)).toBe(SOLUTION_PRICE_TOKENS);
+    expect(SOLUTION_PRICE_TOKENS.reportPrice).toBe("A$3");
+    for (const s of ALL_STRINGS) {
+      const legacy = s.replace(/\{reportPrice\}/g, SOLUTION_PRICE_TOKENS.reportPrice);
+      expect(fillPrices(s, PAYG_OFF_VIEW, "en")).toBe(fillPrices(s));
+      expect(fillPrices(s, PAYG_OFF_VIEW, "vi")).toBe(fillPrices(s));
+      expect(fillPrices(s)).toContain(SOLUTION_PRICE_TOKENS.reportPrice);
+      expect(legacy).not.toContain("{reportPrice}");
+    }
+  });
+
+  it("flag ON: {reportPrice} = 'from A$19' (EN) / 'từ A$19' (VI)", () => {
+    expect(fillPrices("{reportPrice} a report", PAYG_ON_VIEW)).toBe("from A$19 a report");
+    expect(fillPrices("{reportPrice} mỗi báo cáo", PAYG_ON_VIEW, "vi")).toBe("từ A$19 mỗi báo cáo");
+    expect(solutionPriceTokens(PAYG_ON_VIEW).fullReportPrice).toBe("A$49");
+  });
+
+  it("flag ON: reads as English and never quotes the full report at the Snapshot price", () => {
+    expect(fillPrices("a guest checkout at {reportPrice} per report", PAYG_ON_VIEW)).toBe("a guest checkout from A$19 per report");
+    expect(fillPrices("What do I get for {reportPrice}?", PAYG_ON_VIEW)).toBe("What do I get for A$49?");
+    expect(fillPrices("The first run is free; the full report is {reportPrice}.", PAYG_ON_VIEW)).toBe(
+      "The first run is free; the full report is A$49.",
+    );
+    expect(fillPrices("{reportPrice} for a full Trusted Business Report", PAYG_ON_VIEW)).toBe("A$49 for a full Trusted Business Report");
+    expect(fillPrices("Tôi nhận được gì với {reportPrice}?", PAYG_ON_VIEW, "vi")).toBe("Tôi nhận được gì với A$49?");
+    expect(fillPrices("là thanh toán khách với {reportPrice} mỗi báo cáo", PAYG_ON_VIEW, "vi")).toBe("là thanh toán khách từ A$19 mỗi báo cáo");
+  });
+
+  it("flag ON: no catalogue string keeps a {reportPrice}, an 'at from' / 'for from', or an A$3 report price", () => {
+    for (const s of ALL_STRINGS) {
+      for (const lang of ["en", "vi"] as const) {
+        const out = fillPrices(s, PAYG_ON_VIEW, lang);
+        expect(out, s).not.toMatch(/\{(reportPrice|fullReportPrice)\}/);
+        expect(out, s).not.toMatch(/\b(at|for) from\b/);
+        expect(out, s).not.toMatch(/A\$3(?![\d,.])/);
+      }
+    }
   });
 });

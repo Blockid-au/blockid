@@ -10,6 +10,10 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
 import { OG_IMAGE } from "@/lib/seo/page-meta";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
+import type { PaygView } from "@/lib/pricing/payg-copy";
+import { refundFaqAnswerVi, singleReportFaqSentenceVi } from "@/lib/pricing/pricing-faq-copy-vi";
+import { PaygBlock } from "@/components/pricing/payg-block";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +60,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // FAQ JSON-LD in Vietnamese — AU regulatory shorthand (s708, s766B, ACN,
 // ABN, GST) is preserved verbatim per the human-translation policy.
-const FAQ_JSONLD_VI = [
+// Pricing v5 P5: the single-report and refund sentences follow
+// platform_config.payg_enabled (lib/pricing/pricing-faq-copy) — OFF keeps
+// today's text.
+function faqJsonLdVi(view: PaygView): { question: string; answer: string }[] {
+  return [
   {
     question: "Sau 7 ngày dùng thử miễn phí thì sao?",
     answer:
@@ -65,7 +73,8 @@ const FAQ_JSONLD_VI = [
   {
     question: "Nhà sáng lập, Nhà đánh giá hay Chương trình — tôi thấy gói nào?",
     answer:
-      "Dùng nút chuyển phía trên bảng giá. Nhà sáng lập: Free, Starter A$29, Growth A$69. Nhà đánh giá: Scout A$79, Firm A$149, Program A$349, Fund A$999 (dùng thử 7 ngày, cần thẻ). Chương trình: Intake link A$2,490/năm, Cohort 25 A$5,000/năm, Cohort 100 A$15,000/năm, thanh toán theo năm, dùng thử 14 ngày. Không có gói thì mỗi Trusted Business Report là A$3 cho một startup.",
+      "Dùng nút chuyển phía trên bảng giá. Nhà sáng lập: Free, Starter A$29, Growth A$69. Nhà đánh giá: Scout A$79, Firm A$149, Program A$349, Fund A$999 (dùng thử 7 ngày, cần thẻ). Chương trình: Intake link A$2,490/năm, Cohort 25 A$5,000/năm, Cohort 100 A$15,000/năm, thanh toán theo năm, dùng thử 14 ngày. " +
+      singleReportFaqSentenceVi(view),
   },
   {
     question: "Có cần thẻ tín dụng để bắt đầu dùng thử không?",
@@ -79,10 +88,10 @@ const FAQ_JSONLD_VI = [
   },
   {
     question: "Chính sách hoàn tiền như thế nào?",
-    answer:
-      "Hoàn tiền 100% trong 7 ngày cho khoản thanh toán gói tháng đầu tiên, không cần lý do — email hỗ trợ và chúng tôi hoàn tiền trong 3 ngày làm việc. Gói năm được hoàn theo tỷ lệ nếu huỷ trong 14 ngày. Báo cáo lẻ A$3 và gói tín dụng không hoàn tiền sau khi đã giao, trừ khi Luật Người tiêu dùng Úc yêu cầu. Quyền lợi của bạn theo Luật Người tiêu dùng Úc không bao giờ bị loại trừ. Chính sách đầy đủ: /legal/terms#refunds.",
+    answer: refundFaqAnswerVi(view),
   },
-];
+  ];
+}
 
 interface ViPricingPageProps {
   searchParams: Promise<{
@@ -94,7 +103,7 @@ interface ViPricingPageProps {
 }
 
 export default async function ViPricingPage({ searchParams }: ViPricingPageProps) {
-  const [annualAvailable, purchasable] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds()]);
+  const [annualAvailable, purchasable, payg] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds(), getPaygView()]);
   const m = await getMessages("vi");
   const sp = await searchParams;
   // Same precedence as tabFromLocation() on /pricing: segment > persona
@@ -103,7 +112,7 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
 
   return (
     <MarketingShell>
-      <FAQJsonLd items={FAQ_JSONLD_VI} />
+      <FAQJsonLd items={faqJsonLdVi(payg)} />
       <PageViewTracker event="pricing_viewed" params={{}} />
 
       <PageHero
@@ -145,11 +154,14 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
             evaluator: { label: "Nhà đánh giá", sub: "Angel · công ty tư vấn · quỹ VC" },
             programs: { label: "Chương trình", sub: "Vườn ươm · accelerator · đại học" },
           }}
+          payg={payg}
         />
+        {/* Pricing v5 P5: "Trả theo lần dùng" — nothing while payg_enabled is off. */}
+        <PaygBlock view={payg} locale="vi" />
       </Section>
 
       <Section id="faq-band" ariaLabel={t(m, "pricing.faq.title")} spacing="sm">
-        <FAQV2 />
+        <FAQV2 payg={payg} />
       </Section>
 
       <Section id="enterprise"

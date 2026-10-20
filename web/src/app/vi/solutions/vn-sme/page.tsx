@@ -14,6 +14,7 @@
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { SolutionsPageShell } from "../../../(marketing)/solutions/solutions-shared";
+import { getPaygView } from "@/lib/pricing/payg-view.server";
 
 const SITE_URL = "https://blockid.au";
 const CANONICAL_EN = `${SITE_URL}/solutions/vn-sme`;
@@ -49,11 +50,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ViSolutionsVnSmePage() {
   const m = await getMessages("vi");
+  const payg = await getPaygView();
 
   return (
     <SolutionsPageShell
       slug="vn-sme"
       lang="vi"
+      payg={payg}
       eyebrow={t(m, "solutions.vnSme.eyebrow")}
       headline={t(m, "solutions.vnSme.headline")}
       personaLine={t(m, "solutions.vnSme.persona")}

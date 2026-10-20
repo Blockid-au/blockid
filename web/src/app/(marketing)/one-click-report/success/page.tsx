@@ -19,6 +19,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero } from "@/components/marketing/template";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
+import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
 
 export const metadata: Metadata = pageMetadata({
   title: "Payment received — report on the way",
@@ -28,7 +29,11 @@ export const metadata: Metadata = pageMetadata({
   index: false,
 });
 
-export default function OneClickSuccessPage() {
+export default async function OneClickSuccessPage() {
+  // Pricing v5 P5 (D26): a guest Snapshot / Full can be claimed into an
+  // account later with the same e-mail — the closing band says so when
+  // payg_enabled is on; OFF keeps today's copy.
+  const paygOn = await isPaygEnabled();
   return (
     <MarketingShell>
       <PageTracker page="one_click_report_success" tool="one_click_report" />
@@ -51,7 +56,11 @@ export default function OneClickSuccessPage() {
       />
       <CtaBand
         title="Meanwhile — create a free account"
-        sub="Save your report, track your SVI over time, and unlock deeper analysis. No credit card required."
+        sub={
+          paygOn
+            ? "Sign up with the email you paid with to keep this report in your account, track your SVI over time, and upgrade it later. No credit card required."
+            : "Save your report, track your SVI over time, and unlock deeper analysis. No credit card required."
+        }
         primary={{ href: "/signup", label: "Create free account", ctaId: "ocr_success_signup" }}
         secondary={{ href: "/product", label: "How the score works" }}
       />

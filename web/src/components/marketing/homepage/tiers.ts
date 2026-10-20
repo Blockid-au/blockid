@@ -34,6 +34,7 @@ import {
 } from "@/lib/analyses/free-summary";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+import { PAYG_OFF_VIEW, reportFromLabel, type PaygView } from "@/lib/pricing/payg-copy";
 
 /** The plan behind the subscription rung. */
 const STARTER = GENERATED_PLANS_BY_ID.founder_starter;
@@ -81,6 +82,36 @@ export interface HomepageTier {
   emphasis: boolean;
 }
 
+/**
+ * Pricing v5 P5: the report rung under `platform_config.payg_enabled`. ON →
+ * the Snapshot entry price from the view ("from A$19", one-off) leading to
+ * the /pricing PAYG block; OFF → the legacy rung below, unchanged.
+ */
+function paygReportTier(view: PaygView): HomepageTier {
+  return {
+    id: "report",
+    name: "Single report",
+    price: reportFromLabel(view),
+    priceSuffix: "one-off, inc. GST",
+    ask: "One payment per report. No subscription",
+    gist: "Snapshot, Full or Verified — the working behind the number, bought one report at a time",
+    includes: [
+      `Snapshot ${view.snapshot}: the score, the 8-dimension radar, top strengths and risks, a 1-page PDF`,
+      `Full ${view.full}: all 16 sections, Australian comparables and the evidence register`,
+      `Verified ${view.verified}: the Full report with the evidence reviewed by the BlockID team`,
+      "You see the price and confirm before anything is charged",
+    ],
+    cta: { label: "Choose a report", href: "/pricing#pay-as-you-go" },
+    emphasis: true,
+  };
+}
+
+/** The ladder for a PaygView. Flag OFF = `HOMEPAGE_TIERS` itself. */
+export function homepageTiers(view: PaygView = PAYG_OFF_VIEW): readonly HomepageTier[] {
+  if (!view.enabled) return HOMEPAGE_TIERS;
+  return HOMEPAGE_TIERS.map((tier) => (tier.id === "report" ? paygReportTier(view) : tier));
+}
+
 export const HOMEPAGE_TIERS: readonly HomepageTier[] = [
   {
     id: "free",
@@ -111,7 +142,7 @@ export const HOMEPAGE_TIERS: readonly HomepageTier[] = [
       ),
     ),
     priceSuffix: "one-off, inc. GST",
-    ask: "A$3, once. No account, no subscription",
+    ask: `${audLabel(requireCents(ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents, "report"))}, once. No account, no subscription`,
     gist: "The written report — the working behind the number, 10+ pages",
     includes: [
       "Everything in the free summary, plus the working behind it",
@@ -170,8 +201,8 @@ export interface TierChip {
   gist: string;
 }
 
-export function heroTierChips(): TierChip[] {
-  return HOMEPAGE_TIERS.map((tier) => ({
+export function heroTierChips(view: PaygView = PAYG_OFF_VIEW): TierChip[] {
+  return homepageTiers(view).map((tier) => ({
     id: tier.id,
     label:
       tier.id === "free"

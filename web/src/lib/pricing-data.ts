@@ -15,6 +15,8 @@
 //   TRIAL_COPY in `@/lib/plans/trial-copy`.
 
 import { TRIAL_COPY, TRIAL_DAYS } from "./plans/trial-copy";
+import { PAYG_OFF_VIEW, type PaygView } from "./pricing/payg-copy";
+import { refundFaqAnswer } from "./pricing/pricing-faq-copy";
 
 /**
  * Plan IDs offered to *new* signups. Free tier deliberately excluded.
@@ -287,7 +289,10 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Do you offer refunds?",
-    a: "7-day money-back guarantee on your first monthly subscription payment, no questions asked — email support and we refund within 3 business days. Annual plans are refunded pro-rata if you cancel within 14 days. One-off A$3 reports and credit packs are non-refundable once delivered, except where the Australian Consumer Law requires a refund. Your Australian Consumer Law guarantees are never excluded. Full policy: /legal/terms#refunds.",
+    // Pricing v5 P5: the ONE refund answer (lib/pricing/pricing-faq-copy);
+    // the flag-OFF view reproduces the pre-v5 text, `pricingFaqItems(view)`
+    // swaps in the v5 sentence.
+    a: refundFaqAnswer(PAYG_OFF_VIEW),
   },
   {
     q: "Do you have a permanent free plan?",
@@ -306,6 +311,17 @@ export const FAQ_ITEMS: FaqItem[] = [
     a: "No. BlockID is built for founders, not engineers. You can run a full SVI analysis by pasting a company description — no integrations required. OAuth connectors (Stripe, Xero, Google Analytics) are optional and take under 2 minutes to set up.",
   },
 ];
+
+/**
+ * FAQ_ITEMS for a PaygView (Pricing v5 P5): the refund answer follows
+ * `platform_config.payg_enabled`; every other answer is unchanged. Flag OFF
+ * returns FAQ_ITEMS itself.
+ */
+export function pricingFaqItems(view: PaygView = PAYG_OFF_VIEW): FaqItem[] {
+  if (!view.enabled) return FAQ_ITEMS;
+  const offRefund = refundFaqAnswer(PAYG_OFF_VIEW);
+  return FAQ_ITEMS.map((item) => (item.a === offRefund ? { ...item, a: refundFaqAnswer(view) } : item));
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

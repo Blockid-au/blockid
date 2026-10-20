@@ -28,7 +28,9 @@ import {
   COMPARE_PROOF_HREFS,
   COMPARE_ROW_KEYS,
   comparePath,
+  compareMeta,
 } from "./compare-content";
+import { PAYG_OFF_VIEW, PAYG_ON_VIEW } from "@/lib/pricing/payg-copy";
 import CompareAllPage, { generateMetadata as allMetadata } from "./page";
 import CompareAliasPage, {
   generateMetadata as aliasMetadata,
@@ -306,5 +308,28 @@ describe("/compare — SEO (S8-A)", () => {
     expect(blocks.filter((b) => b["@type"] === "BreadcrumbList")).toHaveLength(1);
     for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
     expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+  });
+});
+
+describe("/compare — Pricing v5 P5 payg_enabled", () => {
+  it("flag OFF (explicit view) builds exactly the default props", () => {
+    expect(buildCompareProps(EN, "all", "en", PAYG_OFF_VIEW)).toEqual(buildCompareProps(EN, "all", "en"));
+    expect(compareMeta(EN, "valuers", PAYG_OFF_VIEW)).toEqual(compareMeta(EN, "valuers"));
+  });
+
+  it("flag ON: the report price reads 'from A$19' (VI 'từ A$19'), no A$3 report price, no stray token", () => {
+    const on = buildCompareProps(EN, "all", "en", PAYG_ON_VIEW);
+    expect(on.cta.report).toBe("Run a Trusted Business Report — from A$19");
+    const price = on.table.rows.find((r) => r.key === "price")!;
+    expect(price.blockid).toContain("from A$19 per Trusted Business Report");
+    const text = JSON.stringify(on);
+    expect(text).not.toMatch(/A\$3(?![\d,.])/);
+    expect(text).not.toMatch(/\{[a-zA-Z]+\}/);
+    const vi = buildCompareProps(VI, "all", "vi", PAYG_ON_VIEW);
+    expect(vi.cta.report).toBe("Chạy một Trusted Business Report — từ A$19");
+    expect(JSON.stringify(vi)).not.toMatch(/A\$3(?![\d,.])/);
+    const meta = compareMeta(EN, "valuers", PAYG_ON_VIEW);
+    expect(meta.description).toContain("from A$19");
+    expect(meta.description.length).toBeLessThanOrEqual(165);
   });
 });
