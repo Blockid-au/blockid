@@ -91,7 +91,19 @@ export interface InvestorPackData {
     score: number;
     delta30d?: number;
     criteria: Array<{ id: string; label: string; score: number; delta?: number }>;
+    /**
+     * G35 Pricing v5 P4: how the score is printed after the number. Default
+     * "/ 1000" (the legacy svi_reports composite). A pack built from a
+     * ReportV2 passes "SVI" — the index is uncapped (base 100), so "/ 1000"
+     * would misstate it.
+     */
+    scoreSuffix?: string;
   };
+  /**
+   * G35 Pricing v5 P4: "BlockID Reviewed · <date> · <reviewer>" — printed on
+   * the cover of the Investor Pack a reviewed Verified report ships with.
+   */
+  reviewBadge?: string;
   capTable?: Array<{
     shareholder: string;
     class: string;
@@ -486,12 +498,17 @@ function CoverPage({ data }: { data: InvestorPackData }) {
         <Text style={{ fontSize: 9, color: C.ink500, marginTop: 6 }}>
           As of {startup.asOfDate}
         </Text>
+        {data.reviewBadge ? (
+          <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.brand700, marginTop: 8 }}>
+            {data.reviewBadge}
+          </Text>
+        ) : null}
       </View>
 
       <View style={{ marginTop: 40, flexDirection: "row", alignItems: "center", gap: 24 }}>
         <View style={s.gradeBadge}>
           <Text style={s.gradeLetter}>{svi.grade || "—"}</Text>
-          <Text style={s.gradeScore}>{Math.round(svi.score)} / 1000</Text>
+          <Text style={s.gradeScore}>{Math.round(svi.score)} {svi.scoreSuffix ?? "/ 1000"}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.label}>BlockID SVI Grade</Text>
@@ -534,8 +551,8 @@ function ExecutiveSummaryPage({ data }: { data: InvestorPackData }) {
 
   const deltaCopy =
     typeof svi.delta30d === "number" && Number.isFinite(svi.delta30d)
-      ? `The BlockID SVI grade is currently ${svi.grade || "—"} (${Math.round(svi.score)}/1000), a change of ${formatDelta(svi.delta30d)} points over the last 30 days.`
-      : `The BlockID SVI grade is currently ${svi.grade || "—"} (${Math.round(svi.score)}/1000).`;
+      ? `The BlockID SVI grade is currently ${svi.grade || "—"} (${Math.round(svi.score)}${svi.scoreSuffix ? ` ${svi.scoreSuffix}` : "/1000"}), a change of ${formatDelta(svi.delta30d)} points over the last 30 days.`
+      : `The BlockID SVI grade is currently ${svi.grade || "—"} (${Math.round(svi.score)}${svi.scoreSuffix ? ` ${svi.scoreSuffix}` : "/1000"}).`;
 
   const target = traction?.targetAud;
   const raised = traction?.raisedAud;
@@ -982,7 +999,7 @@ function OnePageTeaserPage({ data }: { data: InvestorPackData }) {
             {svi.grade || "—"}
           </Text>
           <Text style={{ fontSize: 8, color: C.ink500, marginTop: 2 }}>
-            {Math.round(svi.score)} / 1000
+            {Math.round(svi.score)} {svi.scoreSuffix ?? "/ 1000"}
           </Text>
         </View>
         <View style={s.quadrantBox}>

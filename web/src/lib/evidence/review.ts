@@ -102,10 +102,24 @@ export type ApplyReviewError = { ok: false; error: "not_found" | "db_error" | "n
  * Persist a decision. Only rows the founder queued (`review_status =
  * 'pending'`) can be decided — the queue page is the reviewer's whole
  * surface, so an approve on a never-requested row is refused.
+ *
+ * G35 Pricing v5 P4 (Verified review, plan §6.6): a paid Verified order IS
+ * the verification request for every Evidence Hub row of its project, so the
+ * Verified review passes `scope: { kind: "verified_order", projectId }` —
+ * any review_status may then be decided, but only on a row of that project
+ * (a row of another project reads as not_found). Same patch, same single
+ * writer of `third_party_verified`.
  */
 export async function applyEvidenceReview(
   db: Db,
-  input: { evidenceId: string; decision: ReviewDecision; reviewerUserId: string; note?: string | null; now?: Date },
+  input: {
+    evidenceId: string;
+    decision: ReviewDecision;
+    reviewerUserId: string;
+    note?: string | null;
+    now?: Date;
+    scope?: { kind: "verified_order"; projectId: string };
+  },
 ): Promise<ApplyReviewResult | ApplyReviewError> {
   const { data: row, error } = await db
     .from("svi_dimension_evidence")
@@ -114,7 +128,11 @@ export async function applyEvidenceReview(
     .maybeSingle();
   if (error) return { ok: false, error: "db_error" };
   if (!row) return { ok: false, error: "not_found" };
-  if ((row as { review_status?: string }).review_status !== "pending") return { ok: false, error: "not_pending" };
+  if (input.scope?.kind === "verified_order") {
+    if ((row as { project_id?: string }).project_id !== input.scope.projectId) return { ok: false, error: "not_found" };
+  } else if ((row as { review_status?: string }).review_status !== "pending") {
+    return { ok: false, error: "not_pending" };
+  }
 
   const patch = buildReviewPatch({
     decision: input.decision,
