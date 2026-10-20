@@ -32,6 +32,14 @@
  * the credit-rate reconciliation migration lands in a follow-up PR and
  * will not affect this route because we debit inline, not through
  * spendCredits() which reads FEATURE_COSTS at the legacy rate.
+ *
+ * G35 Pricing v5 (P3, D27) — behind `platform_config.payg_enabled`:
+ *   flag OFF → exactly the path above; a body naming `tier` → 403.
+ *   flag ON  → `{ businessId, tier: 'snapshot' | 'full' }` is required and
+ *              debits FEATURE_COSTS.report_snapshot (19) / report_full (49)
+ *              credits; Verified is card-only (400). One in-flight order per
+ *              SKU; the order lands PAID with the v5 SKU + tier and is
+ *              enqueued like a card order (the worker stores payg_tier).
  */
 
 import { NextResponse } from "next/server";
@@ -44,6 +52,14 @@ import {
 } from "@/lib/pricing/report-credit-cost";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 import { apiRoute } from "@/lib/audit/api-route";
+import { FEATURE_COSTS } from "@/lib/credits";
+import { readPaygConfig } from "@/lib/pricing/payg-flag";
+import { PAYG_PRICING_VERSION, PAYG_SKUS, isPaygTier, reportSkuForTier } from "@/lib/pricing/v5-payg";
+import { inFlightOrderFor, listBuyerOrders } from "@/lib/pricing/payg-orders";
+import { assertProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
+import { emitEventSafe } from "@/lib/analytics/server";
+import { isQaEmail } from "@/lib/analytics/events";
 
 interface RedeemBody {
   businessId?: unknown;
@@ -51,6 +67,8 @@ interface RedeemBody {
   depth?: unknown;
   sections?: unknown;
   firstTouch?: unknown;
+  /** G35 Pricing v5 (payg_enabled only): snapshot | full (Verified is card-only). */
+  tier?: unknown;
 }
 
 function parseModel(raw: unknown): ReportModel | undefined {
@@ -95,6 +113,18 @@ async function POST_handler(request: Request) {
       { ok: false, reason: "businessId must be a uuid" },
       { status: 400 },
     );
+  }
+
+  // ── G35 Pricing v5 switch (fails closed: unreadable config = off) ────
+  const payg = await readPaygConfig();
+  if (body.tier !== undefined && !payg.payg_enabled) {
+    return NextResponse.json(
+      { ok: false, code: "payg_disabled", reason: "Snapshot and Full reports are not on sale yet." },
+      { status: 403 },
+    );
+  }
+  if (payg.payg_enabled) {
+    return redeemPaygTier(user, body, businessId);
   }
 
   // Server-side quote — client input only chooses model/depth/sections.
@@ -291,6 +321,151 @@ async function POST_handler(request: Request) {
     quote,
     newBalance,
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// G35 Pricing v5 — credits buy Snapshot (19) / Full (49); Verified card-only
+// ─────────────────────────────────────────────────────────────────────────────
+
+type RedeemUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+
+async function redeemPaygTier(user: RedeemUser, body: RedeemBody, businessId: string): Promise<Response> {
+  if (!isPaygTier(body.tier)) {
+    return NextResponse.json(
+      { ok: false, code: "tier_required", reason: "Choose Snapshot or Full — reload the page to see the options." },
+      { status: 400 },
+    );
+  }
+  const tier = body.tier;
+  const sku = PAYG_SKUS[reportSkuForTier(tier)];
+  const featureKey = tier === "snapshot" ? "report_snapshot" : tier === "full" ? "report_full" : null;
+  const credits = featureKey ? FEATURE_COSTS[featureKey] : undefined;
+  if (!featureKey || sku.creditCost === null || typeof credits !== "number" || credits <= 0) {
+    return NextResponse.json(
+      { ok: false, code: "card_only", reason: "Verified reports are paid by card only." },
+      { status: 400 },
+    );
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ ok: false, reason: "Database not configured" }, { status: 503 });
+  }
+
+  try {
+    await assertProjectScope({ id: user.id, email: user.email ?? "" }, businessId, "viewer");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+
+  const orders = await listBuyerOrders(supabase, user.id, businessId);
+  if (!orders) {
+    return NextResponse.json({ ok: false, reason: "Could not check your existing reports. Please try again." }, { status: 503 });
+  }
+  const inflight = inFlightOrderFor(orders, sku.id);
+  if (inflight) {
+    return NextResponse.json(
+      { ok: false, code: "in_flight", reason: "This report is already being prepared.", orderId: inflight.id, status: inflight.status },
+      { status: 409 },
+    );
+  }
+
+  // Same race-safe debit as the legacy path: read, then WHERE-guarded update.
+  const { data: balRow } = await supabase
+    .from("credit_balances")
+    .select("balance, lifetime_spent")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const currentBalance = Number(balRow?.balance ?? 0);
+  const lifetimeSpent = Number(balRow?.lifetime_spent ?? 0);
+  if (currentBalance < credits) {
+    return NextResponse.json(
+      { ok: false, reason: "insufficient_credits", credits, balance: currentBalance },
+      { status: 402 },
+    );
+  }
+  const now = new Date().toISOString();
+  const { data: updated, error: balErr } = await supabase
+    .from("credit_balances")
+    .update({ balance: currentBalance - credits, lifetime_spent: lifetimeSpent + credits, updated_at: now })
+    .eq("user_id", user.id)
+    .gte("balance", credits)
+    .select("balance")
+    .maybeSingle();
+  if (balErr || !updated) {
+    return NextResponse.json({ ok: false, reason: "Credit debit race — please retry", credits }, { status: 409 });
+  }
+
+  const firstTouch = typeof body.firstTouch === "string" ? body.firstTouch.slice(0, 200) : "";
+  const { data: order, error: insertErr } = await supabase
+    .from("report_orders")
+    .insert({
+      business_id: businessId,
+      user_id: user.id,
+      product_sku: sku.id,
+      tier,
+      currency: "aud",
+      amount_aud: 0,
+      credits_used: credits,
+      status: "PAID",
+      paid_at: now,
+      expires_at: null,
+      metadata: {
+        sku: sku.id,
+        payment_path: "credits",
+        pricing_version: PAYG_PRICING_VERSION,
+        ...(firstTouch ? { first_touch: firstTouch } : {}),
+      },
+    })
+    .select("id")
+    .single();
+
+  if (insertErr || !order) {
+    await supabase
+      .from("credit_balances")
+      .update({ balance: currentBalance, lifetime_spent: lifetimeSpent, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+    const conflict = (insertErr as { code?: string } | null)?.code === "23505";
+    return NextResponse.json(
+      { ok: false, reason: conflict ? "This report is already being prepared." : "order_insert_failed_debit_reversed", credits, balance: currentBalance },
+      { status: conflict ? 409 : 500 },
+    );
+  }
+
+  try {
+    const { enqueueOrder } = await import("@/lib/paywall/report-order-worker");
+    const outcome = await enqueueOrder(supabase, { orderId: order.id, businessId });
+    if (!outcome.ok) console.warn("[blockid:reports/redeem] v5 enqueue failed", { reason: outcome.reason, order_id: order.id });
+  } catch (err) {
+    console.warn("[blockid:reports/redeem] v5 enqueueOrder threw", err instanceof Error ? err.message : String(err));
+  }
+
+  await supabase.from("usage_logs").insert({
+    user_id: user.id,
+    feature: featureKey,
+    credits_used: credits,
+    metadata: { business_id: businessId, order_id: order.id, sku: sku.id, tier, pricing_version: PAYG_PRICING_VERSION },
+  });
+
+  emitEventSafe({
+    name: "payg_paid",
+    params: {
+      tier,
+      sku: sku.id,
+      paid_via: "credits",
+      gross_aud_cents: 0,
+      order_id: order.id,
+      user_id: user.id,
+      ...(isQaEmail(user.email) ? { qa: true } : {}),
+    },
+    userId: user.id,
+    source: "api:reports/redeem",
+    consentGranted: true,
+  });
+
+  return NextResponse.json({ ok: true, orderId: order.id, tier, sku: sku.id, credits, newBalance: currentBalance - credits });
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.

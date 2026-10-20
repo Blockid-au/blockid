@@ -14,6 +14,11 @@
  *   400 { ok: false, error, field? }     invalid payload / disposable email
  *   429 { ok: false, error }             10 per hour per IP · 3 per day per email
  *   503 / 502                            Stripe or DB not configured / failed
+ *
+ * G35 D25 (behind platform_config.payg_enabled): the full report becomes the
+ * Pricing v5 `report_funding` SKU — A$19 from STRIPE_PRICE_REPORT_FUNDING,
+ * metadata.sku = "report_funding" (the webhook books revenue kind
+ * `report_funding`). Flag off → the A$3 SKU exactly as before.
  */
 
 import { NextResponse } from "next/server";
@@ -26,6 +31,9 @@ import { FUNDING_REPORT_3AUD } from "@/lib/pricing/v3-skus";
 import { parseFundingIntake } from "@/lib/funding/intake";
 import { createPendingGuestReport } from "@/lib/funding/reports";
 import { apiRoute } from "@/lib/audit/api-route";
+import { readPaygConfig } from "@/lib/pricing/payg-flag";
+import { PAYG_PRICING_VERSION, PAYG_SKUS, priceIdForSku } from "@/lib/pricing/v5-payg";
+import { oneOffInvoiceCreation } from "@/lib/stripe/one-off-invoice";
 
 export const dynamic = "force-dynamic";
 
@@ -103,13 +111,22 @@ async function POST_handler(request: Request) {
     return NextResponse.json({ ok: false, error: parsed.error, field: parsed.field }, { status: 400 });
   }
 
-  const priceId = STRIPE_PRICE_MAP.funding_report?.trim();
+  const payg = (await readPaygConfig()).payg_enabled;
+  const v5 = PAYG_SKUS.report_funding;
+  const priceId = payg ? priceIdForSku("report_funding") : STRIPE_PRICE_MAP.funding_report?.trim();
   if (!priceId) {
     return NextResponse.json(
-      { ok: false, error: "Money Finder price not provisioned. Run scripts/sync-stripe-pricing.mjs --fix to mint STRIPE_PRICE_FUNDING_REPORT." },
+      {
+        ok: false,
+        error: payg
+          ? `Money Finder price not provisioned. Run scripts/stripe/mint-payg-v5.mjs and set ${v5.envVar}.`
+          : "Money Finder price not provisioned. Run scripts/sync-stripe-pricing.mjs --fix to mint STRIPE_PRICE_FUNDING_REPORT.",
+      },
       { status: 503 },
     );
   }
+  const skuId = payg ? v5.id : FUNDING_REPORT_3AUD.id;
+  const amountCents = payg ? v5.amountCents : (FUNDING_REPORT_3AUD.unit_amount_incl_gst_cents ?? 300);
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -121,7 +138,7 @@ async function POST_handler(request: Request) {
   const created = await createPendingGuestReport({
     email,
     intake: parsed.intake,
-    amountCents: FUNDING_REPORT_3AUD.unit_amount_incl_gst_cents ?? 300,
+    amountCents,
   });
   if ("error" in created) {
     console.error("[funding:checkout] insert failed", created.error);
@@ -143,14 +160,16 @@ async function POST_handler(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: email,
       automatic_tax: { enabled: true },
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          description: `BlockID.au — ${FUNDING_REPORT_3AUD.name}`,
-          custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
-          footer: `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · GST-registered`,
-        },
-      },
+      invoice_creation: payg
+        ? oneOffInvoiceCreation(v5.productName)
+        : {
+            enabled: true,
+            invoice_data: {
+              description: `BlockID.au — ${FUNDING_REPORT_3AUD.name}`,
+              custom_fields: [{ name: "Seller ABN", value: LEGAL_ENTITY.abn }],
+              footer: `${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ACN_LABEL} · GST-registered`,
+            },
+          },
       // `?s=` lets the buyer open the report straight from Stripe's redirect;
       // the emailed `?t=` token is the durable link.
       success_url: `${origin}/funding/report/${fundingReportId}?s={CHECKOUT_SESSION_ID}`,
@@ -158,8 +177,9 @@ async function POST_handler(request: Request) {
       metadata: {
         scope: "funding_report",
         funding_report_id: fundingReportId,
-        sku: FUNDING_REPORT_3AUD.id,
+        sku: skuId,
         email,
+        ...(payg ? { pricing_version: PAYG_PRICING_VERSION } : {}),
       },
     });
   } catch (err) {

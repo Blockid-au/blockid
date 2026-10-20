@@ -20,6 +20,11 @@
  * (`RadarUpsellCard`) renders under the rails — counted from
  * `funding_reports` (GET /api/funding/report) when signed in, from
  * localStorage (`guest-paid-reports.ts`) for guests. Plan rail never sees it.
+ *
+ * G35 D25 (Pricing v5): when `payg_enabled` is on (GET /api/pricing/payg) the
+ * card shows the `report_funding` price (A$19, "one-off, GST incl.") and its
+ * 19 credits — the same SKU the checkout / credits routes charge. While the
+ * price loads the pay buttons stay disabled; flag off → the A$3 copy below.
  */
 
 import * as React from "react";
@@ -33,6 +38,44 @@ import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { guestPaidReportCount, RADAR_UPSELL_AFTER_REPORTS } from "@/lib/funding/guest-paid-reports";
 import { FUNDING_REPORT_AUD, radarViewerKind } from "@/lib/funding/radar-upsell";
+import { usePaygPricing } from "@/lib/pricing/use-payg-pricing";
+
+/** What the rails show and charge (legacy A$3 / 3 credits, or the v5 report_funding SKU). */
+export interface FundingRailPrice {
+  /** "A$3" | "A$19" */
+  label: string;
+  /** Suffix after the label. */
+  note: string;
+  credits: number;
+  creditFeature: "grant_match" | "report_funding";
+  /** v5: credits are shown without an A$ equivalent (D27). */
+  v5: boolean;
+  loading: boolean;
+}
+
+export const LEGACY_FUNDING_PRICE: FundingRailPrice = {
+  label: "A$3",
+  note: ".00 inc. GST · one-off",
+  credits: 3,
+  creditFeature: "grant_match",
+  v5: false,
+  loading: false,
+};
+
+/** Pure: the rail price for a /api/pricing/payg state (error → legacy copy; Stripe still shows the real price). */
+export function fundingRailPrice(state: ReturnType<typeof usePaygPricing>): FundingRailPrice {
+  if (state.status === "loading") return { ...LEGACY_FUNDING_PRICE, loading: true };
+  if (state.status === "error" || !state.pricing.enabled || !state.pricing.funding) return LEGACY_FUNDING_PRICE;
+  const f = state.pricing.funding;
+  return {
+    label: f.priceLabel,
+    note: " · one-off, GST incl.",
+    credits: f.credits ?? 19,
+    creditFeature: "report_funding",
+    v5: true,
+    loading: false,
+  };
+}
 import { FUNDING_COPY } from "@/lib/funding/copy";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 
@@ -66,6 +109,7 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
   const trackedRail = React.useRef<PaywallRail | null>(null);
   const [paidCount, setPaidCount] = React.useState(0);
   const { user: entUser } = useEntitlement();
+  const price = fundingRailPrice(usePaygPricing());
 
   // GA4 — once per rail resolution (anonymous → guest/credits/plan).
   React.useEffect(() => {
@@ -196,9 +240,9 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
           {rail === "plan" ? (
             <PlanRail busy={busy} onGenerate={generateSignedIn} total={total} />
           ) : rail === "credits" ? (
-            <CreditsRail busy={busy} balance={balance} onStart={() => setConfirmOpen(true)} />
+            <CreditsRail busy={busy} balance={balance} onStart={() => setConfirmOpen(true)} price={price} />
           ) : (
-            <GuestRail busy={busy} email={email} onEmail={setEmail} onSubmit={startGuestCheckout} disabled={rail === "anonymous"} errorId={error ? "fp-error" : undefined} />
+            <GuestRail busy={busy} email={email} onEmail={setEmail} onSubmit={startGuestCheckout} disabled={rail === "anonymous"} errorId={error ? "fp-error" : undefined} price={price} />
           )}
           {/* Busy state announced for screen readers (the button label alone is not re-read). */}
           <p className="sr-only" role="status" aria-live="polite" data-paywall-status>
@@ -232,7 +276,7 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
       <CreditConfirm
         isOpen={confirmOpen}
         action="Grant & Program match report (≈1,200 words, 12-month timeline)"
-        cost={GRANT_MATCH_CREDITS}
+        cost={price.credits}
         balance={balance ?? 0}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
@@ -240,7 +284,7 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
           void generateSignedIn();
         }}
       />
-      <CreditGate isOpen={gateOpen} onClose={() => setGateOpen(false)} feature="grant_match" cost={GRANT_MATCH_CREDITS} balance={balance ?? 0} />
+      <CreditGate isOpen={gateOpen} onClose={() => setGateOpen(false)} feature={price.creditFeature} cost={price.credits} balance={balance ?? 0} />
     </div>
   );
 }
@@ -252,7 +296,9 @@ function GuestRail({
   onSubmit,
   disabled,
   errorId,
+  price = LEGACY_FUNDING_PRICE,
 }: {
+  price?: FundingRailPrice;
   busy: boolean;
   email: string;
   onEmail: (v: string) => void;
@@ -264,8 +310,8 @@ function GuestRail({
   return (
     <form onSubmit={onSubmit} className="space-y-3" data-rail-form="guest">
       <p className="text-3xl font-semibold text-primary">
-        {FUNDING_REPORT_PRICE_LABEL}
-        <span className="ml-1 text-sm font-normal text-secondary">.00 inc. GST · one-off</span>
+        {price.loading ? "…" : price.label}
+        <span className="ml-1 text-sm font-normal text-secondary">{price.loading ? "" : price.note}</span>
       </p>
       <p className="text-xs text-secondary">
         Your report link is emailed to you and opens straight after payment. No account needed.
@@ -291,29 +337,29 @@ function GuestRail({
       </div>
       <button
         type="submit"
-        disabled={busy || disabled || email.trim().length < 5}
+        disabled={busy || disabled || price.loading || email.trim().length < 5}
         aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? "Opening checkout…" : `Pay ${FUNDING_REPORT_PRICE_LABEL} & unlock`}
+        {busy ? "Opening checkout…" : price.loading ? "Loading price…" : `Pay ${price.label} & unlock`}
       </button>
       <p className="text-xs text-tertiary">
         Have an account?{" "}
         <Link href="/auth/login?next=/funding" className="font-semibold text-action underline-offset-2 hover:underline">
           Sign in
         </Link>{" "}
-        to pay with {GRANT_MATCH_CREDITS} credits or use your plan.
+        to pay with {price.credits} credits or use your plan.
       </p>
     </form>
   );
 }
 
-function CreditsRail({ busy, balance, onStart }: { busy: boolean; balance: number | null; onStart: () => void }) {
+function CreditsRail({ busy, balance, onStart, price = LEGACY_FUNDING_PRICE }: { busy: boolean; balance: number | null; onStart: () => void; price?: FundingRailPrice }) {
   return (
     <div className="space-y-3" data-rail-form="credits">
       <p className="text-3xl font-semibold text-primary">
-        {GRANT_MATCH_CREDITS} credits
-        <span className="ml-1 text-sm font-normal text-secondary">≈ {FUNDING_REPORT_PRICE_LABEL}</span>
+        {price.loading ? "…" : `${price.credits} credits`}
+        {price.v5 || price.loading ? null : <span className="ml-1 text-sm font-normal text-secondary">≈ {price.label}</span>}
       </p>
       <p className="text-xs text-secondary">
         <Coins className="mr-1 inline h-3.5 w-3.5" aria-hidden />
@@ -323,11 +369,11 @@ function CreditsRail({ busy, balance, onStart }: { busy: boolean; balance: numbe
       <button
         type="button"
         onClick={onStart}
-        disabled={busy}
+        disabled={busy || price.loading}
         aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? "Generating…" : `Generate for ${GRANT_MATCH_CREDITS} credits`}
+        {busy ? "Generating…" : `Generate for ${price.credits} credits`}
       </button>
     </div>
   );

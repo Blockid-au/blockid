@@ -186,6 +186,29 @@ async function ensureBucket(supabase: SupabaseAdmin): Promise<void> {
   }
 }
 
+// ── G35 D26: Pricing v5 guest tier ─────────────────────────────────────────
+
+export interface GuestPaygStamp {
+  tier: "snapshot" | "full";
+  sku: string;
+  pricing_version: string;
+}
+
+/** The tier create-order stamped on `report_data.payg` (null on the A$3 SKU or anything malformed). */
+export function guestPaygStamp(reportData: unknown): GuestPaygStamp | null {
+  if (!reportData || typeof reportData !== "object") return null;
+  const p = (reportData as { payg?: unknown }).payg;
+  if (!p || typeof p !== "object") return null;
+  const { tier, sku, pricing_version } = p as Record<string, unknown>;
+  if (tier !== "snapshot" && tier !== "full") return null;
+  return { tier, sku: typeof sku === "string" ? sku : `report_${tier}`, pricing_version: typeof pricing_version === "string" ? pricing_version : "v5" };
+}
+
+/** PDF depth per guest tier: Snapshot → the short "preview" cut; Full / legacy A$3 → "standard" (unchanged). */
+export function guestPdfTier(stamp: GuestPaygStamp | null): "preview" | "standard" {
+  return stamp?.tier === "snapshot" ? "preview" : "standard";
+}
+
 // ── Main entry ─────────────────────────────────────────────────────────────
 
 export async function runGuestAnalysis(
@@ -211,7 +234,7 @@ export async function runGuestAnalysis(
   const { data: row, error: fetchErr } = await supabase
     .from("guest_analyses")
     .select(
-      "id, email, input_type, input_value, input_filename, status",
+      "id, email, input_type, input_value, input_filename, status, report_data, paid_amount_aud_cents, amount_paid_aud_cents",
     )
     .eq("id", guestAnalysisId)
     .maybeSingle();
@@ -237,6 +260,10 @@ export async function runGuestAnalysis(
   }
 
   const email = String(row.email ?? "").trim().toLowerCase();
+  // G35 D26: a Pricing v5 guest order carries its tier on report_data.payg
+  // (create-order); absent on the A$3 SKU → the runner is unchanged.
+  const paygStamp = guestPaygStamp(row.report_data);
+  const paidCents = Number(row.paid_amount_aud_cents ?? row.amount_paid_aud_cents ?? 0) || null;
   const inputType = row.input_type as "pitch_file" | "website_url";
   const inputValue = String(row.input_value ?? "");
   const inputFilename = row.input_filename
@@ -494,6 +521,7 @@ export async function runGuestAnalysis(
       },
       valuation: analysis.deepValuation ?? null,
       fundingReadiness,
+      ...(paygStamp ? { payg: paygStamp } : {}),
       analysis,
       generatedAt: new Date().toISOString(),
     };
@@ -506,7 +534,7 @@ export async function runGuestAnalysis(
           analysis,
           startupName: projectName,
           email,
-          tier: "standard",
+          tier: guestPdfTier(paygStamp),
         }),
       );
 
@@ -567,6 +595,7 @@ export async function runGuestAnalysis(
         reportData,
         pdfUrl: reportPdfUrl ?? "",
         guestAnalysisId,
+        ...(paygStamp ? { amountPaidCents: paidCents, tierLabel: paygStamp.tier === "snapshot" ? "Snapshot report" : "Full report" } : {}),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
