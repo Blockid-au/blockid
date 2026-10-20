@@ -7,10 +7,7 @@
  *   • plan-included — `can(user, "grant_finder")` (Starter+, Startup Package,
  *     evaluator rungs): `paid_via = 'plan'`, no credit spend, row inserted
  *     `ready` directly.
- *   • credits — `canAfford(user.id, <feature>)` → 402 (feature from
- *     `fundingCreditFeature(payg_enabled)`: OFF "grant_match" = the legacy
- *     cost, ON "report_funding" = D25 19 credits — G35 P5; the paywall shows
- *     the same `view.fundingCredits`)
+ *   • credits — `canAfford(user.id, "grant_match")` (3 credits, §4g) → 402
  *     `insufficient_credits` when short; `spendCredits` runs only after the
  *     generation succeeded (a failed generation never charges) but BEFORE the
  *     row becomes `ready`: a spend that loses the race (`ok:false`) leaves the
@@ -41,17 +38,19 @@ import { parseFundingIntake, intakeToProjectGrantProfile } from "@/lib/funding/i
 import { buildReportFromIntake, countPaidFundingReports, newAccessToken, reportColumns } from "@/lib/funding/reports";
 import { apiRoute } from "@/lib/audit/api-route";
 import { emitEventSafe } from "@/lib/analytics/server";
-import { fundingCreditFeature } from "@/lib/funding/credit-feature";
-import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
+import { isPaygEnabled } from "@/lib/pricing/payg-flag";
 
 export const dynamic = "force-dynamic";
 
+const FEATURE_KEY = "grant_match";
+/** G35 D25: with payg_enabled the credits rail charges the Money Finder SKU's 19 credits. */
+const PAYG_FEATURE_KEY = "report_funding";
 const RATE_LIMIT_PER_HOUR = 10;
 const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 
 /**
  * GET /api/funding/report — how many reports the signed-in user has paid for
- * (card / credits; plan-included runs excluded). The /funding paywall uses it
+ * (A$3 / credits; plan-included runs excluded). The /funding paywall uses it
  * to show the Founder Radar card after the third purchase (T0247).
  *
  *   200 { ok, paid_count }   401 unauthorized
@@ -109,9 +108,8 @@ async function POST_handler(request: Request) {
 
   // 5. Entitlement → credit pre-flight
   const included = await can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "grant_finder");
+  const featureKey = (await isPaygEnabled()) ? PAYG_FEATURE_KEY : FEATURE_KEY;
   let cost = 0;
-  // G35 P5 (D25): charge the credits the paywall showed for this flag state.
-  const featureKey = fundingCreditFeature(included ? false : await isPaygEnabled());
   if (!included) {
     const afford = await canAfford(user.id, featureKey);
     if (!afford.allowed) {
@@ -204,7 +202,7 @@ async function POST_handler(request: Request) {
   }
 
   // 10. G14-S33: funding_report_paid as server truth for the credits / plan
-  //     rails (the guest card rail emits from the Stripe webhook). The client
+  //     rails (the guest A$3 rail emits from the Stripe webhook). The client
   //     tracker still fires for the GA4 session; this one survives ad-block.
   emitEventSafe({
     name: "funding_report_paid",

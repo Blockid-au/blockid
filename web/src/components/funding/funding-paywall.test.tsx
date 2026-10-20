@@ -7,6 +7,14 @@ import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
+// W3 (P3): the rails' price + credits come from GET /api/pricing/payg via
+// usePaygPricing(); the card copy follows the server-read `view` prop (P5).
+const pricingState: { current: unknown } = { current: { status: "ready", pricing: { enabled: false } } };
+vi.mock("@/lib/pricing/use-payg-pricing", () => ({ usePaygPricing: () => pricingState.current }));
+const ON_PRICING = {
+  status: "ready",
+  pricing: { enabled: true, funding: { sku: "report_funding", amountCents: 1900, priceLabel: "A$19", credits: 19 } },
+};
 vi.mock("@/hooks/useEntitlement", () => ({
   useEntitlement: () => ({ user: null, entitlements: [], trial: null, isLoading: true, can: () => false, refresh: async () => undefined }),
 }));
@@ -29,6 +37,7 @@ const preview = {
 } as unknown as FundingPreviewPayload;
 
 async function html(rail: PaywallRail, view?: PaygView): Promise<string> {
+  pricingState.current = view?.enabled ? ON_PRICING : { status: "ready", pricing: { enabled: false } };
   const stream = await renderToReadableStream(<FundingPaywall intake={{ state: "NSW" }} preview={preview} rail={rail} view={view} />);
   await stream.allReady;
   return (await new Response(stream).text()).replace(/<!-- -->/g, "");

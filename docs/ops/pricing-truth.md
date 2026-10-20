@@ -9,7 +9,7 @@ that lane A produced and the place any future price change is checked against.
 > re-score priced in A$, 5-credit pack on sale). ON = § 14: Snapshot A$19 / Full A$49 / Verified A$149 pay-as-you-go,
 > Money Finder A$19 / 19 credits (D25), guest One-Click folded into PAYG Snapshot / Full (D26), credits shown as "N credits"
 > only and the 5-credit pack withdrawn (D27). Subscription prices and quotas do not change. Every customer-facing surface
-> reads the switch through `web/src/lib/pricing/payg-copy.ts` (`PaygView`) / `payg-view.server.ts` (`getPaygView()`).
+> reads the switch through `web/src/lib/pricing/payg-copy.ts` (`PaygView`) / `payg-view.server.ts` (`getPaygView()`), which reads the flag once via W3's fail-closed `payg-flag.ts` `readPaygConfig()` — checkout and copy share one read.
 
 **Sources of truth (in this order):**
 

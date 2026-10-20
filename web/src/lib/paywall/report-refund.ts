@@ -146,7 +146,7 @@ export async function refundFailedOrder(
   // move to REFUNDED — that is the Stripe `charge.refunded` path (P3), never
   // this auto-refund for undelivered orders. A delivered or in-review order
   // is refused here so the drain cron can never reverse a report it handed out.
-  const target = status === "READY" || status === "IN_REVIEW" ? null : nextState(status, "refund_issued");
+  const target = status === "READY" || status === "SHARED" || status === "IN_REVIEW" ? null : nextState(status, "refund_issued");
   if (!target) {
     return { ok: false, reason: `illegal_refund_from_${status}` };
   }

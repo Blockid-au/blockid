@@ -40,7 +40,7 @@ import { TbrInvestmentView, TbrKeyPoints } from "./investment-view";
 import { TbrMoney } from "./money";
 import { TbrImprovementPlan, TbrRiskMatrix } from "./risk-matrix";
 import { TBR_SURFACE_CLASS, TBR_V2_SECTION_IDS, type TbrUiLocale } from "./shared";
-import { TbrUnlockRail, type TbrUnlockMode, type TbrUnlockOrderStatus } from "./unlock-rail";
+import { TbrUnlockRail, type TbrUnlockMode, type TbrUnlockOrderStatus, type TbrUnlockPayg } from "./unlock-rail";
 import { TbrValuation } from "./valuation";
 import { TbrCriteriaSummary } from "./criteria-summary";
 
@@ -62,6 +62,8 @@ export interface TbrUnlockProps {
   orderStatus?: TbrUnlockOrderStatus;
   /** included: where the plan-included report generates. */
   generateHref?: string;
+  /** G35 Pricing v5 rail (payg_enabled) — tiers / upgrade / owned Snapshot. */
+  payg?: TbrUnlockPayg | null;
 }
 
 /** Section titles the shell may override (kept for the founder page's `strings` prop; v3 titles come from tbr-v3-strings). */
@@ -134,7 +136,7 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   // G34 BT6 (RQ21): the backtest headline the server page loaded (omitted → the line links the methodology, no figures).
   const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: !paid, dash: dashboard, ...(benchmarks?.calibration !== undefined ? { calibration: benchmarks.calibration } : {}), ...(trendBaseline !== undefined ? { trendBaseline } : {}) });
   const railFor = (mode: TbrUnlockMode) => (
-    <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} orderStatus={unlock?.orderStatus} generateHref={unlock?.generateHref} locale={locale} />
+    <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} orderStatus={unlock?.orderStatus} generateHref={unlock?.generateHref} locale={locale} payg={unlock?.payg ?? null} />
   );
   // The rail goes right after the FIRST locked chapter; when nothing is
   // locked (included / purchased / no card chapter) it follows the last one.

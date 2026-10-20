@@ -32,7 +32,7 @@ vi.mock("@/lib/credits", () => ({
 }));
 
 const paygEnabled = vi.hoisted(() => ({ on: false }));
-vi.mock("@/lib/pricing/payg-view.server", () => ({ isPaygEnabled: async () => paygEnabled.on }));
+vi.mock("@/lib/pricing/payg-flag", () => ({ isPaygEnabled: async () => paygEnabled.on }));
 
 const canMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/entitlements", () => ({ can: (u: unknown, f: string) => canMock(u, f) }));

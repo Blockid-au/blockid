@@ -1157,3 +1157,93 @@ it("legacy transient Stripe retrieval retries same event before claim, then gran
  expect((await invoke()).status).toBe(200);expect(claimWebhookEvent).toHaveBeenCalledTimes(1);expect(grantCreditsMock).toHaveBeenCalledTimes(1);
  expect(stripeSessionsRetrieve).toHaveBeenCalledTimes(2); // first failed preflight, second successful preflight only
 });
+
+// ---------- G35 Pricing v5 (P3) ---------------------------------------------
+// The fulfilment itself (PAID flip, enqueue, upgrade, refund, idempotency on
+// event + session) is unit-tested in src/lib/pricing/payg-fulfilment.test.ts;
+// here we pin the routing contract only.
+const paygFulfilMock = vi.hoisted(() => vi.fn());
+const paygRefundMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/pricing/payg-fulfilment", () => ({
+  fulfilPaygReportCheckout: (...a: unknown[]) => paygFulfilMock(...a),
+  refundReportOrderForCharge: (...a: unknown[]) => paygRefundMock(...a),
+}));
+vi.mock("@/lib/email/report-order-emails", () => ({
+  sendReportOrderPaid: vi.fn(),
+  sendReportOrderReady: vi.fn(),
+  sendReportOrderInReview: vi.fn(),
+}));
+
+describe("POST /api/stripe/webhook — G35 Pricing v5 routing", () => {
+  beforeEach(() => {
+    paygFulfilMock.mockReset().mockResolvedValue({ ok: true, orderId: "o-v5", sku: "report_full", kind: "report", status: "PAID", duplicate: false });
+    paygRefundMock.mockReset().mockResolvedValue({ handled: true, orderId: "o-v5", from: "READY", to: "REFUNDED", badgeRemoved: false, tierReverted: false });
+  });
+
+  it.each(["report_snapshot", "report_full", "report_verified", "upgrade_snapshot_full", "upgrade_full_verified"])(
+    "bid_sku %s → payg fulfilment (the A$3 path writes nothing)",
+    async (sku) => {
+      verifyWebhookSignature.mockReturnValue(
+        buildCheckoutEvent({ id: `evt_${sku}`, metadata: { bid_scope: "report_order", bid_business_id: "biz-1", bid_user_id: "user-1", bid_sku: sku, order_id: "o-v5", pricing_version: "v5" } }),
+      );
+      const res = await invoke();
+      expect(res.status).toBe(200);
+      expect(paygFulfilMock).toHaveBeenCalledTimes(1);
+      expect(paygFulfilMock.mock.calls[0][3]).toBe(sku);
+      // The legacy handler's report_orders insert / trust_report revenue row never ran.
+      expect(insertCalls.filter((c) => c.table === "report_orders")).toHaveLength(0);
+      expect(emitCalls.find((e) => e.name === "trust_report_purchased")).toBeUndefined();
+    },
+  );
+
+  it("legacy sku_trust_report_5aud keeps the A$3 path", async () => {
+    selectResponses.set("report_orders:insert", { data: { id: "order-legacy" }, error: null });
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({ id: "evt_legacy_v5", metadata: { bid_scope: "report_order", bid_business_id: "biz-1", bid_user_id: "user-1", bid_sku: "sku_trust_report_5aud" } }),
+    );
+    await invoke();
+    expect(paygFulfilMock).not.toHaveBeenCalled();
+    expect(insertCalls.find((c) => c.table === "revenue_events")?.row).toMatchObject({ kind: "trust_report_5aud" });
+  });
+
+  it("a duplicate event id never reaches the fulfilment (outer claim)", async () => {
+    claimWebhookEvent.mockResolvedValue({ duplicate: true });
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({ id: "evt_dup", metadata: { bid_scope: "report_order", bid_business_id: "biz-1", bid_user_id: "user-1", bid_sku: "report_full" } }),
+    );
+    const res = await invoke();
+    expect(await res.json()).toMatchObject({ duplicate: true });
+    expect(paygFulfilMock).not.toHaveBeenCalled();
+  });
+
+  it("charge.refunded → reseller commission handling AND the report order refund (G5)", async () => {
+    const { handleChargeRefunded } = await import("@/lib/reseller/webhook-refund-integration");
+    verifyWebhookSignature.mockReturnValue({
+      id: "evt_refund",
+      type: "charge.refunded",
+      data: { object: { id: "ch_1", payment_intent: "pi_1", refunded: true, amount: 4900, amount_refunded: 4900 } },
+    });
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(handleChargeRefunded).toHaveBeenCalled();
+    expect(paygRefundMock).toHaveBeenCalledTimes(1);
+    expect(paygRefundMock.mock.calls[0][1]).toMatchObject({ id: "ch_1", payment_intent: "pi_1" });
+  });
+
+  it("Money Finder v5 session books revenue kind report_funding (A$3 keeps funding_report_3aud)", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({ id: "evt_fund_v5", amountTotal: 1900, metadata: { scope: "funding_report", funding_report_id: "fr-1", sku: "report_funding", email: "a@b.au", pricing_version: "v5" } }),
+    );
+    await invoke();
+    expect(insertCalls.find((c) => c.table === "revenue_events")?.row).toMatchObject({ kind: "report_funding", gross_aud_cents: 1900 });
+    expect(emitCalls.find((e) => e.name === "payg_paid")?.params).toMatchObject({ tier: "funding", sku: "report_funding" });
+  });
+
+  it("guest v5 session books its tier's revenue kind", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({ id: "evt_guest_v5", amountTotal: 1900, metadata: { scope: "guest_analysis", guest_analysis_id: "g-1", sku: "report_snapshot", email: "a@b.au", bid_tier: "snapshot", pricing_version: "v5" } }),
+    );
+    await invoke();
+    expect(insertCalls.find((c) => c.table === "revenue_events")?.row).toMatchObject({ kind: "report_snapshot", gross_aud_cents: 1900 });
+  });
+});

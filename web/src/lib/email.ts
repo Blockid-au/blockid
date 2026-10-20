@@ -2646,13 +2646,15 @@ export async function sendGuestReport(params: {
   reportData: Record<string, unknown>;
   pdfUrl: string;
   guestAnalysisId: string;
-  /**
-   * What Stripe actually charged (`guest_analyses.paid_amount_aud_cents`),
-   * printed on the tax-invoice line. Omitted → the legacy one-off amount.
-   */
-  amountCents?: number | null;
+  /** G35 D26: the amount actually paid (cents, inc. GST) — the tax-invoice line. Default 300 (the A$3 SKU). */
+  amountPaidCents?: number | null;
+  /** G35 D26: "Snapshot report" / "Full report" on a Pricing v5 guest order. */
+  tierLabel?: string | null;
 }): Promise<void> {
   const { email: to, reportData, pdfUrl, guestAnalysisId } = params;
+  const paidCents = typeof params.amountPaidCents === "number" && params.amountPaidCents > 0 ? params.amountPaidCents : 300;
+  const invoiceAmount = `A$${(paidCents / 100).toFixed(2)} inc. GST`;
+  const invoiceItem = params.tierLabel ? ` · ${escapeHtml(params.tierLabel)}` : "";
 
   const totalScore = typeof reportData.totalScore === "number" ? reportData.totalScore : null;
   const stageLabel = typeof reportData.stageLabel === "string" ? reportData.stageLabel : "";
@@ -2758,7 +2760,7 @@ export async function sendGuestReport(params: {
         This report was generated for ${escapeHtml(to)} · Order ID: ${escapeHtml(guestAnalysisId.slice(0, 8))}
       </p>
       <p style="margin:4px 0 0;color:#4b5563;font-size:12px;text-align:center;">
-        Tax invoice · ${tradingAsLine()} · ${LEGAL_ENTITY_ABN_LABEL} · ${guestReportAmountLabel(params.amountCents)} inc. GST
+        Tax invoice · ${tradingAsLine()} · ${LEGAL_ENTITY_ABN_LABEL}${invoiceItem} · ${invoiceAmount}
       </p>
     </div>
   `) + unsubFooter(unsubscribeUrl, preferencesUrl);

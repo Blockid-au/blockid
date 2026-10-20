@@ -43,6 +43,8 @@ import { TbrReportV2, tbrV2TocGroups, type TbrRevisionInfo, type TbrUnlockOrderS
 import type { TrendBaseline } from "@/lib/report-v2/trend";
 import { TbrClaritySurvey } from "@/components/tbr/tbr-clarity-survey";
 import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
+import { tbrUnlockPaygFromOffer } from "@/components/tbr/v2/unlock-rail";
+import type { PaygOffer } from "@/lib/pricing/payg-offer";
 import { ReportOrderBlocked, reportOrderExportHref } from "@/components/paywall/ReportOrderView";
 import { useReportOrder } from "@/components/paywall/use-report-order";
 import { legacyReportOrderPath } from "@/lib/paywall/report-delivery";
@@ -64,6 +66,10 @@ export interface ReportAccessInfo {
   creditBalance: number;
   hasSubscription: boolean;
   price: { sku: string; amount_cents: number; label: string };
+  /** G35 Pricing v5: a Snapshot order (never unlocks this page; served on its own order page). */
+  snapshotOrderId?: string | null;
+  /** G35 Pricing v5 offer — `{ enabled: false }` while payg_enabled is off. */
+  payg?: PaygOffer;
 }
 
 /** G19-S45 (D4): what the page knows about the founder's paid order. */
@@ -608,10 +614,19 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
     setUnlockNotice("Create your startup workspace first so the report can be booked against it.");
   }, [access]);
   const closeGate = useCallback(() => setGateOpen(false), []);
+  // G35 Pricing v5 (D28): Full → Verified offer for the owner of a delivered Full report.
+  const verifiedUpgrade = access?.payg?.enabled ? (access.payg.upgrades.find((u) => u.from === "full" && u.available) ?? null) : null;
 
   const unlock = useMemo<TbrUnlockProps | null>(() => {
     if (!unlockMode) return null;
-    return { mode: unlockMode, onUnlock: openUnlock, orderId: paidOrderId ?? access?.paidOrderId ?? null, orderStatus: orderStatus ?? undefined };
+    return {
+      mode: unlockMode,
+      onUnlock: openUnlock,
+      orderId: paidOrderId ?? access?.paidOrderId ?? null,
+      orderStatus: orderStatus ?? undefined,
+      // G35 Pricing v5: tiers / Snapshot → Full upgrade on the rail (null while payg_enabled is off).
+      payg: tbrUnlockPaygFromOffer(access?.payg, access?.snapshotOrderId ?? null),
+    };
   }, [unlockMode, openUnlock, access, paidOrderId, orderStatus]);
 
   // paywall_view — once per render of the free cut (client emit; lane A's
@@ -935,7 +950,22 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               </Link>
             </p>
           )}
-          {founderMode && access?.projectId && unlockMode === "buy" && (
+          {/* G35 Pricing v5 (D28): the owner of a Full report can move up to Verified. */}
+          {founderMode && access?.projectId && unlockMode !== "buy" && verifiedUpgrade && (
+            <div data-testid="payg-verified-upgrade" className="flex flex-col gap-2 rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
+              <p className="text-secondary">
+                Have the BlockID team review the evidence behind this report — Verified, {verifiedUpgrade.priceLabel} one-off, inc. GST, {verifiedUpgrade.delivery.toLowerCase()}.
+              </p>
+              <button
+                type="button"
+                onClick={() => setGateOpen(true)}
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover"
+              >
+                Move up to Verified — {verifiedUpgrade.priceLabel}
+              </button>
+            </div>
+          )}
+          {founderMode && access?.projectId && (unlockMode === "buy" || Boolean(verifiedUpgrade)) && (
             <ReportPaywallGate
               businessId={access.projectId}
               quote={access.quote}
@@ -943,6 +973,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               hasSubscription={access.hasSubscription}
               open={gateOpen}
               onClose={closeGate}
+              payg={access.payg ?? null}
             />
           )}
 

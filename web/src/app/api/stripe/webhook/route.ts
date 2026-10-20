@@ -149,6 +149,21 @@ export async function POST(request: Request) {
       case "charge.refunded": {
         const { handleChargeRefunded } = await import("@/lib/reseller/webhook-refund-integration");
         await handleChargeRefunded(event);
+        // G35 gap G5: a fully refunded report order → REFUNDED (report stays
+        // readable at its tier; a refunded Verified loses its badge). Never
+        // throws — reseller commission handling above is unchanged.
+        try {
+          const { refundReportOrderForCharge } = await import("@/lib/pricing/payg-fulfilment");
+          const refund = await refundReportOrderForCharge(supabase, event.data.object as Stripe.Charge, event, {
+            audit: async (input) => {
+              const { logUserAction } = await import("@/lib/audit/log");
+              return logUserAction(input);
+            },
+          });
+          if (refund.handled) console.info("[blockid:stripe] report_order refunded", refund);
+        } catch (err) {
+          console.warn("[blockid:stripe] report_order refund bookkeeping failed", err instanceof Error ? err.message : String(err));
+        }
         break;
       }
       case "charge.dispute.created": {
@@ -1156,6 +1171,17 @@ export async function POST(request: Request) {
     const userId = session.metadata?.bid_user_id;
     const sku = session.metadata?.bid_sku ?? "sku_trust_report_5aud";
 
+    // G35 Pricing v5: a v5 SKU (report_snapshot / report_full /
+    // report_verified / upgrade_*) is fulfilled by lib/pricing/payg-fulfilment;
+    // the legacy A$3 / credits SKUs (and an absent bid_sku) keep the path below
+    // byte for byte.
+    const { resolveSkuId } = await import("@/lib/pricing/v5-payg");
+    const resolved = resolveSkuId(session.metadata?.bid_sku);
+    if (resolved && !resolved.legacy && resolved.sku !== "report_funding") {
+      await handlePaygReportOrder(session, event, resolved.sku);
+      return;
+    }
+
     if (!businessId || !userId) {
       console.warn(
         "[blockid:stripe] report_order webhook missing bid_business_id/bid_user_id",
@@ -1326,12 +1352,65 @@ export async function POST(request: Request) {
       consentGranted: true,
     });
 
-    // ── Task M3 · reseller_attributions reconciliation ─────────────────
-    // /api/reports/checkout writes reseller_attributions synchronously when
-    // resolvedPromo is truthy — but that write is best-effort (wrapped in
-    // try/catch so a Supabase blip never blocks checkout). Verify the row
-    // exists here and insert from session metadata if it doesn't, mirroring
-    // the report_orders reconciliation path above.
+    await reconcileReportResellerAttribution(session, event, userId, businessId);
+  }
+
+  // -------------------------------------------------------------------------
+  // G35 Pricing v5 report_order (Snapshot / Full / Verified / upgrades)
+  // -------------------------------------------------------------------------
+  // Idempotent on the event id (outer claim) AND the session id (guarded
+  // PAID flip inside fulfilPaygReportCheckout). Never throws.
+  async function handlePaygReportOrder(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+    sku: import("@/lib/pricing/v5-payg").PaygSkuId,
+  ): Promise<void> {
+    try {
+      const [{ fulfilPaygReportCheckout }, emails] = await Promise.all([
+        import("@/lib/pricing/payg-fulfilment"),
+        import("@/lib/email/report-order-emails"),
+      ]);
+      const outcome = await fulfilPaygReportCheckout(supabase, session, event, sku, {
+        recordRevenue: recordRevenueEvent,
+        audit: async (input) => {
+          const { logUserAction } = await import("@/lib/audit/log");
+          return logUserAction(input);
+        },
+        emit: (input) => emitEventSafe(input),
+        email: {
+          paid: emails.sendReportOrderPaid,
+          ready: emails.sendReportOrderReady,
+          inReview: emails.sendReportOrderInReview,
+        },
+      });
+      console.info("[blockid:stripe] payg report_order", { session_id: session.id, sku, outcome });
+      const userId = session.metadata?.bid_user_id;
+      const businessId = session.metadata?.bid_business_id;
+      if (outcome.ok && !outcome.duplicate && userId && businessId) {
+        await reconcileReportResellerAttribution(session, event, userId, businessId);
+      }
+    } catch (err) {
+      console.error("[blockid:stripe] payg report_order fulfilment threw", {
+        session_id: session.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // ── Task M3 · reseller_attributions reconciliation ─────────────────
+  // /api/reports/checkout writes reseller_attributions synchronously when
+  // resolvedPromo is truthy — but that write is best-effort (wrapped in
+  // try/catch so a Supabase blip never blocks checkout). Verify the row
+  // exists here and insert from session metadata if it doesn't, mirroring
+  // the report_orders reconciliation path above. Shared by the A$3 and the
+  // Pricing v5 report_order paths (v5 sessions carry bid_promo_tier_pct "0":
+  // attribution only, never a discount).
+  async function reconcileReportResellerAttribution(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+    userId: string,
+    businessId: string,
+  ): Promise<void> {
     const bidResellerId = session.metadata?.bid_reseller_id;
     const bidPromoTier = session.metadata?.bid_promo_tier_pct;
     if (bidResellerId && typeof bidResellerId === "string") {
@@ -1449,20 +1528,39 @@ export async function POST(request: Request) {
 
     // Revenue analytics — same shape as trust_report_5aud so the CFO
     // dashboard aggregates the guest funnel alongside other one-offs.
+    // G35 D26: a Pricing v5 guest session (Snapshot / Full) books its tier's kind.
+    const guestSku = session.metadata?.sku ?? "sku_one_click_report_3aud";
+    const guestV5Kind = guestSku === "report_snapshot" || guestSku === "report_full" ? guestSku : null;
     await recordRevenueEvent({
       userId: null,
       planId: null,
       stripeEventId: event.id,
       grossCents: session.amount_total ?? 0,
       currency: session.currency ?? "aud",
-      kind: "guest_analysis_3aud",
+      kind: guestV5Kind ?? "guest_analysis_3aud",
       detail: {
         session_id: session.id,
         guest_analysis_id: guestAnalysisId,
-        sku: session.metadata?.sku ?? "sku_one_click_report_3aud",
+        sku: guestSku,
         email: session.metadata?.email ?? session.customer_email ?? null,
+        ...(guestV5Kind ? { pricing_version: "v5", tier: session.metadata?.bid_tier ?? null } : {}),
       },
     });
+    if (guestV5Kind) {
+      emitEventSafe({
+        name: "payg_paid",
+        params: {
+          tier: guestV5Kind === "report_snapshot" ? "snapshot" : "full",
+          sku: guestV5Kind,
+          paid_via: "card",
+          gross_aud_cents: session.amount_total ?? 0,
+          order_id: guestAnalysisId,
+          session_id: session.id,
+        },
+        source: "webhook:stripe",
+        consentGranted: true,
+      });
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1485,20 +1583,40 @@ export async function POST(request: Request) {
     );
     if (result.skipped === "already_processed" || !result.ok) return;
 
+    // G35 D25: a Pricing v5 Money Finder session books `report_funding`
+    // (A$19); the A$3 SKU keeps `funding_report_3aud`.
+    const fundingSku = session.metadata?.sku ?? "sku_funding_report_3aud";
+    const fundingV5 = fundingSku === "report_funding";
     await recordRevenueEvent({
       userId: null,
       planId: null,
       stripeEventId: event.id,
       grossCents: session.amount_total ?? 0,
       currency: session.currency ?? "aud",
-      kind: "funding_report_3aud",
+      kind: fundingV5 ? "report_funding" : "funding_report_3aud",
       detail: {
         session_id: session.id,
         funding_report_id: result.reportId,
-        sku: session.metadata?.sku ?? "sku_funding_report_3aud",
+        sku: fundingSku,
         email: session.metadata?.email ?? session.customer_email ?? null,
+        ...(fundingV5 ? { pricing_version: "v5" } : {}),
       },
     });
+    if (fundingV5) {
+      emitEventSafe({
+        name: "payg_paid",
+        params: {
+          tier: "funding",
+          sku: "report_funding",
+          paid_via: "card",
+          gross_aud_cents: session.amount_total ?? 0,
+          order_id: result.reportId ?? "",
+          session_id: session.id,
+        },
+        source: "webhook:stripe",
+        consentGranted: true,
+      });
+    }
 
     // G14-S33: the guest A$3 rail has no browser tag after Stripe returns
     // (the tracker on /funding/report/[id] only fires when the buyer opens

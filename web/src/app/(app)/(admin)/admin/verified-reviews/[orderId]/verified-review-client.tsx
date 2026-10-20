@@ -267,7 +267,7 @@ export function VerifiedReviewClient({ initial }: Props) {
                 type="button"
                 aria-pressed={filter === key}
                 onClick={() => setFilter(key)}
-                className={`min-h-[36px] rounded-full border px-3 text-xs font-medium ${filter === key ? "border-brand-navy bg-brand-navy text-white" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-100"}`}
+                className={`min-h-[36px] rounded-full border px-3 text-xs font-medium ${filter === key ? "border-action bg-action text-on-action" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-100"}`}
               >
                 {label}
               </button>
@@ -339,7 +339,7 @@ export function VerifiedReviewClient({ initial }: Props) {
                             onClick={() => decide(item, "accept")}
                             disabled={busy !== null}
                             aria-pressed={item.decision === "accept"}
-                            className="min-h-[44px] flex-1 rounded-lg bg-brand-navy px-3 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="min-h-[44px] flex-1 rounded-lg bg-action px-3 text-sm font-medium text-on-action hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {busy === item.ref ? "Saving…" : "Accept"}
                           </button>
@@ -439,7 +439,7 @@ export function VerifiedReviewClient({ initial }: Props) {
               type="button"
               onClick={() => setConfirming(true)}
               disabled={busy !== null}
-              className="mt-3 min-h-[44px] rounded-lg bg-brand-navy px-5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-3 min-h-[44px] rounded-lg bg-action px-5 text-sm font-semibold text-on-action hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Mark reviewed…
             </button>
@@ -454,7 +454,7 @@ export function VerifiedReviewClient({ initial }: Props) {
                   type="button"
                   onClick={markReviewed}
                   disabled={busy !== null}
-                  className="min-h-[44px] rounded-lg bg-brand-navy px-5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-[44px] rounded-lg bg-action px-5 text-sm font-semibold text-on-action hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy === "mark" ? "Marking reviewed…" : "Confirm — mark reviewed"}
                 </button>

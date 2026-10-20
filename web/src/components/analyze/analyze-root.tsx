@@ -131,6 +131,7 @@ export function guestPaidCopy(view: PaygView, tier: "snapshot" | "full" = "full"
       oneOff: `One-off ${price} inc. GST`,
       checkoutPrice: price,
       tierName: undefined as string | undefined,
+      tier: undefined as "snapshot" | "full" | undefined,
       quoteLabel: null as string | null,
     };
   }
@@ -143,6 +144,7 @@ export function guestPaidCopy(view: PaygView, tier: "snapshot" | "full" = "full"
     oneOff: `One-off ${tierName} report ${price} inc. GST`,
     checkoutPrice: price,
     tierName: tierName as string | undefined,
+    tier: tier as "snapshot" | "full" | undefined,
     quoteLabel: `${tierName} ${price} inc. GST` as string | null,
   };
 }
@@ -927,7 +929,7 @@ export function AnalyzeRoot({
             url={guestUrlFor(null, submission)}
             initialEmail={reportEmail ?? undefined}
             priceLabel={paidCopy.checkoutPrice}
-            tierName={paidCopy.tierName}
+            initialTier={paidCopy.tier}
           />
         )}
       </div>
@@ -1067,7 +1069,7 @@ export function AnalyzeRoot({
           file={submission?.file ?? null}
           url={guestUrlFor(intake, submission)}
           priceLabel={paidCopy.checkoutPrice}
-          tierName={paidCopy.tierName}
+          initialTier={paidCopy.tier}
         />
       )}
 

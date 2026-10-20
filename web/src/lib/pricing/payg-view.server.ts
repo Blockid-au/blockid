@@ -1,14 +1,16 @@
-// payg-view.server — read `platform_config.payg_enabled` + the PAYG display
-// prices once, server-side, and hand the result down as a prop (G35 P5).
-// See payg-copy.ts for the switch semantics. Never throws: a config read
-// failure yields the flag-OFF view (today's site), never a half-v5 page.
+// payg-view.server — the Pricing v5 switch + PAYG display prices as a
+// `PaygView` for copy (G35 P5). The flag itself is read ONCE, by W3's
+// fail-closed `readPaygConfig()` (payg-flag.ts) — this module only turns that
+// slice into display labels, so copy and checkout can never disagree on
+// "is it on?". Never throws: any failure yields the flag-OFF view (today's
+// site), never a half-v5 page.
 
-import { getPlatformConfig } from "@/lib/platform-config";
+import { readPaygConfig } from "@/lib/pricing/payg-flag";
 import { PAYG_OFF_VIEW, paygView, type PaygView } from "@/lib/pricing/payg-copy";
 
 export async function getPaygView(): Promise<PaygView> {
   try {
-    return paygView(await getPlatformConfig());
+    return paygView(await readPaygConfig());
   } catch {
     return PAYG_OFF_VIEW;
   }

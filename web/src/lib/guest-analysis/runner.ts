@@ -41,6 +41,7 @@ import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import { sendGuestReport } from "@/lib/email";
+import { guestPaygStamp, guestPdfTier, guestTierLabel } from "./payg-stamp";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ export async function runGuestAnalysis(
   const { data: row, error: fetchErr } = await supabase
     .from("guest_analyses")
     .select(
-      "id, email, input_type, input_value, input_filename, status, paid_amount_aud_cents",
+      "id, email, input_type, input_value, input_filename, status, report_data, paid_amount_aud_cents, amount_paid_aud_cents",
     )
     .eq("id", guestAnalysisId)
     .maybeSingle();
@@ -237,6 +238,10 @@ export async function runGuestAnalysis(
   }
 
   const email = String(row.email ?? "").trim().toLowerCase();
+  // G35 D26: a Pricing v5 guest order carries its tier on report_data.payg
+  // (create-order); absent on the A$3 SKU → the runner is unchanged.
+  const paygStamp = guestPaygStamp(row.report_data);
+  const paidCents = Number(row.paid_amount_aud_cents ?? row.amount_paid_aud_cents ?? 0) || null;
   const inputType = row.input_type as "pitch_file" | "website_url";
   const inputValue = String(row.input_value ?? "");
   const inputFilename = row.input_filename
@@ -494,6 +499,7 @@ export async function runGuestAnalysis(
       },
       valuation: analysis.deepValuation ?? null,
       fundingReadiness,
+      ...(paygStamp ? { payg: paygStamp } : {}),
       analysis,
       generatedAt: new Date().toISOString(),
     };
@@ -506,7 +512,7 @@ export async function runGuestAnalysis(
           analysis,
           startupName: projectName,
           email,
-          tier: "standard",
+          tier: guestPdfTier(paygStamp),
         }),
       );
 
@@ -567,10 +573,7 @@ export async function runGuestAnalysis(
         reportData,
         pdfUrl: reportPdfUrl ?? "",
         guestAnalysisId,
-        // G35 P5 — the tax-invoice line prints what Stripe actually charged.
-        amountCents: typeof (row as { paid_amount_aud_cents?: unknown }).paid_amount_aud_cents === "number"
-          ? (row as { paid_amount_aud_cents: number }).paid_amount_aud_cents
-          : null,
+        ...(paygStamp ? { amountPaidCents: paidCents, tierLabel: guestTierLabel(paygStamp) } : {}),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
