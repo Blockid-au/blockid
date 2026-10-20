@@ -53,6 +53,7 @@ class SupervisedLaunchTests(unittest.TestCase):
                 self.assertEqual(result['PORT'], '4100')
                 self.assertEqual(result['HOSTNAME'], '127.0.0.1')
                 self.assertEqual(result['NODE_ENV'], 'production')
+                self.assertEqual(result['BLOCKID_WEB_DIR'], str(root))  # L1-3: runtime state root
                 os.environ['NODE_PATH'] = tmp
                 with self.assertRaises(ValueError): m.environment(root, release, 4100)
 

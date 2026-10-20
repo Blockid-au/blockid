@@ -17,7 +17,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { promises as fs } from "node:fs";
-import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { readUptimeSnapshot } from "@/lib/platform-metrics";
@@ -148,7 +148,7 @@ type RawDeployLine = {
 
 async function loadDeployHistory(limit: number): Promise<DeployRow[]> {
   try {
-    const file = path.join(process.cwd(), "content", "reports", "deploy-log.jsonl");
+    const file = runtimeReportsPath("deploy-log.jsonl");
     const raw = await fs.readFile(file, "utf8");
     const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const out: DeployRow[] = [];

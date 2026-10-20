@@ -2,7 +2,7 @@
 // web/content/reports/ and returns a download URL. Also logs the export.
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
-import { resolve } from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -89,8 +89,9 @@ async function POST_handler() {
 
   const filename = `kb-export-${today}.md`;
   const relPath = `content/reports/${filename}`;
-  const absPath = resolve(process.cwd(), relPath);
-  await mkdir(resolve(process.cwd(), "content/reports"), { recursive: true });
+  // L1-3: written at runtime → the live checkout, not the frozen release copy.
+  const absPath = runtimeReportsPath(filename);
+  await mkdir(runtimeReportsPath(), { recursive: true });
   await writeFile(absPath, lines.join("\n"), "utf8");
 
   await supabase.from("kb_exports").insert({

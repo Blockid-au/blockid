@@ -18,7 +18,7 @@ function countInsightArticles(): number | null {
 // snapshot with unfiltered database totals or convert an index score to money.
 export async function GET() {
   const requestedAt = new Date().toISOString();
-  const raw = await readTractionSnapshotRaw(process.cwd()).catch(() => null);
+  const raw = await readTractionSnapshotRaw().catch(() => null); // L1-3: default root = live checkout
   const snapshotStatus = tractionStatusFrom(raw);
   const snap = countersFromSnapshot(raw);
   const sourceTime = snapshotStatus === "ok" && typeof raw?.generated_at === "string" ? raw.generated_at : null;

@@ -33,6 +33,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 
 export type RetentionMode = "delete" | "anonymise" | "expire";
 
@@ -264,7 +265,7 @@ export interface RetentionSweepOptions {
   rules?: readonly RetentionRule[];
 }
 
-export const RETENTION_HISTORY_FILE = path.join(process.cwd(), "content", "reports", "retention-history.jsonl");
+export const RETENTION_HISTORY_FILE = runtimeReportsPath("retention-history.jsonl");
 
 /** How many candidate pages a rule may read while hunting for `limit` unprotected rows. */
 export const MAX_PAGES_PER_RULE = 8;

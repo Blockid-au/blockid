@@ -2,7 +2,7 @@
 // exported KB file from web/content/reports/. Slug-restricted to kb-export-*.md
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function GET(
     return NextResponse.json({ error: "invalid filename" }, { status: 400 });
   }
 
-  const absPath = resolve(process.cwd(), "content/reports", filename);
+  const absPath = runtimeReportsPath(filename); // L1-3: same live dir the export route writes
   try {
     const buf = await readFile(absPath);
     return new NextResponse(buf, {

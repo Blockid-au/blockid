@@ -23,6 +23,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 import { randomUUID } from "node:crypto";
 import { DEFAULT_PILOT_DAYS, PILOT_CAP, PILOT_REMINDER_DAYS_BEFORE, PILOT_TIER } from "./offer";
 
@@ -88,17 +89,9 @@ export interface PilotLedger {
 
 export const EMPTY_LEDGER: PilotLedger = Object.freeze({ version: LEDGER_VERSION, updated_at: null, pilots: [] }) as PilotLedger;
 
-const LIVE_WEB_DIR = "/home/dovanlong/blockid.au/web";
-
-/** Directory that holds `content/` — the live checkout on production. */
+/** Directory that holds `content/` — the live checkout on production (L1-3: lib/runtime-paths). */
 export async function resolvePilotsRoot(): Promise<string> {
-  if (process.env.BLOCKID_WEB_DIR) return process.env.BLOCKID_WEB_DIR;
-  try {
-    await fs.access(path.join(LIVE_WEB_DIR, "content"));
-    return LIVE_WEB_DIR;
-  } catch {
-    return process.cwd();
-  }
+  return getRuntimeWebDir();
 }
 
 // ── Pure helpers ────────────────────────────────────────────────────────────

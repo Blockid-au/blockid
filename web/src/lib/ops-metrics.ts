@@ -17,6 +17,7 @@
 import "server-only";
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { getSupabaseAdmin } from "./supabase";
 import { listExperiments, summarise } from "./pricing-experiments";
 
@@ -84,9 +85,9 @@ export interface SecurityPosture {
 }
 
 // ── Paths ─────────────────────────────────────────────────────────────
-// cwd during `next start` is the web/ dir; the reports live in
-// web/content/reports. We resolve from cwd so both `dev` and `start` work.
-const REPORTS_DIR = path.join(process.cwd(), "content", "reports");
+// The reports are written by crons/deploys into the LIVE web checkout; on
+// production cwd is the frozen release copy (L1-3 → lib/runtime-paths).
+const REPORTS_DIR = runtimeReportsPath();
 const DEPLOY_LOG = path.join(REPORTS_DIR, "deploy-log.jsonl");
 const CRON_HEALTH = path.join(REPORTS_DIR, "cron-health.jsonl");
 const LAST_GOOD_BUILD = path.join(REPORTS_DIR, "last-good-build.json");

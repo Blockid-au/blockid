@@ -10,18 +10,15 @@
 // ordinal observed across recent report filenames, which is much cheaper.
 
 import { promises as fs } from "node:fs";
-import path from "node:path";
+import { releaseContentPath, runtimeReportsPath } from "@/lib/runtime-paths";
 import { buildShowcaseDataRoomRows } from "@/lib/showcase/report-tagging";
 
-const REPORT_DIR_CANDIDATES = [
-  ["web", "content", "reports"],
-  ["content", "reports"],
-] as const;
+// L1-3: live checkout first (crons write the reports there), release copy as fallback.
+const reportDirCandidates = (): string[] => [runtimeReportsPath(), releaseContentPath("reports")];
 
 export async function readShowcaseCurrentPhase(): Promise<number | null> {
-  for (const parts of REPORT_DIR_CANDIDATES) {
+  for (const dir of reportDirCandidates()) {
     try {
-      const dir = path.join(process.cwd(), ...parts);
       const entries = await fs.readdir(dir);
       const markdown = entries.filter((f) => f.endsWith(".md"));
       if (markdown.length === 0) continue;

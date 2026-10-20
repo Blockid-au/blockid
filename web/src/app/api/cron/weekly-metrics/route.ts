@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendTelegram } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
@@ -129,12 +130,7 @@ export async function GET(request: Request) {
   // -------------------------------------------------------------------------
   const { year, week } = isoWeek(now);
   const filename = `pricing-metrics-${year}-${String(week).padStart(2, "0")}.jsonl`;
-  const reportPath = path.join(
-    process.cwd(),
-    "content",
-    "reports",
-    filename,
-  );
+  const reportPath = runtimeReportsPath(filename); // L1-3: live checkout
 
   try {
     await fs.mkdir(path.dirname(reportPath), { recursive: true });

@@ -21,6 +21,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isMissingRelation } from "@/lib/investors/mandates";
@@ -40,7 +41,7 @@ export const BENCHMARK_SEGMENTS_CACHE_TAG = "benchmark-segments";
 const CACHE_SECONDS = 3600;
 /** Latest analyses scanned per refresh (one row per company after dedupe). */
 export const SEGMENT_SCAN_LIMIT = 5000;
-export const SEGMENTS_REPORT_FILE = path.join(process.cwd(), "content", "reports", "benchmark-segments-latest.json");
+export const SEGMENTS_REPORT_FILE = runtimeReportsPath("benchmark-segments-latest.json");
 
 type Row = Record<string, unknown>;
 

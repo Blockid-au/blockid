@@ -31,6 +31,11 @@ const mocks = vi.hoisted(() => {
   return { readdir, buildShowcaseDataRoomRows };
 });
 
+const LIVE_WEB = vi.hoisted(() => {
+  process.env.BLOCKID_WEB_DIR = "/srv/live-web";
+  return "/srv/live-web";
+});
+
 vi.mock("node:fs", () => ({
   promises: { readdir: mocks.readdir },
 }));
@@ -42,9 +47,10 @@ vi.mock("@/lib/showcase/report-tagging", () => ({
 // Import AFTER vi.mock so the module picks up the mocked bindings.
 const { readShowcaseCurrentPhase } = await import("./blockid-og-state");
 
-const CWD = process.cwd();
-const PRIMARY_DIR = path.join(CWD, "web", "content", "reports");
-const FALLBACK_DIR = path.join(CWD, "content", "reports");
+// L1-3: primary = the runtime web dir (BLOCKID_WEB_DIR / live checkout, where
+// the crons write the reports); fallback = the release copy under cwd.
+const PRIMARY_DIR = path.join(LIVE_WEB, "content", "reports");
+const FALLBACK_DIR = path.join(process.cwd(), "content", "reports");
 
 function makeRow(phase: number | null) {
   return {
@@ -215,14 +221,14 @@ describe("readShowcaseCurrentPhase — max arithmetic", () => {
 });
 
 describe("readShowcaseCurrentPhase — candidate dir paths", () => {
-  it("tries the primary web/content/reports dir first", async () => {
+  it("tries the runtime (live checkout) content/reports dir first", async () => {
     mocks.readdir.mockResolvedValueOnce(["r.md"]);
     mocks.buildShowcaseDataRoomRows.mockReturnValueOnce([makeRow(1)]);
     await readShowcaseCurrentPhase();
     expect(mocks.readdir).toHaveBeenNthCalledWith(1, PRIMARY_DIR);
   });
 
-  it("tries the fallback content/reports dir when the primary fails", async () => {
+  it("tries the release-copy content/reports dir when the runtime dir fails", async () => {
     mocks.readdir.mockRejectedValueOnce(new Error("missing"));
     mocks.readdir.mockResolvedValueOnce(["r.md"]);
     mocks.buildShowcaseDataRoomRows.mockReturnValueOnce([makeRow(2)]);

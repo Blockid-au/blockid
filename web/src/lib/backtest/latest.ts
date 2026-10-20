@@ -15,6 +15,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { BacktestReport } from "./run-backtest";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
 export const SVI_BACKTEST_FILE = path.join("content", "reports", "svi-backtest-latest.json");
 export const SVI_BACKTEST_HISTORY_FILE = path.join("content", "reports", "svi-backtest-history.jsonl");
@@ -48,7 +49,7 @@ export function isBacktestReport(v: unknown): v is BacktestReport {
 }
 
 /** The last published report, or null. Never throws. */
-export async function readSviBacktestLatest(root: string = process.cwd()): Promise<BacktestReport | null> {
+export async function readSviBacktestLatest(root: string = getRuntimeWebDir()): Promise<BacktestReport | null> {
   try {
     const raw = await fs.readFile(path.join(root, SVI_BACKTEST_FILE), "utf8");
     const parsed = JSON.parse(raw) as unknown;
@@ -59,7 +60,7 @@ export async function readSviBacktestLatest(root: string = process.cwd()): Promi
 }
 
 /** `ok | stale | missing` for /api/status. Never throws. */
-export async function readSviBacktestStatus(root: string = process.cwd(), now: number = Date.now()): Promise<SviBacktestStatus> {
+export async function readSviBacktestStatus(root: string = getRuntimeWebDir(), now: number = Date.now()): Promise<SviBacktestStatus> {
   try {
     const raw = await fs.readFile(path.join(root, SVI_BACKTEST_FILE), "utf8");
     const parsed = JSON.parse(raw) as unknown;
@@ -93,6 +94,6 @@ export function sviBacktestHeadline(report: Pick<BacktestReport, "rho" | "n_with
 }
 
 /** The headline read from the published JSON (server surfaces: report pages, PDF, DOCX). Never throws. */
-export async function readSviBacktestHeadline(root: string = process.cwd()): Promise<SviBacktestHeadline | null> {
+export async function readSviBacktestHeadline(root: string = getRuntimeWebDir()): Promise<SviBacktestHeadline | null> {
   return sviBacktestHeadline(await readSviBacktestLatest(root));
 }

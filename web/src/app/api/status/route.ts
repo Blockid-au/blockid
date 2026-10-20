@@ -38,6 +38,7 @@ import { publicStatusExtras, readStatusExtras, type PublicStatusExtras, type Sta
 import type { LatencyP95 } from "@/lib/status/slo";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { getRuntimeWebDir, runtimeReportsPath } from "@/lib/runtime-paths";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -302,9 +303,15 @@ type HealthzBody = {
 
 // ---------- Constants ----------
 
+// L1-3: two roots. REPO_ROOT (= process.cwd(), the frozen release dir on
+// production) is ONLY for what this build ships: version.json,
+// .deploy-manifest.json and the schema-migrations manifest (the G30 controller
+// verifies `schema_migrations` against the release's own manifest). Every
+// cron/deploy-written report is read from the live checkout via
+// lib/runtime-paths — resolved per request so BLOCKID_WEB_DIR always wins.
 const REPO_ROOT = process.cwd();
-const DEPLOY_LOG = path.join(REPO_ROOT, "content", "reports", "deploy-log.jsonl");
-const CRON_LOG = path.join(REPO_ROOT, "content", "reports", "cron-health.jsonl");
+const deployLogPath = () => runtimeReportsPath("deploy-log.jsonl");
+const cronLogPath = () => runtimeReportsPath("cron-health.jsonl");
 
 const EMPTY_DEPLOY: DeployRow = {
   ts: "",
@@ -452,7 +459,7 @@ type DeployLine = {
 };
 
 async function readLastDeploy(fallbackSha: string): Promise<DeployRow> {
-  const lines = await readTailLines(DEPLOY_LOG, 30);
+  const lines = await readTailLines(deployLogPath(), 30);
   // Scan newest-first for the last real deploy row (has a status/gates field).
   for (let i = lines.length - 1; i >= 0; i--) {
     const row = safeParse<DeployLine>(lines[i]);
@@ -499,7 +506,7 @@ function normaliseCronLine(row: CronLine): {
 }
 
 async function summariseCrons(): Promise<CronRow[]> {
-  const lines = await readTailLines(CRON_LOG, 200);
+  const lines = await readTailLines(cronLogPath(), 200);
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
 
   type Bucket = { last_run: string; last_ms: number; total: number; ok: number; sumMs: number };
@@ -580,21 +587,21 @@ export async function GET(): Promise<Response> {
     readGitShaFallback(),
     readVersionFallback(),
     isTrustedCaller(),
-    readChainStatus(REPO_ROOT).catch(() => ({ status: "unknown" as const })),
+    readChainStatus(getRuntimeWebDir()).catch(() => ({ status: "unknown" as const })),
     readOAuthTokenHealth().catch(() => ({ status: "unknown" as const })),
-    readGa4EventAuditStatus(REPO_ROOT).catch(() => "unknown"),
-    readBackupHealth(REPO_ROOT).catch(() => ({ status: "missing" as const, last_backup: "", last_restore_test: "" })),
+    readGa4EventAuditStatus(getRuntimeWebDir()).catch(() => "unknown"),
+    readBackupHealth(getRuntimeWebDir()).catch(() => ({ status: "missing" as const, last_backup: "", last_restore_test: "" })),
     readSchemaMigrationsStatus(REPO_ROOT).catch(() => "unknown" as const),
-    readAiProvidersSummary(REPO_ROOT).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false, anthropic_path: "none" } as AiProvidersSummary)),
-    readLastReportProvider(REPO_ROOT).catch(() => null),
-    readTractionStatus(REPO_ROOT).catch(() => "missing" as const),
-    readSviBacktestStatus(REPO_ROOT).catch(() => "missing" as const),
+    readAiProvidersSummary(getRuntimeWebDir()).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false, anthropic_path: "none" } as AiProvidersSummary)),
+    readLastReportProvider(getRuntimeWebDir()).catch(() => null),
+    readTractionStatus(getRuntimeWebDir()).catch(() => "missing" as const),
+    readSviBacktestStatus(getRuntimeWebDir()).catch(() => "missing" as const),
     // G15 review: default root = the live web checkout (getStatusRoot), never the release-dir copy.
     readStatusExtras().catch(() => null),
     // G19-S46: same live-checkout root (the pipeline appends there at runtime).
     readTbrQualityStatus().catch(() => emptyTbrQualityStatus()),
     // G21 P3-A: calibration JSON freshness (same live-checkout root) + the cached data-moat counts.
-    readCalibrationStatus(REPO_ROOT).catch(() => "missing" as const),
+    readCalibrationStatus(getRuntimeWebDir()).catch(() => "missing" as const),
     readDataMoat().catch(() => emptyDataMoat()),
     // G23-C: latest-run groundedShare + the KPI (same live-checkout jsonl; fail-soft).
     readTbrGrounding().catch(() => emptyTbrGrounding()),

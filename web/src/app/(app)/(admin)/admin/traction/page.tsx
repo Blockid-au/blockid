@@ -113,7 +113,7 @@ export default async function TractionAdminPage() {
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/admin");
 
-  const raw = await readTractionSnapshotRaw(process.cwd());
+  const raw = await readTractionSnapshotRaw(); // L1-3: default root = live checkout
   const status = tractionStatusFrom(raw);
   const parsed = raw ? tractionSnapshotSchema.safeParse(raw) : null;
   const snap: TractionSnapshot | null = parsed?.success ? parsed.data : null;

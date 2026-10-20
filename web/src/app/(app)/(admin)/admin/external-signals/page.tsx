@@ -25,6 +25,6 @@ export default async function ExternalSignalsAdminPage() {
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/admin");
 
-  const data = await loadExternalSignalsAdmin(getSupabaseAdmin(), process.cwd());
+  const data = await loadExternalSignalsAdmin(getSupabaseAdmin()); // L1-3: default root = live checkout
   return <ExternalSignalsAdminView data={data} />;
 }

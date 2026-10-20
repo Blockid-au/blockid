@@ -12,8 +12,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { TractionSnapshot } from "./snapshot";
 import { TRACTION_HISTORY_FILE, TRACTION_SNAPSHOT_FILE } from "./status";
+import { getRuntimeWebDir } from "@/lib/runtime-paths";
 
-export async function persistTractionSnapshot(snapshot: TractionSnapshot, root: string = process.cwd()): Promise<boolean> {
+export async function persistTractionSnapshot(snapshot: TractionSnapshot, root: string = getRuntimeWebDir()): Promise<boolean> {
   try {
     const latest = path.join(root, TRACTION_SNAPSHOT_FILE);
     await fs.mkdir(path.dirname(latest), { recursive: true });

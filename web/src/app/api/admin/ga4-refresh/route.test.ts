@@ -60,6 +60,11 @@ vi.mock("node:fs/promises", () => {
   return { ...impl, default: impl };
 });
 
+const LIVE_WEB = vi.hoisted(() => {
+  process.env.BLOCKID_WEB_DIR = "/srv/live-web";
+  return "/srv/live-web";
+});
+
 import { POST, dynamic } from "./route";
 
 // --- Helpers --------------------------------------------------------------
@@ -71,7 +76,8 @@ async function jsonOf(res: Response): Promise<Record<string, unknown>> {
 const ADMIN_USER = { id: "u-admin-1", email: "admin@blockid.au" };
 const NON_ADMIN_USER = { id: "u-42", email: "someone@example.com" };
 
-const JSONL_PATH = `${process.cwd()}/content/reports/ga4-daily.jsonl`;
+// L1-3: written into the runtime web dir (BLOCKID_WEB_DIR), not the release copy.
+const JSONL_PATH = `${LIVE_WEB}/content/reports/ga4-daily.jsonl`;
 
 function snapshotResult(overrides: Partial<Ga4SnapshotResult> = {}): Ga4SnapshotResult {
   return {
@@ -362,7 +368,7 @@ describe("happy path — JSONL append", () => {
   it("mkdir's the DIRECTORY of the JSONL (not the file itself)", async () => {
     await POST();
     const [dir] = mocks.mkdir.mock.calls[0];
-    expect(dir).toBe(`${process.cwd()}/content/reports`);
+    expect(dir).toBe(`${LIVE_WEB}/content/reports`);
   });
 
   it("writes JSON.stringify(snapshot) + '\\n' as a single append (one line per snapshot, trailing newline)", async () => {

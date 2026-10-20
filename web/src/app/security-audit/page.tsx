@@ -13,7 +13,7 @@
  */
 
 import { readFileSync } from "node:fs";
-import path from "node:path";
+import { releaseContentPath } from "@/lib/runtime-paths";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { Lock } from "lucide-react";
@@ -32,8 +32,8 @@ export const metadata: Metadata = pageMetadata({
 
 function readCurrentVersion(): string | null {
   const candidates = [
-    path.join(process.cwd(), "content", "reports", "version.json"),
-    path.join(process.cwd(), "web", "content", "reports", "version.json"),
+    // Release-bound: the version THIS build ships (L1-3 releaseContentPath).
+    releaseContentPath("reports", "version.json"),
   ];
   for (const p of candidates) {
     try {

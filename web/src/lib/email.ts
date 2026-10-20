@@ -19,6 +19,7 @@ import {
 import { FREE_SUMMARY_PAGES } from "@/lib/analyses/free-summary";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { runtimeReportsPath } from "@/lib/runtime-paths";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import { ScorePDF, type ScorePdfData } from "@/lib/pdf/score-pdf";
@@ -124,7 +125,7 @@ function siteUrl(): string {
 
 function auditMissedSend(row: Record<string, unknown>): void {
   try {
-    const dir = path.resolve(process.cwd(), "content", "reports");
+    const dir = runtimeReportsPath(); // L1-3: live checkout, not the frozen release copy
     if (!fs.existsSync(dir)) return;
     const file = path.join(dir, "email-send-events.jsonl");
     const line = JSON.stringify({ ts: new Date().toISOString(), ...row }) + "\n";
