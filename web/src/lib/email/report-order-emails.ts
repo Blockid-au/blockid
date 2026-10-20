@@ -11,6 +11,10 @@
 //   sendReportOrderReady     READY      link to the report
 //   sendReportOrderInReview  IN_REVIEW  Verified: "within N business days",
 //                                       due date in Sydney time
+//   sendGuestFullReportPaid  guest Full (D26, no account): receipt + tax-
+//                                       invoice line + the signed report link;
+//                                       the report itself (page link + PDF)
+//                                       follows from the ReportV2 job
 // (reviewed / delivered for Verified is wave W4's admin flow.)
 
 import "server-only";
@@ -19,6 +23,7 @@ import { complianceFooter } from "@/lib/email";
 import { EMAIL_BUTTON_STYLE, EMAIL_CARD_STYLE, EMAIL_THEME } from "./theme";
 import type { PaygTier } from "@/lib/pricing/v5-payg";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { LEGAL_ENTITY_ABN_LABEL, tradingAsLine } from "@/lib/site/legal-entity";
 
 const TIER_NAME: Record<PaygTier, string> = { snapshot: "Snapshot", full: "Full", verified: "Verified" };
 
@@ -145,5 +150,45 @@ export async function sendReportOrderInReview(args: {
     html,
     unsubscribeUrl,
     template: "report_order_in_review",
+  });
+}
+
+/**
+ * G35 D26 — receipt for a GUEST Full order (no account, no report_orders
+ * row). The 16-section report is written by the /analyze ReportV2 job and
+ * e-mailed separately with its PDF; this message confirms the payment,
+ * carries the tax-invoice line the A$3 guest e-mail always carried, and
+ * links the signed report page (it shows the live progress until the report
+ * lands). `reportUrl` null = no link secret configured: the report e-mail
+ * still arrives, so the button is simply left out.
+ */
+export async function sendGuestFullReportPaid(args: {
+  to: string;
+  guestOrderId: string;
+  amountCents: number;
+  reportUrl: string | null;
+}): Promise<SendResult> {
+  const { unsubscribeUrl, footerHtml } = await complianceFooter(args.to, { theme: "light" });
+  const name = `${TIER_NAME.full} report`;
+  const html = card(
+    "BlockID — Payment received",
+    `Thank you — your ${name} is paid`,
+    para(`We received ${esc(audCents(args.amountCents))} inc. GST for your ${esc(name)}. Stripe e-mails your tax invoice separately.`) +
+      para(
+        args.reportUrl
+          ? "We are writing your Trusted Business Report now — all 16 sections. The link below shows its progress and opens the report as soon as it is done. We will also e-mail you the report with its PDF."
+          : "We are writing your Trusted Business Report now — all 16 sections. We will e-mail you the report with its PDF as soon as it is done.",
+      ) +
+      para("To keep the report in a BlockID account, sign in with this e-mail address (magic link or Google) — the report moves into the account automatically.") +
+      `<p style="margin:16px 0 0 0;color:${EMAIL_THEME.inkTertiary};font-size:12px;line-height:1.5;">Tax invoice · ${esc(tradingAsLine())} · ${esc(LEGAL_ENTITY_ABN_LABEL)} · ${esc(name)} · ${esc(audCents(args.amountCents))} inc. GST · Order ${esc(args.guestOrderId.slice(0, 8))}</p>`,
+    args.reportUrl ? { href: args.reportUrl, label: "Open your report" } : null,
+    footerHtml,
+  );
+  return sendEmail({
+    to: args.to,
+    subject: `Payment received — your BlockID ${name}`,
+    html,
+    unsubscribeUrl,
+    template: "guest_full_report_paid",
   });
 }

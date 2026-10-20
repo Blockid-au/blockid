@@ -1,6 +1,6 @@
 # G35 — Pricing v5 (Pay-as-you-go 3 tier) + rà soát platform + AI cost routing
 
-**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0, W1, W2 (P1–P5), A1/A3, O1, D30 **LIVE 20/10** (`606f0f118`); Pricing v5 code-complete sau cờ `payg_enabled` = OFF. Còn: Stripe test key → test E2E → mint live → bật cờ (founder duyệt); guest Full = report 16 section; A2 eval loop.
+**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0, W1, W2 (P1–P5), A1/A3, O1, D30 **LIVE 20/10** (`606f0f118`); Pricing v5 code-complete sau cờ `payg_enabled` = OFF. Còn: Stripe test key → test E2E → mint live → bật cờ (founder duyệt); A2 eval loop. Guest Full = report 16 section: **code-complete 20/10** (nhánh `worktree-agent-afd514c885725d702`, chưa deploy — xem §6.4.8).
 
 **Nguồn:** spec founder `blockid-payg-pricing-update.md` (20/10) + yêu cầu bổ sung: *bỏ hẳn A$1 / A$3 khỏi chương trình; rà soát toàn platform; sửa bug; kiểm tra link hỏng; cơ chế đổi free model; chọn model chất lượng tốt nhất với giá thấp nhất; agent điều phối đánh giá tổng hợp + chi tiết (paid + free); cảnh báo khi model trả phí sắp hết tiền; sẵn sàng chạy lâu dài.*
 
@@ -192,6 +192,7 @@ Không tạo bảng `report_orders` thứ hai — **mở rộng bảng hiện c�
 5. `charge.refunded` → `REFUNDED`; report vẫn đọc được; Verified bị refund → bỏ badge (`reviewed=false`, ghi audit).
 6. Subscriber: dùng quota không bao giờ charge; hết quota → PAYG Full A$49 hoặc nâng plan (copy: *Scout A$79/tháng gồm 10 Full report — hoà vốn sau 2 report Full lẻ*).
 7. Email (thuộc nhóm report-delivery còn gửi): paid, ready, in-review, reviewed; tên tier trên receipt/billing history.
+8. **Guest Full (D26, follow-up 20/10):** guest không có account/project nên không dùng được drain `report_orders`. Runner (`lib/guest-analysis/runner.ts`) thấy `report_data.payg.tier = "full"` (chỉ create-order ghi khi cờ ON) → `full-report.ts`: `analyzeInput` (như `/api/intake`) → `saveAnalysis` (row `analyses` không user, `full_report_email` = email mua, anon key ngẫu nhiên không set cookie) → `startReportV2Job` (cùng `orchestrateReport` tier standard = đủ 16 section; retry/stuck/cron 5 phút sẵn có) → email report với link ký `/analyze/<id>?t=…` + PDF `renderTbrPdf`. `guest_analyses` → `delivered` (= đã giao cho pipeline) + `report_data.fullReport.analysisId`; email receipt `sendGuestFullReportPaid` (dòng tax invoice + link ký, EM08 lint). Claim vào account: đăng nhập magic link/Google bằng email đó (G34 DC03). Snapshot guest giữ PDF SVI "preview"; A$3 (cờ OFF) không đổi (test chứng minh). Tier label (Snapshot/Full/Verified) trên trang order/report in-app: `GET /api/reports/[orderId]` thêm `paygTier` chỉ cho order v5. Không migration. Còn mở: hoàn tiền tự động khi job v2 của guest Full hỏng hết lượt retry (hiện giống A$3: không auto-refund, support xử lý).
 
 ### 6.5 Server-side gating Snapshot (và vá G6)
 

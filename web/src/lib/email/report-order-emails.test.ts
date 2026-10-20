@@ -10,7 +10,7 @@ vi.mock("@/lib/email", () => ({
   complianceFooter: async () => ({ unsubscribeUrl: "https://blockid.au/u", preferencesUrl: "https://blockid.au/p", footerHtml: "<footer/>", footerText: "" }),
 }));
 
-import { nextStepsText, sendReportOrderInReview, sendReportOrderPaid, sendReportOrderReady, sydneyDueLabel } from "./report-order-emails";
+import { nextStepsText, sendGuestFullReportPaid, sendReportOrderInReview, sendReportOrderPaid, sendReportOrderReady, sydneyDueLabel } from "./report-order-emails";
 import { verifiedSlaDueAt } from "@/lib/time/au-business-days";
 
 beforeEach(() => {
@@ -58,5 +58,27 @@ describe("report order e-mails", () => {
     for (const [a] of sendEmailMock.mock.calls) {
       expect(a.html).not.toMatch(/\bupgrad|\bbuy\b|\/pricing/i);
     }
+  });
+});
+
+describe("guest Full receipt (G35 D26)", () => {
+  it("receipt: amount inc. GST, tax-invoice line, signed report link, claim sentence", async () => {
+    await sendGuestFullReportPaid({ to: "g@x.au", guestOrderId: "11111111-2222-4333-8444-555555555555", amountCents: 4900, reportUrl: "https://blockid.au/analyze/a1?t=sig" });
+    const a = sendEmailMock.mock.calls[0][0];
+    expect(a.subject).toBe("Payment received — your BlockID Full report");
+    expect(a.html).toContain("A$49.00 inc. GST");
+    expect(a.html).toContain("all 16 sections");
+    expect(a.html).toMatch(/Tax invoice · .+ · ABN [\d ]+ · Full report · A\$49\.00 inc\. GST · Order 11111111/);
+    expect(a.html).toContain('href="https://blockid.au/analyze/a1?t=sig"');
+    expect(a.html).toContain("sign in with this e-mail address");
+    expect(a.html).not.toMatch(/\bupgrad|\bbuy\b|\/pricing/i);
+    expect(a.template).toBe("guest_full_report_paid");
+  });
+
+  it("no link secret → no button, still a receipt", async () => {
+    await sendGuestFullReportPaid({ to: "g@x.au", guestOrderId: "o", amountCents: 4900, reportUrl: null });
+    const a = sendEmailMock.mock.calls[0][0];
+    expect(a.html).not.toContain("Open your report");
+    expect(a.html).toContain("We will e-mail you the report with its PDF");
   });
 });

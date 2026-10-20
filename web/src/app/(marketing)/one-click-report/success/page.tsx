@@ -41,10 +41,21 @@ export default async function OneClickSuccessPage() {
         eyebrow="Payment received"
         title="Payment received. Report on the way."
         sub={
-          <>
-            Your report is being generated and will arrive in your inbox in{" "}
-            <span className="font-semibold text-primary">1 to 3 minutes</span>. You can safely close this page.
-          </>
+          paygOn ? (
+            // G35 D26: a guest Full order is the 16-section report, written by
+            // the ReportV2 job — longer than the Snapshot PDF.
+            <>
+              A Snapshot arrives in your inbox in <span className="font-semibold text-primary">1 to 3 minutes</span>. A Full
+              report covers all 16 sections and is usually ready in{" "}
+              <span className="font-semibold text-primary">about 10 minutes</span> — your receipt e-mail links to its
+              progress. You can safely close this page.
+            </>
+          ) : (
+            <>
+              Your report is being generated and will arrive in your inbox in{" "}
+              <span className="font-semibold text-primary">1 to 3 minutes</span>. You can safely close this page.
+            </>
+          )
         }
         footnote={
           <>

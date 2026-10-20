@@ -85,7 +85,7 @@ import {
   type ReportExportFormat,
 } from "@/lib/paywall/report-delivery";
 import { readAssembledReportJson, readAssembledReportPaygTier } from "@/lib/report-v2/storage";
-import { resolveOrderTier } from "@/lib/report-v2/order-tier";
+import { paygOrderLabelTier, resolveOrderTier } from "@/lib/report-v2/order-tier";
 import { projectReportForTier, type ReportAccessTier } from "@/lib/report-v2/tier-projection";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { attachReviewBadge, readReviewBadgeState } from "@/lib/verified-review/badge";
@@ -293,6 +293,7 @@ export async function GET(
     return json({ ok: false, reason: "Lookup failed" }, 500);
   }
   const tier = resolveOrderTier({ product_sku: skuRow }, paygTier);
+  const paygLabel = paygOrderLabelTier({ product_sku: skuRow }, paygTier);
   const projectedV2 = storedV2 ? projectReportForTier(storedV2, tier) : null;
   // G35 Pricing v5 P4 (plan §6.6): "BlockID Reviewed · date · reviewer" —
   // only on a Verified order whose assembled_reports.reviewed is true (a
@@ -316,6 +317,10 @@ export async function GET(
         message: refundedWithReport ? "This order was refunded. Your report stays available to read." : disposition.message,
         order,
         tier,
+        // G35 D26 follow-up: the PAYG tier the page labels ("Full report") —
+        // only on a Pricing v5 order; absent (not null) on a legacy one, so a
+        // pre-v5 response is byte-for-byte what it was.
+        ...(paygLabel ? { paygTier: paygLabel } : {}),
         report: projectReportViewForTier(toReportView(report, reportRow, reportV2), tier),
       },
       200,

@@ -147,5 +147,10 @@ describe("/one-click-report — Pricing v5 P5 payg_enabled", () => {
     expect(off).toContain("Save your report, track your SVI over time, and unlock deeper analysis.");
     const on = await withPayg(true, async () => html(await OneClickSuccessPage()));
     expect(on).toContain("Sign up with the email you paid with to keep this report in your account");
+    // G35 D26: the Full report (16 sections) is timed honestly; OFF keeps the A$3 line.
+    expect(decode(on)).toContain("all 16 sections");
+    expect(decode(on)).toContain("about 10 minutes");
+    expect(decode(off)).toContain("Your report is being generated and will arrive in your inbox in");
+    expect(decode(off)).not.toContain("16 sections");
   });
 });

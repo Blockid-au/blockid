@@ -14,6 +14,7 @@
 // effective tier is the higher of the two.
 
 import { maxTier, isReportAccessTier, type ReportAccessTier } from "./tier-projection";
+import { PAYG_SKUS, isPaygSkuId, isPaygTier, reportSkuForTier, type PaygTier } from "@/lib/pricing/v5-payg";
 
 export const ORDER_SKU_TIER: Readonly<Record<string, ReportAccessTier | null>> = {
   sku_trust_report_5aud: "full",
@@ -42,4 +43,23 @@ export function resolveOrderTier(order: { product_sku?: unknown; tier?: unknown 
   const fromColumn = isReportAccessTier(order.tier) ? order.tier : null;
   const fromReport = isReportAccessTier(paygTier) ? paygTier : null;
   return maxTier([fromSku, fromColumn, fromReport], "snapshot");
+}
+
+/**
+ * The Pricing v5 tier to LABEL an order with ("Snapshot" / "Full" /
+ * "Verified" on the order / report page) — only for a PAYG order: a v5 SKU
+ * (report_* / upgrade_*) or a report whose `payg_tier` was stamped (0474).
+ * A legacy A$3 / credits order gets null and the page shows no label, so a
+ * pre-v5 order (every order while `payg_enabled` is OFF) renders unchanged.
+ */
+export function paygOrderLabelTier(order: { product_sku?: unknown; tier?: unknown }, paygTier?: unknown): PaygTier | null {
+  const v5Sku = isPaygSkuId(order.product_sku) && tierForOrderSku(order.product_sku) !== null;
+  if (!v5Sku && !isPaygTier(paygTier)) return null;
+  const tier = resolveOrderTier(order, paygTier);
+  return isPaygTier(tier) ? tier : null;
+}
+
+/** "Snapshot report" / "Full report" / "Verified report" — the catalogue label of the tier's SKU. */
+export function paygTierLabel(tier: PaygTier): string {
+  return PAYG_SKUS[reportSkuForTier(tier)].label;
 }

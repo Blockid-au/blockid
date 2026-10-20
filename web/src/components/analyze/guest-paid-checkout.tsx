@@ -248,8 +248,10 @@ export function GuestPaidCheckout({
           {payg ? "Choose your report" : `Get your full report — ${priceLabel}`}
         </h2>
         <p className="mt-1 text-xs text-muted">
-          One-off payment, inc. GST. No account needed. We email the PDF a
-          couple of minutes after payment clears.
+          {payg
+            ? // G35 D26: Full = the 16-section report from the ReportV2 job (longer than the Snapshot PDF).
+              "One-off payment, inc. GST. No account needed. A Snapshot PDF arrives a couple of minutes after payment clears; a Full report (all 16 sections, with its PDF) is usually ready in about 10 minutes."
+            : "One-off payment, inc. GST. No account needed. We email the PDF a couple of minutes after payment clears."}
         </p>
 
         {payg ? (

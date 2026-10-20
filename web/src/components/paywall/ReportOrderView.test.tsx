@@ -14,7 +14,7 @@ import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TBR_V2_SECTION_IDS } from "@/components/tbr/v2/report";
 import { TBR_UNLOCK_RAIL_TESTID } from "@/components/tbr/v2/unlock-rail";
 import { ReportOrderBlocked, ReportOrderPending, ReportOrderReady, reportOrderExportHref } from "./ReportOrderView";
-import type { OrderMeta, ReportPayload } from "./use-report-order";
+import { orderPaygTier, type OrderMeta, type ReportPayload } from "./use-report-order";
 
 const ORDER_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const order: OrderMeta = { orderId: ORDER_ID, status: "READY", paidAt: "2026-09-20T00:01:00.000Z", generatedAt: "2026-09-20T00:05:00.000Z", expiresAt: "2026-12-19T00:01:00.000Z", amountAud: 300, creditsUsed: 0 };
@@ -58,6 +58,27 @@ describe("<ReportOrderReady> (G19-S45 D4)", () => {
     expect(html).toContain("Acme scores 142");
     expect(html).not.toContain("data-tbr-primary=");
     expect(html).toContain(`href="${reportOrderExportHref(ORDER_ID, "pdf")}"`);
+  });
+
+  it("G35 D26 follow-up: a PAYG order is labelled with its tier; a legacy order carries no label", () => {
+    const full = renderToStaticMarkup(<ReportOrderReady order={{ ...order, amountAud: 4900 }} report={{ ...legacy, reportV2: demoReportV2() }} paygTier="full" />);
+    expect(full).toContain('data-testid="report-order-payg-tier"');
+    expect(full).toContain('data-payg-tier="full"');
+    expect(full).toContain(">Full report<");
+    // Light template: action tokens, never a navy band.
+    const badge = full.match(/<span data-testid="report-order-payg-tier"[^>]*>/)![0];
+    expect(badge).toContain("bg-action");
+    expect(badge).toContain("text-on-action");
+    expect(badge).not.toContain("bg-brand-navy");
+    const snap = renderToStaticMarkup(<ReportOrderReady order={order} report={{ ...legacy, reportV2: demoReportV2() }} paygTier="snapshot" locale="vi" />);
+    expect(snap).toContain(">Báo cáo Snapshot<");
+    const old = renderToStaticMarkup(<ReportOrderReady order={order} report={{ ...legacy, reportV2: demoReportV2() }} />);
+    expect(old).not.toContain("report-order-payg-tier");
+    // The polling hook reads the label only from a real tier.
+    expect(orderPaygTier({ paygTier: "verified" })).toBe("verified");
+    expect(orderPaygTier({})).toBeNull();
+    expect(orderPaygTier({ paygTier: "free" })).toBeNull();
+    expect(orderPaygTier(null)).toBeNull();
   });
 
   it("credits path shows the credits redeemed", () => {

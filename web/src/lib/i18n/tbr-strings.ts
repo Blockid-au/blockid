@@ -474,6 +474,8 @@ export interface TbrV2Strings {
     /** Strip when the paid order is ready but only as legacy markdown (pre-v2 order). */
     legacyStrip: string;
     paidBadge: string;
+    /** G35 D26 follow-up: the PAYG tier label on a Pricing v5 order ("Full report"). */
+    tierBadge: (tier: "snapshot" | "full" | "verified") => string;
   };
   adapter: {
     thesisStrong: (svi: number, above70: number) => string;
@@ -723,6 +725,7 @@ const v2En: TbrV2Strings = {
     generatingStrip: "Your paid report is being written by the C-Level agent team — usually about four minutes. Below is your current snapshot; this page swaps in the full document automatically.",
     legacyStrip: "This order was generated before the chapter format existed. Every chapter is unlocked here; the original text version is one click away.",
     paidBadge: "Paid report",
+    tierBadge: (tier) => (tier === "snapshot" ? "Snapshot report" : tier === "full" ? "Full report" : "Verified report"),
   },
   adapter: {
     thesisStrong: (svi, above70) => `SVI ${svi} — investor-ready: ${above70} of 8 dimensions are in the strong band.`,
@@ -975,6 +978,7 @@ const v2Vi: TbrV2Strings = {
     generatingStrip: "Báo cáo trả phí của bạn đang được đội ngũ agent C-Level viết — thường mất khoảng bốn phút. Bên dưới là bản chụp hiện tại; trang này sẽ tự thay bằng tài liệu đầy đủ.",
     legacyStrip: "Đơn hàng này được tạo trước khi có định dạng theo chương. Mọi chương đều đã mở khoá ở đây; bản văn bản gốc chỉ cách một cú nhấp.",
     paidBadge: "Báo cáo trả phí",
+    tierBadge: (tier) => (tier === "snapshot" ? "Báo cáo Snapshot" : tier === "full" ? "Báo cáo Full" : "Báo cáo Verified"),
   },
   adapter: {
     thesisStrong: (svi, above70) => `SVI ${svi} — sẵn sàng gọi vốn: ${above70} trên 8 khía cạnh thuộc nhóm mạnh.`,

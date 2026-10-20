@@ -41,7 +41,7 @@ import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import { sendGuestReport } from "@/lib/email";
-import { guestPaygStamp, guestPdfTier, guestTierLabel } from "./payg-stamp";
+import { guestPaygStamp, guestPdfTier, guestTierLabel, type GuestPaygStamp } from "./payg-stamp";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -265,6 +265,24 @@ export async function runGuestAnalysis(
   }
 
   try {
+    // G35 D26: a guest Full order (A$49, `report_full`) gets the real
+    // 16-section Trusted Business Report — handed to the /analyze ReportV2
+    // job (full-report.ts) instead of the SVI summary PDF below. Only a row
+    // create-order stamped while `payg_enabled` was ON reaches this branch;
+    // the A$3 One-Click SKU and a guest Snapshot run on unchanged.
+    if (paygStamp?.tier === "full") {
+      return await runGuestFullOrder(supabase, {
+        guestAnalysisId,
+        email,
+        inputType,
+        inputValue,
+        inputFilename,
+        paygStamp,
+        paidCents,
+        t0,
+      });
+    }
+
     // ── 3. Prepare rawText + input metadata ──────────────────────────────
     let rawText = "";
     let scrapedTitle: string | undefined;
@@ -608,4 +626,94 @@ export async function runGuestAnalysis(
       .eq("id", guestAnalysisId);
     return { success: false, error: msg };
   }
+}
+
+// ── G35 D26: guest Full → TBR v2 ───────────────────────────────────────────
+
+/** `report_full` catalogue amount (v5-payg.ts) — only used when the row carries no paid amount. */
+const GUEST_FULL_FALLBACK_CENTS = 4900;
+
+/**
+ * Hand a paid guest Full order to the ReportV2 job and close the guest
+ * order: `delivered` here means "handed to the report pipeline" — the
+ * `analyses` row (report_data.fullReport.analysisId) owns generation,
+ * retries and the report e-mail (page link + TBR PDF) from now on. Throws
+ * on a failed hand-off; the caller's catch marks the order `failed`, as it
+ * does for the A$3 SKU.
+ */
+async function runGuestFullOrder(
+  supabase: SupabaseAdmin,
+  args: {
+    guestAnalysisId: string;
+    email: string;
+    inputType: "pitch_file" | "website_url";
+    inputValue: string;
+    inputFilename: string | null;
+    paygStamp: GuestPaygStamp;
+    paidCents: number | null;
+    t0: number;
+  },
+): Promise<RunResult> {
+  const { handOffGuestFullReport } = await import("./full-report");
+  const handoff = await handOffGuestFullReport({
+    guestAnalysisId: args.guestAnalysisId,
+    email: args.email,
+    inputType: args.inputType,
+    inputValue: args.inputValue,
+    inputFilename: args.inputFilename,
+  });
+
+  const now = new Date().toISOString();
+  const reportData = {
+    ok: true,
+    guestAnalysisId: args.guestAnalysisId,
+    payg: args.paygStamp,
+    // The 16-section report lives on this analyses row (the signed link is
+    // minted on demand, never stored).
+    fullReport: { analysisId: handoff.analysisId, pipeline: "tbr-v2", handedOffAt: now },
+    generatedAt: now,
+  };
+  const { error: writeErr } = await supabase
+    .from("guest_analyses")
+    .update({
+      report_data: reportData,
+      report_pdf_url: null,
+      status: "delivered",
+      delivered_at: now,
+    })
+    .eq("id", args.guestAnalysisId)
+    .eq("status", "analyzing");
+  if (writeErr) {
+    throw new Error(`persist_failed: ${writeErr.message}`);
+  }
+
+  // Receipt + tax-invoice line + the signed report link. Non-fatal: the
+  // report e-mail (with the PDF) still follows from the ReportV2 job.
+  try {
+    const { sendGuestFullReportPaid } = await import("@/lib/email/report-order-emails");
+    const sent = await sendGuestFullReportPaid({
+      to: args.email,
+      guestOrderId: args.guestAnalysisId,
+      // The paid amount (webhook-stamped); the Full catalogue amount if unread.
+      amountCents: args.paidCents ?? GUEST_FULL_FALLBACK_CENTS,
+      reportUrl: handoff.reportUrl,
+    });
+    if (!sent.ok) {
+      console.warn("[blockid:guest-analysis] guest Full receipt not sent — non-fatal", sent.reason);
+    }
+  } catch (err) {
+    console.warn(
+      "[blockid:guest-analysis] guest Full receipt threw — non-fatal",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
+  if (handoff.uploadedTmpPath) {
+    await safeUnlink(handoff.uploadedTmpPath);
+  }
+
+  console.info(
+    `[blockid:guest-analysis] runner handed guest Full id=${args.guestAnalysisId} to analysis=${handoff.analysisId} in ${Date.now() - args.t0}ms`,
+  );
+  return { success: true };
 }

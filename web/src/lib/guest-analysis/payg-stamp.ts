@@ -2,8 +2,10 @@
 //
 // /api/guest-analysis/create-order stamps `report_data.payg = { tier, sku,
 // pricing_version }` on the guest_analyses row (no new column); the runner
-// reads it back to pick the PDF cut and the tax-invoice line. Absent on the
-// A$3 One-Click SKU → the runner is unchanged.
+// reads it back to pick the delivery. Absent on the A$3 One-Click SKU → the
+// runner is unchanged. Snapshot → the short SVI PDF + tax-invoice line;
+// Full → the 16-section Trusted Business Report via the /analyze ReportV2
+// job (full-report.ts) — `guestPdfTier` is never consulted for Full.
 
 export interface GuestPaygStamp {
   tier: "snapshot" | "full";
@@ -21,7 +23,7 @@ export function guestPaygStamp(reportData: unknown): GuestPaygStamp | null {
   return { tier, sku: typeof sku === "string" ? sku : `report_${tier}`, pricing_version: typeof pricing_version === "string" ? pricing_version : "v5" };
 }
 
-/** PDF depth per guest tier: Snapshot → the short "preview" cut; Full / legacy A$3 → "standard" (unchanged). */
+/** SVI PDF depth per guest tier: Snapshot → the short "preview" cut; legacy A$3 → "standard" (unchanged). Full no longer renders this PDF. */
 export function guestPdfTier(stamp: GuestPaygStamp | null): "preview" | "standard" {
   return stamp?.tier === "snapshot" ? "preview" : "standard";
 }

@@ -698,6 +698,29 @@ describe("tier projection (G35 Pricing v5 P2)", () => {
     expect(((await (await call()).json()) as { report: { reportV2: { reviewBadge?: unknown } } }).report.reportV2.reviewBadge).toBeUndefined();
   });
 
+  it("D26 follow-up: a PAYG order carries `paygTier` for the page label; a legacy order carries no such key", async () => {
+    seedOrder({ product_sku: "report_full" });
+    seedReport({ report_json: demoReportV2() });
+    expect(((await (await call()).json()) as { paygTier?: string }).paygTier).toBe("full");
+
+    seedOrder({ product_sku: "report_snapshot" });
+    seedReport({ report_json: demoReportV2() });
+    expect(((await (await call()).json()) as { paygTier?: string }).paygTier).toBe("snapshot");
+
+    // Snapshot upgraded in place → labelled at the raised tier.
+    seedOrder({ product_sku: "report_snapshot" });
+    seedReport({ report_json: demoReportV2(), payg_tier: "full" });
+    expect(((await (await call()).json()) as { paygTier?: string }).paygTier).toBe("full");
+
+    seedOrder({ product_sku: "report_verified" });
+    seedReport({ report_json: demoReportV2() });
+    expect(((await (await call()).json()) as { paygTier?: string }).paygTier).toBe("verified");
+
+    seedOrder();
+    seedReport({ report_json: demoReportV2() });
+    expect(Object.keys((await (await call()).json()) as Record<string, unknown>)).not.toContain("paygTier");
+  });
+
   it("a Snapshot order without a ReportV2 never falls back to the full legacy markdown", async () => {
     seedOrder({ product_sku: "report_snapshot" });
     seedReport();
