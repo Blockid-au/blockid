@@ -77,6 +77,7 @@ import {
   type AITaskClass,
 } from "@/lib/ai/anthropic-tier";
 import { AICapacityError } from "@/lib/ai/capacity";
+import { PROVIDER_BUDGET_RETRY_AFTER_SEC, balanceRoutedProviders, readBalanceFlags } from "@/lib/ai/balance-flags";
 import { type RunStrikeSink, RunStruckError, classifyRunStrike } from "@/lib/ai/run-strikes";
 import { isDailyCapReached, notifyCapReached, recordPaidSpend } from "@/lib/ai/spend-guard";
 import { cachedProviderStatus, probeProviders, readProviderStatusFile, PROBE_TTL_MS, type ProbeProvider } from "@/lib/ai/provider-status";
@@ -1751,8 +1752,11 @@ export function openRouterDialList(models: string[], lowCredit: boolean): string
   return lowCredit ? models.filter(isOpenRouterFreeModel) : models;
 }
 
-/** W1: true while the last probe says OpenRouter credits are under the floor. */
+/** W1: true while the last probe says OpenRouter credits are under the floor.
+ *  A3 (G35): also while the hourly balance check rates OpenRouter critical —
+ *  then only the paid OpenRouter ids are switched off (`:free` keeps serving). */
 function openRouterLowCredit(now: number = Date.now()): boolean {
+  if (readBalanceFlags(now).openrouter_paid_disabled) return true;
   const st = cachedProviderStatus("openrouter");
   return Boolean(st && st.status === "low_credit" && now - new Date(st.checked_at).getTime() < PROBE_TTL_MS);
 }
@@ -2179,6 +2183,11 @@ export function providerBlockReason(p: Provider, now: number = Date.now()): stri
   if (isProviderUnfunded(p, now)) return "unfunded";
   if ((providerCooldown.get(p) ?? 0) > now) return "cooldown";
   if (isPaidProvider(p) && isDailyCapReached(now)) return "daily_cap";
+  // A3 (G35): the hourly balance check rated DeepInfra critical → no unscoped
+  // call dials it (scoped report calls are queued before they get here).
+  const balance = readBalanceFlags(now);
+  if (p === "deepinfra" && balance.deepinfra_critical) return "balance_critical";
+  if (p === "openrouter" && balance.openrouter_paid_disabled && !ladderFor("openrouter").some(isOpenRouterFreeModel)) return "balance_critical";
   const id = probeIdFor(p);
   if (id) {
     const st = cachedProviderStatus(id);
@@ -2631,6 +2640,14 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
     throw new ResearchAttemptBudgetError("research requires scoped durable attempt authorization");
 
   const deepInfraOnly = requiresDeepInfra(opts);
+  // A3 (G35, pricing v5 §7.4): DeepInfra balance critical → a report-scoped /
+  // DeepInfra-only job is QUEUED (AICapacityError "provider_budget" — callers
+  // treat it as "wait and retry", never as a failure) and is never moved to a
+  // provider outside the founder's report policy.
+  const balanceFlags = readBalanceFlags();
+  if (deepInfraOnly && balanceFlags.deepinfra_critical) {
+    throw new AICapacityError("provider_budget", PROVIDER_BUDGET_RETRY_AFTER_SEC, { queued: 0, running: 0 });
+  }
   const gatewayResult = deepInfraOnly ? null : await callViaGateway(opts);
   if (gatewayResult) return gatewayResult;
 
@@ -2641,9 +2658,11 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // provider uses (see header). Inferred from agentId / maxTokens when the
   // caller did not say.
   const taskClass = inferTaskClass(opts);
+  // A3 (G35): while DeepInfra is critical every unscoped call is routed to the
+  // free tier only (balanceRoutedProviders) — no paid spillover.
   const allProviders: Provider[] = deepInfraOnly
     ? (providerConfigured("deepinfra") ? ["deepinfra"] : [])
-    : opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass);
+    : balanceRoutedProviders(opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass), balanceFlags, providerTier);
   if (opts.interactive && opts.timeoutMs == null) opts = { ...opts, timeoutMs: INTERACTIVE_TIMEOUT_MS };
   // Default interactive budget = at least one full attempt at the caller's
   // own `timeoutMs` (full-report asks 180 s, report-section 120 s, the CFO
@@ -2653,6 +2672,10 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   if (budgetMs != null && opts.deadlineAt == null) opts = { ...opts, budgetMs, deadlineAt: Date.now() + budgetMs };
 
   if (allProviders.length === 0) {
+    // A3: the balance rule left no zero-cost provider → wait, do not spill to paid.
+    if (!deepInfraOnly && balanceFlags.deepinfra_critical) {
+      throw new AICapacityError("provider_budget", PROVIDER_BUDGET_RETRY_AFTER_SEC, { queued: 0, running: 0 });
+    }
     throw new Error(
       "No AI provider configured. Set up keys in Admin → AI Keys, or configure env vars."
     );

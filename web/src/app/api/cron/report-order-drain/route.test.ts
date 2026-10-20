@@ -34,6 +34,10 @@ vi.mock("@/lib/paywall/report-refund", () => ({
 vi.mock("@/lib/ops/origin-activity", () => ({
   trackOriginWork: (_k: string, fn: () => unknown) => fn(),
 }));
+const balance = vi.hoisted(() => ({ deepinfraCritical: false }));
+vi.mock("@/lib/ai/balance-flags", () => ({
+  readBalanceFlags: () => ({ updated_at: new Date().toISOString(), deepinfra_critical: balance.deepinfraCritical, openrouter_paid_disabled: false }),
+}));
 
 import { GET, POST } from "./route";
 import { __resetLeaseModeForTests, MAX_RETRIES } from "@/lib/paywall/report-order-worker";
@@ -85,6 +89,20 @@ describe("cron/report-order-drain", () => {
     useDb([]);
     const { status } = await call();
     expect(status).toBe(401);
+  });
+
+  it("G35 A3: DeepInfra balance critical → the queued order is NOT claimed (stays queued, no retry burnt, no refund)", async () => {
+    balance.deepinfraCritical = true;
+    try {
+      const db = useDb([queueRow({ status: "queued" })]);
+      const { body } = await call();
+      expect(body).toMatchObject({ ok: true, processed: 0, paused: "deepinfra_balance_critical" });
+      expect(h.generate).not.toHaveBeenCalled();
+      expect(h.refund).not.toHaveBeenCalled();
+      expect(db.row("report_generation_queue", "queue-1")).toMatchObject({ status: "queued" });
+    } finally {
+      balance.deepinfraCritical = false;
+    }
   });
 
   it("empty queue is a noop", async () => {

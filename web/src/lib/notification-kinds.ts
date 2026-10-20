@@ -316,6 +316,13 @@ export function describeNotification(row: FounderNotificationRow): string {
       // S31-A: payload { reason, spent_aud, cap_aud, calls } from lib/ai/spend-guard.ts.
       const reason = s(p.reason);
       if (reason === "openrouter_low_credit") return "OpenRouter paused — credit is below the floor; top up to resume";
+      // G35 A3: payload { reason: "ai_balance", provider, level, balance_usd, runway_days } from /api/cron/ai-balance.
+      if (reason === "ai_balance") {
+        const bal = n(p.balance_usd);
+        const runway = n(p.runway_days);
+        const level = s(p.level) === "critical" ? "critical" : "low";
+        return `AI balance ${level} — ${s(p.provider) ?? "provider"}${bal !== null ? ` US$${bal.toFixed(2)}` : ""}${runway !== null ? `, ~${runway.toFixed(1)} days left` : ""}`;
+      }
       const spent = n(p.spent_aud);
       const cap = n(p.cap_aud);
       return spent !== null && cap !== null
