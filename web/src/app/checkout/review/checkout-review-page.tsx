@@ -33,6 +33,7 @@ import { checkoutReviewStrings, fillCheckoutString, type CheckoutReviewStrings }
 import { getMessages } from "@/lib/i18n/t";
 import { annualAvailablePlanIds } from "@/lib/plans/annual-available";
 import { pageMetadata } from "@/lib/seo/page-meta";
+import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
 import { STARTUP_PACKAGE_PLAN_ID } from "@/lib/startup-package/price";
 
 export type SearchParams = Record<string, string | string[] | undefined>;
@@ -70,8 +71,8 @@ export async function CheckoutReviewPage({ searchParams, locale }: { searchParam
   const req = parseCheckoutReviewParams(sp);
   if (!req) notFound();
 
-  const [annualAvailable, user, m] = await Promise.all([annualAvailablePlanIds(), getCurrentUser(), getMessages(locale)]);
-  const order = resolveCheckoutOrder(req, { annualAvailable });
+  const [annualAvailable, user, m, paygEnabled] = await Promise.all([annualAvailablePlanIds(), getCurrentUser(), getMessages(locale), isPaygEnabled()]);
+  const order = resolveCheckoutOrder(req, { annualAvailable, paygEnabled });
   if (!order) notFound();
 
   const s = checkoutReviewStrings(m, locale);

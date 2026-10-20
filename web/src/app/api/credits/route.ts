@@ -6,6 +6,8 @@ import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
+import { PAYG_RETIRED_PACK_CREDITS } from "@/lib/credit-packs";
+import { isPaygEnabled } from "@/lib/pricing/payg-view.server";
 
 // QA-3 P1-10 (2026-09-12): 10 Checkout sessions per user per 15 minutes.
 // The idempotency key already collapses a double-click; this stops a
@@ -41,6 +43,8 @@ export async function GET() {
 // POST /api/credits
 // Purchase a credit pack via Stripe Checkout.
 // Body: { amount: 5 | 10 | 25 | 50 | 100 }
+// Pricing v5 D27: when platform_config.payg_enabled is on, the 5-pack is no
+// longer sold (400); it stays in CREDIT_PACKS for receipts / webhook lookup.
 //
 // A configured payment provider and pack price are required.
 // This checkout endpoint never grants credits.
@@ -75,6 +79,17 @@ async function POST_handler(request: Request) {
       {
         ok: false,
         reason: `Invalid credit pack. Choose one of: ${CREDIT_PACKS.map((p) => p.credits).join(", ")}`,
+      },
+      { status: 400 },
+    );
+  }
+
+  // D27 — only a retired size pays for the config read.
+  if (PAYG_RETIRED_PACK_CREDITS.includes(amount) && (await isPaygEnabled())) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: `This credit pack is no longer offered. Choose one of: ${CREDIT_PACKS.filter((p) => !PAYG_RETIRED_PACK_CREDITS.includes(p.credits)).map((p) => p.credits).join(", ")}`,
       },
       { status: 400 },
     );

@@ -7,6 +7,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { buildPlansFromConfig } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { paygView } from "@/lib/pricing/payg-copy";
 import { ADDON_PRICE_IDS } from "@/lib/stripe";
 import { isWholesaleProvisionedFounder } from "@/lib/stripe/portal-gate";
 import { BillingClient } from "./billing-client";
@@ -104,6 +105,7 @@ export default async function BillingPage({
             }}
             subscription={billing?.view}
             subscriptionPlanLabel={billing?.planLabel ?? null}
+            paygEnabled={paygView(cfg).enabled}
           />
         </Suspense>
       </div>
