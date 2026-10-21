@@ -1,6 +1,6 @@
 # G35 — Pricing v5 (Pay-as-you-go 3 tier) + rà soát platform + AI cost routing
 
-**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0, W1, W2 (P1–P5), A1/A3, O1, D30 **LIVE 20/10** (`606f0f118`); Pricing v5 code-complete sau cờ `payg_enabled` = OFF. Còn: Stripe test key → test E2E → mint live → bật cờ (founder duyệt); A2 eval loop. Guest Full = report 16 section: **code-complete 20/10** (nhánh `worktree-agent-afd514c885725d702`, chưa deploy — xem §6.4.8).
+**Ngày:** 20/10/2026 · **Owner quyết định:** Do Van Long · **Trạng thái:** W0, W1, W2 (P1–P5), A1/A3, O1, D30 **LIVE 20/10** (`606f0f118`); W6 (guest Full = report 16 section + tier label, evaluator PAYG bằng thẻ, A2 eval loop + coordinator + review fixes) **LIVE 21/10** (`bc356985f`). Pricing v5 code-complete sau cờ `payg_enabled` = OFF. Còn: Stripe test key → test E2E (gồm evaluator thẻ + guest Full) → mint live → bật cờ + archive A$3 (founder duyệt).
 
 **Nguồn:** spec founder `blockid-payg-pricing-update.md` (20/10) + yêu cầu bổ sung: *bỏ hẳn A$1 / A$3 khỏi chương trình; rà soát toàn platform; sửa bug; kiểm tra link hỏng; cơ chế đổi free model; chọn model chất lượng tốt nhất với giá thấp nhất; agent điều phối đánh giá tổng hợp + chi tiết (paid + free); cảnh báo khi model trả phí sắp hết tiền; sẵn sàng chạy lâu dài.*
 
