@@ -157,6 +157,8 @@ describe("report price policy expiry (W0, founder 2026-10-20)", () => {
   });
 
   it("admits a reservation on the old 23/10 cut-off and 1 ms before the new expiry", async () => {
+    // Frozen clock: with shouldAdvanceTime a loaded host drifts past EXPIRY - 1 between the awaits.
+    vi.useFakeTimers({ toFake: ["Date"] });
     for (const t of [Date.parse("2026-10-23T00:00:00Z"), EXPIRY - 1]) {
       vi.setSystemTime(t);
       const budget = createReportAttemptBudget(scope());
