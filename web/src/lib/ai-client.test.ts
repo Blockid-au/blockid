@@ -1804,6 +1804,60 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
   });
 });
 
+describe("G36-C — callAIForUpgrade never dials an unfunded provider", () => {
+  const STRIKES = "/home/dovanlong/blockid.au/web/content/reports/ai-model-strikes.json";
+  const dead = (reason = "payment_required") =>
+    ({ strikes: 1, last_status: reason, last_at: "2026-11-20T10:00:00.000Z", dead_until: "2099-01-01T00:00:00.000Z", dead_reason: reason, dead_at: "2026-11-20T10:00:00.000Z" });
+
+  it("an unfunded Cerebras is skipped silently (no 'Trying next' line, no cooldown); with nothing else dialable it returns null without a call", async () => {
+    process.env.CEREBRAS_API_KEY = "cb-test";
+    process.env.AI_PROVIDER_PROBE = "off";
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::gpt-oss-120b": dead(), "cerebras::qwen-3.8-27b": dead() }));
+    const { callAIForUpgrade, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    networkMock.request.mockClear();
+    await expect(callAIForUpgrade({ system: "s", user: "u" })).resolves.toBeNull();
+    expect(networkMock.request).not.toHaveBeenCalled();
+    const lines = warnSpy?.mock.calls.map((c) => String(c[0])) ?? [];
+    expect(lines.some((l) => /cerebras failed/.test(l))).toBe(false);
+    expect(lines.some((l) => /Every free\/subscription provider is blocked/.test(l))).toBe(true);
+    expect(getProviderHealthSnapshot().providers.find((p) => p.name === "cerebras")).toMatchObject({ state: "blocked", reason: "unfunded" });
+  });
+
+  it("an unfunded Cerebras does not stop the next free provider from answering", async () => {
+    process.env.CEREBRAS_API_KEY = "cb-test";
+    process.env.GROQ_API_KEY = "gq-test";
+    process.env.AI_PROVIDER_PROBE = "off";
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::gpt-oss-120b": dead(), "cerebras::qwen-3.8-27b": dead() }));
+    const hosts: string[] = [];
+    networkMock.request.mockImplementation(((options: { hostname?: string }, callback: (res: unknown) => void) => {
+      hosts.push(String(options.hostname));
+      const req = new EventEmitter() as EventEmitter & { write(b: string): void; end(): void; destroy(e: Error): void };
+      req.write = () => {};
+      req.destroy = (e) => { req.emit("error", e); };
+      req.end = () => {
+        const res = new EventEmitter() as EventEmitter & { statusCode: number; setEncoding(): void; complete: boolean };
+        res.statusCode = 200;
+        res.setEncoding = () => {};
+        callback(res);
+        res.emit("data", JSON.stringify({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }));
+        res.complete = true;
+        res.emit("end");
+      };
+      return req;
+    }) as never);
+    try {
+      const { callAIForUpgrade, _resetDispatcherForTests } = await loadClient();
+      _resetDispatcherForTests();
+      await expect(callAIForUpgrade({ system: "s", user: "u" })).resolves.toMatchObject({ text: "ok" });
+      expect(hosts).toEqual(["api.groq.com"]);
+      expect((warnSpy?.mock.calls ?? []).some((c) => /cerebras failed/.test(String(c[0])))).toBe(false);
+    } finally {
+      networkMock.request.mockReset();
+    }
+  });
+});
+
 describe("W1 — OpenRouter credit floor exempts :free models (pricing v5 §7.2 #4)", () => {
   const STATUS_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-provider-status.json";
   const FREE_FILE = "/home/dovanlong/blockid.au/web/content/reports/ai-free-models.json";

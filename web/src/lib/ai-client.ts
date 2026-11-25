@@ -2899,9 +2899,21 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
 
   // Respect providerCooldown from callAI — if a provider (e.g. Cerebras 402)
   // is dead for the day, skip it here too instead of retrying every request.
+  // G36-C: a HARD block (unfunded — every rung 402/404 —, rejected key, probe
+  // verdict) is never dialled, not even by the last-resort try-all: Cerebras
+  // (unfunded) logged ~100 "all 2 models are dead rungs … Trying next" lines a
+  // day from this loop and each one re-armed a 2 min cooldown.
   const now = Date.now();
-  const eligible = freeProviders.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
-  const runList = eligible.length > 0 ? eligible : freeProviders; // last-resort try-all
+  const dialable = freeProviders.filter((p) => {
+    const reason = providerBlockReason(p, now);
+    return reason === null || reason === "cooldown";
+  });
+  if (dialable.length === 0) {
+    console.warn("[ai-client:upgrade] Every free/subscription provider is blocked (unfunded / invalid key / quota). Upgrade task skipped.");
+    return null;
+  }
+  const eligible = dialable.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
+  const runList = eligible.length > 0 ? eligible : dialable; // last-resort try-all (cooling only)
 
   for (const provider of runList) {
     try {
@@ -2912,6 +2924,8 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
       console.log(`[ai-client:upgrade] Success via ${provider} (${result.model})`);
       return result;
     } catch (err) {
+      // G36-C: no call was made (dead / incapable ladder) — not a failure to cool down or log.
+      if (err instanceof DeadLadderError) continue;
       const errMsg = err instanceof Error ? err.message : String(err);
       const msgLower = errMsg.toLowerCase();
       let cooldownMs: number;
