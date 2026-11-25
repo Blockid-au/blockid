@@ -1,7 +1,7 @@
 // Colocated test for /pricing (G17 P2-A): the template hero (one h1) wraps
 // the untouched ladder — `#pricing-matrix`, `PricingSegmentSwitch`
-// (`data-testid="pricing-segment-switch"`), `#tier-free/growth/pro` on the
-// default Founder tab, `money-finder-anchor`, `#contact-sales`, one FAQPage
+// (`data-testid="pricing-segment-switch"`), `#tier-scout/firm/program/fund` on the
+// default Evaluator tab, `money-finder-anchor`, `#contact-sales`, one FAQPage
 // + one BreadcrumbList, pageMetadata. The e2e smoke
 // (tests/e2e/smoke/public-hash-csp.spec.ts) asserts the same ids live.
 // The marketing shell mounts NavV2 → useRouter(), so it is mocked; the
