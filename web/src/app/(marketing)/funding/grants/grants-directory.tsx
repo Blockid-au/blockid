@@ -32,7 +32,7 @@
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import { RewriteAwareLink } from "@/components/site/rewrite-aware-link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { PageHero, Section } from "@/components/marketing/template";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
@@ -202,9 +202,9 @@ export async function GrantsDirectory({ filters, throwOnUnavailable = false }: {
           {AU_STATES.filter((s) => s !== stateOnly && all.some((g) => g.state === s)).map((s, i) => (
             <span key={s}>
               {i > 0 ? " · " : ""}
-              <Link href={grantsStatePath(s)} className="text-action underline-offset-2 hover:underline">
+              <RewriteAwareLink href={grantsStatePath(s)} className="text-action underline-offset-2 hover:underline">
                 {s === "national" ? "Federal grants" : `${stateLabel(s)} grants`}
-              </Link>
+              </RewriteAwareLink>
             </span>
           ))}
         </nav>

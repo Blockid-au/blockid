@@ -8,8 +8,7 @@ import {
   isLocale,
   type Locale,
 } from "@/lib/i18n/locales";
-import { grantsRewriteTarget } from "@/lib/funding/grants-route";
-import { demoBandRewriteTarget } from "@/lib/report-v2/demo-band-route";
+import { internalRouteFor } from "@/lib/routing/internal-route";
 import { INTERNAL_ROUTE_HEADER } from "@/lib/routing/internal-route-rewrites";
 import { checkRateLimit, type RateLimitBucket } from "@/lib/rate-limit";
 import { securityHeaders } from "@/lib/security-headers";
@@ -736,7 +735,7 @@ export function hasVisitorIdentityCookie(request: NextRequest): boolean {
 
 function planPageResponse(request: NextRequest, nonce: string, nonceCsp: string): PageResponsePlan {
   const { pathname, searchParams } = request.nextUrl;
-  const internalRoute = grantsRewriteTarget(pathname, searchParams) ?? demoBandRewriteTarget(pathname, searchParams);
+  const internalRoute = internalRouteFor(pathname, searchParams);
   const servedPath = internalRoute ?? pathname;
   const nonceMode: PageResponsePlan = { internalRoute, nonce, csp: nonceCsp, cacheControl: null, sharedCacheable: false };
 

@@ -10,6 +10,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RewriteAwareLink } from "@/components/site/rewrite-aware-link";
 import { notFound } from "next/navigation";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { PageHero, Section } from "@/components/marketing/template";
@@ -134,9 +135,9 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
           footnote={
             <>
               Looking for grants instead?{" "}
-              <Link href={grantsStatePath(state)} className="font-semibold text-action underline-offset-2 hover:underline">
+              <RewriteAwareLink href={grantsStatePath(state)} className="font-semibold text-action underline-offset-2 hover:underline">
                 {state === "national" ? "Federal startup grants" : `${stateLabel(state)} startup grants`}
-              </Link>
+              </RewriteAwareLink>
               {" · "}
               <Link href="/funding/report/demo" className="font-semibold text-action underline-offset-2 hover:underline">
                 {`see a sample ${view.funding} report`}
