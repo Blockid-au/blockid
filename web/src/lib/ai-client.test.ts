@@ -1582,6 +1582,29 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
     });
   });
 
+  it("G36-C: a ladder that runs out of the CALLER's budget is not a provider fault — no cooldown, provider stays ok", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests, AIBudgetExhaustedError } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    const tier = await import("@/lib/ai/anthropic-tier");
+    spend._resetSpendGuardForTests();
+    tier._resetAnthropicTierForTests();
+    _resetDispatcherForTests();
+    // Live log 2026-11: "[ai-client] deepinfra failed (cooldown 2min): AI call budget exhausted (4s across providers)".
+    tierMock.call.mockRejectedValueOnce(new AIBudgetExhaustedError(4_000));
+    const err = await callAI({ system: "s", user: "u" }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AIBudgetExhaustedError);
+    const snap = getProviderHealthSnapshot();
+    expect(snap.providers).toEqual([{ name: "claude-apikey", state: "ok", cooldown_until: null }]);
+    expect(snap.budget_exhausted_1h).toBe(1);
+    expect(warnSpy?.mock.calls.some((c) => /claude-apikey failed \(cooldown/.test(String(c[0])))).toBe(false);
+    // The next call dials the provider straight away.
+    tierMock.call.mockResolvedValueOnce({ ...okResult(1), cost_usd: 0 });
+    await expect(callAI({ system: "s", user: "u" })).resolves.toMatchObject({ via: "claude-apikey" });
+    spend._resetSpendGuardForTests();
+    tier._resetAnthropicTierForTests();
+  });
+
   it("counts AIBudgetExhaustedError throws for one hour and _resetDispatcherForTests clears them", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
     const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests, AIBudgetExhaustedError } = await loadClient();
@@ -1778,6 +1801,60 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     expect(new DeadLadderError("groq", 2).message).toMatch(/all 2 models are dead rungs/);
     expect(providerBlockReason("groq", NOW)).toBe("unfunded");
     expect(getProviderHealthSnapshot(NOW).dead_rungs.groq).toEqual({ state: "unfunded", reason: "all_rungs_dead", dead: ["a", "b"], total: 2, until: DEAD_FOREVER });
+  });
+});
+
+describe("G36-C — callAIForUpgrade never dials an unfunded provider", () => {
+  const STRIKES = "/home/dovanlong/blockid.au/web/content/reports/ai-model-strikes.json";
+  const dead = (reason = "payment_required") =>
+    ({ strikes: 1, last_status: reason, last_at: "2026-11-20T10:00:00.000Z", dead_until: "2099-01-01T00:00:00.000Z", dead_reason: reason, dead_at: "2026-11-20T10:00:00.000Z" });
+
+  it("an unfunded Cerebras is skipped silently (no 'Trying next' line, no cooldown); with nothing else dialable it returns null without a call", async () => {
+    process.env.CEREBRAS_API_KEY = "cb-test";
+    process.env.AI_PROVIDER_PROBE = "off";
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::gpt-oss-120b": dead(), "cerebras::qwen-3.8-27b": dead() }));
+    const { callAIForUpgrade, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    networkMock.request.mockClear();
+    await expect(callAIForUpgrade({ system: "s", user: "u" })).resolves.toBeNull();
+    expect(networkMock.request).not.toHaveBeenCalled();
+    const lines = warnSpy?.mock.calls.map((c) => String(c[0])) ?? [];
+    expect(lines.some((l) => /cerebras failed/.test(l))).toBe(false);
+    expect(lines.some((l) => /Every free\/subscription provider is blocked/.test(l))).toBe(true);
+    expect(getProviderHealthSnapshot().providers.find((p) => p.name === "cerebras")).toMatchObject({ state: "blocked", reason: "unfunded" });
+  });
+
+  it("an unfunded Cerebras does not stop the next free provider from answering", async () => {
+    process.env.CEREBRAS_API_KEY = "cb-test";
+    process.env.GROQ_API_KEY = "gq-test";
+    process.env.AI_PROVIDER_PROBE = "off";
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::gpt-oss-120b": dead(), "cerebras::qwen-3.8-27b": dead() }));
+    const hosts: string[] = [];
+    networkMock.request.mockImplementation(((options: { hostname?: string }, callback: (res: unknown) => void) => {
+      hosts.push(String(options.hostname));
+      const req = new EventEmitter() as EventEmitter & { write(b: string): void; end(): void; destroy(e: Error): void };
+      req.write = () => {};
+      req.destroy = (e) => { req.emit("error", e); };
+      req.end = () => {
+        const res = new EventEmitter() as EventEmitter & { statusCode: number; setEncoding(): void; complete: boolean };
+        res.statusCode = 200;
+        res.setEncoding = () => {};
+        callback(res);
+        res.emit("data", JSON.stringify({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }));
+        res.complete = true;
+        res.emit("end");
+      };
+      return req;
+    }) as never);
+    try {
+      const { callAIForUpgrade, _resetDispatcherForTests } = await loadClient();
+      _resetDispatcherForTests();
+      await expect(callAIForUpgrade({ system: "s", user: "u" })).resolves.toMatchObject({ text: "ok" });
+      expect(hosts).toEqual(["api.groq.com"]);
+      expect((warnSpy?.mock.calls ?? []).some((c) => /cerebras failed/.test(String(c[0])))).toBe(false);
+    } finally {
+      networkMock.request.mockReset();
+    }
   });
 });
 
@@ -2284,5 +2361,62 @@ describe("G30 BlockID report policy", () => {
       expect(called).not.toContain("openai/gpt-oss-120b");
       expect(called).not.toContain("moonshotai/Kimi-K2.6");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G36-C — gpt-oss on Groq answered `content: ""` with finish_reason "length"
+// (the default "medium" reasoning trace ate max_tokens) → 480+ "Empty Groq
+// response" lines in the live log. gpt-oss rungs now ask for low effort.
+// ---------------------------------------------------------------------------
+
+describe("G36-C gpt-oss reasoning budget (Groq / Cerebras)", () => {
+  it("reasoningParamsFor: low effort for gpt-oss ids only", async () => {
+    const { reasoningParamsFor } = await loadClient();
+    expect(reasoningParamsFor("openai/gpt-oss-120b")).toEqual({ reasoning_effort: "low" });
+    expect(reasoningParamsFor("openai/gpt-oss-20b")).toEqual({ reasoning_effort: "low" });
+    expect(reasoningParamsFor("gpt-oss-120b")).toEqual({ reasoning_effort: "low" }); // Cerebras id
+    expect(reasoningParamsFor("qwen/qwen3.8-27b")).toEqual({});
+    expect(reasoningParamsFor("meta-llama/Llama-3.3-70B-Instruct-Turbo")).toEqual({});
+  });
+
+  it("a Groq call sends reasoning_effort low to gpt-oss rungs (not to qwen) and names finish_reason on an empty answer", async () => {
+    process.env.GROQ_API_KEY = "gsk-test";
+    process.env.AI_PROVIDER_PROBE = "off";
+    const bodies: Array<Record<string, unknown>> = [];
+    networkMock.request.mockImplementation(((_options: Record<string, unknown>, callback: (res: unknown) => void) => {
+      const req = new EventEmitter() as EventEmitter & { write(b: string): void; end(): void; destroy(e: Error): void };
+      let body = "";
+      req.write = (b) => { body = b; };
+      req.destroy = (e) => { req.emit("error", e); };
+      req.end = () => {
+        const payload = JSON.parse(body) as Record<string, unknown>;
+        bodies.push(payload);
+        const res = new EventEmitter() as EventEmitter & { statusCode: number; setEncoding(): void; complete: boolean };
+        res.statusCode = 200;
+        res.setEncoding = () => {};
+        callback(res);
+        // qwen answers empty (finish_reason length) so the ladder reaches gpt-oss, which answers.
+        const reply = payload.model === "qwen/qwen3.8-27b"
+          ? { choices: [{ message: { content: "", reasoning: "…" }, finish_reason: "length" }] }
+          : { choices: [{ message: { content: "ok" }, finish_reason: "stop" }] };
+        res.emit("data", JSON.stringify(reply));
+        res.complete = true;
+        res.emit("end");
+      };
+      return req;
+    }) as never);
+    try {
+      const { callAI, _resetDispatcherForTests } = await loadClient();
+      _resetDispatcherForTests();
+      const r = await callAI({ system: "s", user: "u", maxTokens: 300, taskClass: "classify" });
+      expect(r).toMatchObject({ via: "groq", model: "openai/gpt-oss-120b", text: "ok" });
+      const byModel = Object.fromEntries(bodies.map((b) => [b.model, b]));
+      expect(byModel["qwen/qwen3.8-27b"]).not.toHaveProperty("reasoning_effort");
+      expect(byModel["openai/gpt-oss-120b"]).toMatchObject({ reasoning_effort: "low", max_tokens: 300 });
+      expect(warnSpy?.mock.calls.some((c) => /Groq qwen\/qwen3\.8-27b failed: Empty Groq response \(finish_reason length\)/.test(String(c[0])))).toBe(true);
+    } finally {
+      networkMock.request.mockReset();
+    }
   });
 });

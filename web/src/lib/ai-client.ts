@@ -1303,6 +1303,22 @@ const GROQ_DEFAULT_MODELS: string[] = [
   "openai/gpt-oss-20b",        // B-tier: 20B, fast fallback (meets the 20B floor)
 ];
 
+/** G36-C — gpt-oss reasons at "medium" by default on Groq / Cerebras and the
+ *  hidden trace counts against `max_tokens`: at classify-sized budgets it ate
+ *  them all → `content: ""`, `finish_reason: "length"` → "Empty Groq response"
+ *  (480+ lines in the live log). Probe 2026-11-25, max_tokens 300: default →
+ *  0 chars of content / 1,191 of reasoning; `reasoning_effort: "low"` → 941
+ *  chars of content / 49 of reasoning. Other models get no extra field. */
+export function reasoningParamsFor(model: string): { reasoning_effort?: "low" } {
+  return /(^|\/)gpt-oss-/.test(model) ? { reasoning_effort: "low" } : {};
+}
+
+/** The "empty answer" error, naming finish_reason when the provider gave one. */
+function emptyAnswerError(label: string, data: { choices?: Array<{ finish_reason?: unknown }> }): Error {
+  const fr = data.choices?.[0]?.finish_reason;
+  return new Error(`Empty ${label} response${typeof fr === "string" && fr ? ` (finish_reason ${fr})` : ""}`);
+}
+
 async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
@@ -1323,6 +1339,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8000), // Groq free limit
         temperature: opts.temperature ?? 0.7,
+        ...reasoningParamsFor(model),
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
@@ -1332,7 +1349,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "Groq error");
       const text = data.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("Empty Groq response");
+      if (!text) throw emptyAnswerError("Groq", data);
       recordModelOutcome(model, true);
       clearDeadRung("groq", model);
       return { text, provider: "groq", model };
@@ -1388,6 +1405,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
         temperature: opts.temperature ?? 0.7,
+        ...reasoningParamsFor(model),
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
@@ -1397,7 +1415,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "Cerebras error");
       const text = data.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("Empty Cerebras response");
+      if (!text) throw emptyAnswerError("Cerebras", data);
       recordModelOutcome(model, true);
       clearDeadRung("cerebras", model);
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
@@ -2787,6 +2805,12 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
         }
         if (lastError instanceof RunStruckError) continue; // struck by a parallel call of this run — no process-wide cooldown from it
         if (lastError instanceof DeadLadderError) continue; // G29-A: no call was made; the dead-rung table (not a cooldown) owns the skip
+        // G36-C: the CALLER's wall-clock budget ran out inside this provider's
+        // ladder (often before any rung was dialled — DEEPINFRA_MIN_ATTEMPT_MS).
+        // That is not a provider fault: no process-wide cooldown, no run strike
+        // (it used to put DeepInfra, the primary, in a 2 min cooldown for every
+        // later report call).
+        if (lastError instanceof AIBudgetExhaustedError) continue;
         noteRunStrike(opts, provider, lastError);
         const cooldownMs = cooldownForError(provider, lastError);
         providerCooldown.set(provider, Date.now() + cooldownMs);
@@ -2875,9 +2899,21 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
 
   // Respect providerCooldown from callAI — if a provider (e.g. Cerebras 402)
   // is dead for the day, skip it here too instead of retrying every request.
+  // G36-C: a HARD block (unfunded — every rung 402/404 —, rejected key, probe
+  // verdict) is never dialled, not even by the last-resort try-all: Cerebras
+  // (unfunded) logged ~100 "all 2 models are dead rungs … Trying next" lines a
+  // day from this loop and each one re-armed a 2 min cooldown.
   const now = Date.now();
-  const eligible = freeProviders.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
-  const runList = eligible.length > 0 ? eligible : freeProviders; // last-resort try-all
+  const dialable = freeProviders.filter((p) => {
+    const reason = providerBlockReason(p, now);
+    return reason === null || reason === "cooldown";
+  });
+  if (dialable.length === 0) {
+    console.warn("[ai-client:upgrade] Every free/subscription provider is blocked (unfunded / invalid key / quota). Upgrade task skipped.");
+    return null;
+  }
+  const eligible = dialable.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
+  const runList = eligible.length > 0 ? eligible : dialable; // last-resort try-all (cooling only)
 
   for (const provider of runList) {
     try {
@@ -2888,6 +2924,8 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
       console.log(`[ai-client:upgrade] Success via ${provider} (${result.model})`);
       return result;
     } catch (err) {
+      // G36-C: no call was made (dead / incapable ladder) — not a failure to cool down or log.
+      if (err instanceof DeadLadderError) continue;
       const errMsg = err instanceof Error ? err.message : String(err);
       const msgLower = errMsg.toLowerCase();
       let cooldownMs: number;

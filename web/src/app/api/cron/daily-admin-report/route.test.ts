@@ -15,7 +15,7 @@ vi.mock("@/lib/ai-client", () => ({
 }));
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn() }));
 
-import { AGENT_UPGRADE_TIMEOUT_MS, AI_RECOMMENDATIONS_TIMEOUT_MS } from "./route";
+import { AI_RECOMMENDATIONS_TIMEOUT_MS } from "./route";
 
 function crontabTimeoutMs(endpoint: string): number | null {
   const crontab = readFileSync(resolve(__dirname, "../../../../../scripts/crontab.production"), "utf8");
@@ -33,13 +33,15 @@ describe("daily-admin-report time budget", () => {
     expect(crontabTimeoutMs("daily-admin-report")).toBe(180_000);
   });
 
-  it("the inner agent-upgrade call is time-boxed below the outer cron budget", () => {
+  it("the AI recommendations leave ≥ 60 s for the DB queries and the e-mail", () => {
     const outer = crontabTimeoutMs("daily-admin-report")!;
-    expect(AGENT_UPGRADE_TIMEOUT_MS).toBeLessThan(outer);
+    expect(outer - AI_RECOMMENDATIONS_TIMEOUT_MS).toBeGreaterThanOrEqual(60_000);
   });
 
-  it("both optional enrichments together leave ≥ 60 s for the DB queries and the e-mail", () => {
-    const outer = crontabTimeoutMs("daily-admin-report")!;
-    expect(outer - AGENT_UPGRADE_TIMEOUT_MS - AI_RECOMMENDATIONS_TIMEOUT_MS).toBeGreaterThanOrEqual(60_000);
+  it("G36-C: never re-runs /api/cron/agent-upgrade over HTTP — it reads the latest run's summary", () => {
+    const src = readFileSync(resolve(__dirname, "route.ts"), "utf8");
+    expect(src).not.toMatch(/fetch\([^)]*agent-upgrade/s);
+    expect(src).not.toMatch(/\/api\/cron\/agent-upgrade/);
+    expect(src).toMatch(/readAgentUpgradeActivity\(/);
   });
 });

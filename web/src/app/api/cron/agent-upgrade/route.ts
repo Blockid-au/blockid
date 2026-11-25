@@ -20,6 +20,7 @@ import { getAllArticles } from "@/lib/insights";
 import { sendEmail } from "@/lib/email";
 import * as fs from "fs";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { writeAgentUpgradeSummary } from "@/lib/agents/upgrade-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -824,6 +825,9 @@ export async function POST(request: Request) {
       });
     } catch { /* non-blocking */ }
   }
+
+  // G36-C: the daily admin report reads this instead of re-running the route.
+  await writeAgentUpgradeSummary(now.toISOString(), results);
 
   // Save daily report files per agent for telegram-report to read
   try {
