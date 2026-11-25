@@ -44,8 +44,23 @@ if [ -f "$LOG" ] && [ "$(stat -c%s "$LOG" 2>/dev/null || echo 0)" -gt 204800 ]; 
   tail -500 "$LOG" > "${LOG}.tmp" && mv "${LOG}.tmp" "$LOG"
 fi
 
+api_path() { # G36: static HTML stayed 200 while the VM disk was full and every
+  # DB-backed API timed out (25/11) — probe one DB-backed endpoint per host.
+  case "$1" in
+    eth.blockid.au) echo "/api/v1/platform/stats" ;;
+    hr.blockid.au) echo "/api/v1/auth/config" ;;
+    scan.blockid.au) echo "/api/v2/stats" ;;
+    *) echo "" ;;
+  esac
+}
+
 probe() { # $1 host → echoes "200" or a failure code
-  local host="$1" html code asset acode
+  local host="$1" html code asset acode api
+  api=$(api_path "$host")
+  if [ -n "$api" ]; then
+    acode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${host}${api}")
+    [ "$acode" = "200" ] || { echo "api_${acode}"; return; }
+  fi
   html=$(curl -s --max-time 10 -w '\n%{http_code}' "https://${host}/")
   code=$(printf '%s' "$html" | tail -1)
   [ "$code" = "200" ] || { echo "$code"; return; }
