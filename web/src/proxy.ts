@@ -520,7 +520,46 @@ export function crossSiteApiGate(request: NextRequest): NextResponse | null {
   );
 }
 
+// ── Server Action probe gate (G36-A) ────────────────────────────────────
+//
+// The app defines no Server Actions, yet scanners (React2Shell-style
+// probes) POST pages with a `Next-Action` header every day. Two shapes
+// reach Next's action handler and come back as a 500 with alarming log
+// lines — `The Server Reference ID did not match the expected format.
+// Received "x"` and, when the probe also sends `RSC: 1`, two
+// `InvariantError: Expected RSC response, got text/plain. This is a bug in
+// Next.js.` per request (reproduced on the live origin 2026-11-25):
+//
+//   • an id that is not a Next 16 Server Reference id (42 hex chars —
+//     SERVER_REFERENCE_ID_LENGTH in next/dist/shared/lib/server-reference-info);
+//   • any `Next-Action` request that also carries `RSC: 1` — the Next client
+//     never sends both (server-action-reducer sets Accept + Next-Action +
+//     router-state-tree only), so only a hand-built request does.
+//
+// Both are answered here with the 400 Next itself gives a malformed action
+// request. A well-formed id without `RSC` still reaches Next, which answers
+// a stale tab with its own 409 + `x-nextjs-action-not-found` (the client
+// turns that into a reload) — that stays the "older deployment" signal.
+const SERVER_ACTION_ID_RE = /^[0-9a-f]{42}$/i;
+
+/** @internal — exported for unit tests only */
+export function serverActionProbeGate(request: NextRequest): NextResponse | null {
+  const actionId = request.headers.get("next-action");
+  if (actionId === null) return null;
+  const rsc = request.headers.get("rsc");
+  if (SERVER_ACTION_ID_RE.test(actionId.trim()) && rsc !== "1") return null;
+  return new NextResponse("Invalid Server Action request.", {
+    status: 400,
+    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+  });
+}
+
 export async function proxy(request: NextRequest) {
+  // ── Server Action probes (G36-A) — before the subdomain rewrite so a probe
+  // on `<slug>.blockid.au` never reaches Next's action handler either. ──
+  const probe = serverActionProbeGate(request);
+  if (probe) return applySecurityHeaders(probe);
+
   // ── Subdomain rewrite (must run first, before any header mutation) ──
   const rewritten = subdomainRewrite(request);
   if (rewritten) return rewritten;
