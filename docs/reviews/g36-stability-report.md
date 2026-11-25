@@ -5,6 +5,21 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 
 ---
 
+## Tick 2 — 2026-11-25 (15:08 → 16:45 UTC)
+
+**Outcome:** signals green on arrival (errors_1h 1 = self-proxy ECONNRESET, hr/eth/scan 200, VM disk 37%), so two backlog P2s were fixed by worktree agents and shipped. blockid.au **`396fa3c9a` → `c88bfc278`**, unit 44,507 / 0, typecheck 0, qa:live **307 / 0**, 0 proxy errors on the new origin.
+
+| Sev | Fix | Commit |
+|---|---|---|
+| P2 | Report sections ran out of output budget (clo/dataroom capped at 2,600 → plain-text fallback, never grounded; 24/267 V4-Flash calls hit the cap): CLO 4,000, W1–W3 floor 3,400; truncated-JSON salvage drops a half-written array element | `904ccd5c5` |
+| P2 | Filtered `/funding/grants?…` and `/tbr/demo?band=` served by in-router `beforeFiles` rewrites keyed on a proxy-set header — no HTTP self-proxy (socket hang up / ECONNRESET / cold 500s), no `x-middleware-rewrite: http://localhost:…` leak; CSP mode + Cache-Control per route unchanged | `21d57b817`, `e2d6296f5` |
+
+Grounded share 0.73 → 0.59 explained: clo/dataroom degraded (fixed), dimension chapters ran on V4-Flash instead of V3.2 under time pressure (fewer citations; load-dependent, not a bug), criterion sections run-to-run noise.
+
+New backlog: filter chip / band link client navigation shows the base page (prefetch skips the proxy — pre-existing on live); tbr-quality `degradedSections` only counts dimension chapters; `/pricing` smoke spec looks for `#tier-free` (stale); re-run showcase with `--audit-dump`; wildcard `<slug>.blockid.au` rewrite still self-proxies.
+
+---
+
 ## Tick 1 — 2026-11-25 (00:27 → 14:10 UTC)
 
 **Outcome:** 2 P0 outages and 3 P1 bugs fixed and live. blockid.au **`bc356985f` → `396fa3c9a`** (deploys `8ece82edf`, `396fa3c9a`; two attempts stopped safely by gates — Next 16.4.2 SecurityFatalError, cold self-proxy 500 on `/funding/grants?type=tax_deduction&stage=…`), qa:live **307 / 0** (was 306 / 1), full unit suite 44,456 / 0, typecheck + eslint 0 errors. hr/eth/scan back up.
@@ -49,9 +64,7 @@ Login page 200 · Google start 302 → accounts.google.com with the correct `red
 ### Open — backlog for the next ticks
 | Sev | Item | Owner |
 |---|---|---|
-| P2 | `clo/dataroom` section: truncated JSON (`Unexpected end of JSON input`) in the 25/11 report — output budget too small | loop |
 | KPI | Report grounded share 0.59 vs 0.85 target (0.73 on 17/11) | loop (G24-D carry-over) |
-| P2 | `/funding/grants?…` proxy rewrite loops back over HTTP (socket hang-ups) — move to `next.config` rewrites + hydrated CSP smoke | loop |
 | P3 | Same read-then-overwrite credit pattern in `report-refund.ts`, `api/svi/modular`, admin/reseller grants → move to the CAS helper | loop |
 | P3 | Subscription-deleted handler downgrades by customer, not by subscription | loop |
 | P3 | Magic-link token consumed on GET (e-mail scanners) | loop |
