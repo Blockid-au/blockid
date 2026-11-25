@@ -126,7 +126,12 @@ function fakeSupabase() {
           }
           if (table === "credit_balances" && this._mode === "select") {
             state.calls.creditBalancesSelect += 1;
-            return state.balanceRow;
+            // G36-B: a read after the debit sees the debited row (the reversal
+            // re-reads before its compare-and-set).
+            const last = state.calls.creditBalancesUpdatePayloads.at(-1) as
+              | { balance: number; lifetime_spent: number }
+              | undefined;
+            return last ? { data: { balance: last.balance, lifetime_spent: last.lifetime_spent } } : state.balanceRow;
           }
           if (table === "credit_balances" && this._mode === "update") {
             state.calls.creditBalancesUpdateGuards.push({
@@ -155,7 +160,8 @@ function fakeSupabase() {
                 eq: this._eqs.slice(),
                 gte: this._gte,
               });
-              return Promise.resolve(resolve({ data: null, error: null }));
+              // RETURNING one row — the compare-and-set reversal matched.
+              return Promise.resolve(resolve({ data: [{ balance: 0 }], error: null }));
             }
             if (table === "usage_logs" && this._mode === "insert") {
               return Promise.resolve(resolve({ data: null, error: null }));
@@ -339,6 +345,8 @@ describe("POST /api/reports/redeem — credit-balance branches", () => {
     expect(debit).toBeDefined();
     expect(debit.eq).toContainEqual(["user_id", "user-1"]);
     expect(debit.gte).toEqual(["balance", 200]);
+    // G36-B compare-and-set on the balance that was read.
+    expect(debit.eq).toContainEqual(["balance", 500]);
   });
 
   it("debit UPDATE payload includes the new balance + accumulated lifetime_spent + fresh updated_at", async () => {

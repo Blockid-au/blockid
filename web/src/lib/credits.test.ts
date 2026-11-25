@@ -647,3 +647,36 @@ describe("spendCredits — spend_credits_atomic RPC", () => {
     expect(calls.find((c) => c.table === "credit_balances" && c.op === "update")).toBeUndefined();
   });
 });
+
+// ── grantCredits — G36-B compare-and-set ──────────────────────────────────
+// The old grant read the balance, then upserted `read + amount` — a spend that
+// landed between the two was erased (free credits) and two concurrent grants
+// lost one. The grant now writes only while the row still holds what it read.
+
+describe("grantCredits (G36-B compare-and-set)", () => {
+  afterEach(() => {
+    supabaseRef.current = null;
+  });
+
+  it("two concurrent grants both land (the old read → upsert lost one)", async () => {
+    const { PaygFakeDb } = await import("@/lib/pricing/payg-fake-db.fixture");
+    const { grantCredits } = await import("./credits");
+    const db = new PaygFakeDb({ credit_balances: [{ user_id: "u1", balance: 100, lifetime_earned: 100 }], credit_transactions: [] });
+    supabaseRef.current = db;
+    const [a, b] = await Promise.all([grantCredits("u1", 20, "plan_grant_monthly"), grantCredits("u1", 5, "feedback_reward")]);
+    expect(a.ok && b.ok).toBe(true);
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 125, lifetime_earned: 125 });
+    // Ledger rows carry the real post-write balance (one of them is the final 125).
+    expect(db.rows("credit_transactions")).toHaveLength(2);
+    expect(Math.max(...db.rows("credit_transactions").map((t) => Number(t.balance_after)))).toBe(125);
+  });
+
+  it("creates the balance row on a first grant", async () => {
+    const { PaygFakeDb } = await import("@/lib/pricing/payg-fake-db.fixture");
+    const { grantCredits } = await import("./credits");
+    const db = new PaygFakeDb({ credit_balances: [], credit_transactions: [] });
+    supabaseRef.current = db;
+    expect(await grantCredits("u2", 3, "signup_bonus")).toEqual({ ok: true, balance: 3 });
+    expect(db.rows("credit_balances")[0]).toMatchObject({ user_id: "u2", balance: 3, lifetime_earned: 3 });
+  });
+});

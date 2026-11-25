@@ -53,6 +53,7 @@ import {
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 import { apiRoute } from "@/lib/audit/api-route";
 import { FEATURE_COSTS } from "@/lib/credits";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import { readPaygConfig } from "@/lib/pricing/payg-flag";
 import { PAYG_PRICING_VERSION, PAYG_SKUS, isPaygTier, reportSkuForTier } from "@/lib/pricing/v5-payg";
 import { inFlightOrderFor, listBuyerOrders } from "@/lib/pricing/payg-orders";
@@ -212,6 +213,11 @@ async function POST_handler(request: Request) {
     })
     .eq("user_id", user.id)
     .gte("balance", quote.credits)
+    // G36-B compare-and-set: the patch is an ABSOLUTE balance computed from
+    // the read above, so it may only land while the row still holds that
+    // read. `.gte` alone let two concurrent redeems both write
+    // `read - cost` (one debit for two orders).
+    .eq("balance", currentBalance)
     .select("balance")
     .maybeSingle();
 
@@ -255,14 +261,9 @@ async function POST_handler(request: Request) {
   if (insertErr || !order) {
     // Refund the debit — the order row is the source of truth for
     // downstream generation, so if it never landed we must roll back.
-    await supabase
-      .from("credit_balances")
-      .update({
-        balance: currentBalance,
-        lifetime_spent: lifetimeSpent,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
+    // G36-B: add the credits back (compare-and-set), never restore the
+    // pre-debit snapshot — that erased every spend/grant made since.
+    await reverseDebit(supabase, user.id, quote.credits);
 
     return NextResponse.json(
       {
@@ -392,6 +393,7 @@ async function redeemPaygTier(user: RedeemUser, body: RedeemBody, businessId: st
     .update({ balance: currentBalance - credits, lifetime_spent: lifetimeSpent + credits, updated_at: now })
     .eq("user_id", user.id)
     .gte("balance", credits)
+    .eq("balance", currentBalance) // G36-B compare-and-set (see the legacy path)
     .select("balance")
     .maybeSingle();
   if (balErr || !updated) {
@@ -423,10 +425,9 @@ async function redeemPaygTier(user: RedeemUser, body: RedeemBody, businessId: st
     .single();
 
   if (insertErr || !order) {
-    await supabase
-      .from("credit_balances")
-      .update({ balance: currentBalance, lifetime_spent: lifetimeSpent, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
+    // G36-B: a double-click's second insert hits 23505 here; restoring the
+    // pre-debit snapshot used to undo the FIRST request's debit too (free report).
+    await reverseDebit(supabase, user.id, credits);
     const conflict = (insertErr as { code?: string } | null)?.code === "23505";
     return NextResponse.json(
       { ok: false, reason: conflict ? "This report is already being prepared." : "order_insert_failed_debit_reversed", credits, balance: currentBalance },
@@ -470,3 +471,13 @@ async function redeemPaygTier(user: RedeemUser, body: RedeemBody, businessId: st
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
 export const POST = apiRoute({ route: "api/reports/redeem/route.ts", method: "POST" }, POST_handler);
+
+/** Give a debited amount back with compare-and-set (G36-B); logs loudly when it cannot. */
+async function reverseDebit(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>, userId: string, credits: number): Promise<void> {
+  const res = await adjustCreditBalance(supabase as unknown as CasDb, userId, credits, {
+    lifetime: { column: "lifetime_spent", delta: -credits },
+  });
+  if (!res.ok) {
+    console.error("[blockid:reports/redeem] debit reversal failed — manual credit needed", { userId, credits, reason: res.reason, error: res.error });
+  }
+}

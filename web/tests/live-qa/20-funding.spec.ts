@@ -16,17 +16,8 @@ import { test, expect } from "./fixtures";
 import { anonRequest, evidence, get, post } from "./lib/api";
 import { env } from "./lib/env";
 import { setScratch } from "./lib/run-state";
-
-/** payg_enabled OFF (legacy) / ON (D25) Money Finder price ↔ credits pairs. */
-const MONEY_FINDER_PRICES = [
-  { price: "A$3", credits: 3 },
-  { price: "A$19", credits: 19 },
-] as const;
-
-/** The pair whose price appears in `text` (word-bounded; "A$3,000" never matches "A$3"). */
-function moneyFinderPriceIn(text: string): (typeof MONEY_FINDER_PRICES)[number] | null {
-  return [...MONEY_FINDER_PRICES].reverse().find((p) => new RegExp(`${p.price.replace("$", "\\$")}(?![\\d,.])`).test(text)) ?? null;
-}
+// payg_enabled OFF (legacy A$3) / ON (D25 A$19) price ↔ credits pairs + matcher (unit-tested).
+import { moneyFinderPriceIn } from "./lib/money-finder-price";
 
 const INTAKE = {
   description: "AI-assisted valuation and data-room tooling for Australian pre-seed founders (SaaS).",
