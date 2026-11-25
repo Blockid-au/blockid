@@ -1,10 +1,12 @@
 ---
 name: deploy
-description: Build, test, and deploy BlockID to staging or production via GitLab CI/CD pipeline. Use when the user says "deploy", "push to production", or "deploy staging".
+description: Build, test, and deploy BlockID to staging or production via web/scripts/deploy-auto.sh (server = production). Use when the user says "deploy", "push to production", or "deploy staging".
 arguments: [environment]
 ---
 
 # Deploy BlockID
+
+> **Current procedure (G36, 25/11/2026):** production deploy = `bash web/scripts/deploy-auto.sh` on this server (load wait → retire oldest origin → resource permit → deploy-live.sh --quick → 60 s soak → mark-good). Docker, GitLab CI and GitHub Actions are NOT used — the steps below are historical. Serialize with any other session's deploy/qa:live, then run `npm run qa:live` and review after every deploy.
 
 Deploy the BlockID.au web application to the specified environment.
 
