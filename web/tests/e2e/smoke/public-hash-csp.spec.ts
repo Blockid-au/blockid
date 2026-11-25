@@ -132,6 +132,32 @@ test.describe("S31-D public pages — hash CSP, hydrated, zero violations", () =
     expect(await collectViolations(page, probe)).toEqual([]);
   });
 
+  test("G36 internal routes: the dynamic grants view (nonce) and a demo band (hash) render under the public URL, hydrated, zero violations", async ({ page }) => {
+    const probe = await armCspProbe(page);
+    // Served in-process by the next.config beforeFiles rewrite (no HTTP
+    // self-proxy): no internal path may leak into headers or the URL.
+    const view = await page.goto("/funding/grants?type=tax_deduction&stage=idea", { waitUntil: "domcontentloaded" });
+    expect(view!.status()).toBe(200);
+    expect(view!.headers()["x-blockid-csp"]).toBe("nonce");
+    expect(view!.headers()["x-middleware-rewrite"]).toBeUndefined();
+    expect(view!.headers()["cache-control"]).toMatch(/^private/);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://blockid.au/funding/grants");
+    await page.waitForFunction(() => typeof (window as unknown as { next?: { router?: unknown } }).next?.router !== "undefined", null, { timeout: PAGE_TIMEOUT });
+    expect(page.url()).toContain("/funding/grants?type=tax_deduction&stage=idea");
+    expect(page.url()).not.toContain("/view");
+
+    const band = await page.goto("/tbr/demo?band=A", { waitUntil: "domcontentloaded" });
+    expect(band!.status()).toBe(200);
+    expect(band!.headers()["x-blockid-csp"]).toBe("hash");
+    expect(band!.headers()["x-middleware-rewrite"]).toBeUndefined();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://blockid.au/tbr/demo?band=A");
+    await page.waitForFunction(() => typeof (window as unknown as { next?: { router?: unknown } }).next?.router !== "undefined", null, { timeout: PAGE_TIMEOUT });
+    expect(page.url()).toContain("/tbr/demo?band=A");
+    expect(page.url()).not.toContain("/band/");
+    expect(await collectViolations(page, probe)).toEqual([]);
+  });
+
   test("analytics keeps working on a hashed page: consent default ran before gtag.js loaded", async ({ page }) => {
     const gaConfigured = Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || process.env.NEXT_PUBLIC_GTM_ID);
     const probe = await armCspProbe(page);
