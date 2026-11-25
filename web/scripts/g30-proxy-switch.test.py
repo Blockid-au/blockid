@@ -28,6 +28,13 @@ class ProxyTests(unittest.TestCase):
         self.assertIn(':4003', new)
         self.assertEqual(m.render_switch(new, 4099, 4001), FIXTURE)
 
+    def test_keepalive_timeout_is_allowed_and_preserved(self):
+        text = FIXTURE.replace('keepalive 64;', 'keepalive 64; keepalive_timeout 4s;')
+        new = m.render_switch(text, 4001, 4099)
+        self.assertIn('keepalive_timeout 4s;', new)
+        self.assertIn('server 127.0.0.1:4099;', new)
+        self.assertEqual(m.render_switch(new, 4099, 4001), text)
+
     def test_ambiguous_unsupported_or_stale_configs_refused(self):
         for text in [FIXTURE + 'upstream blockid_app { server 127.0.0.1:4001; }',
                      FIXTURE.replace('keepalive 64;', 'server 127.0.0.1:5000;'),

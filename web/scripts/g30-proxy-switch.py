@@ -72,7 +72,10 @@ def render_switch(text, from_port, to_port):
     server = one(servers, 'upstream server')
     if [t.group() for t in server[0]] != ['server', f'127.0.0.1:{from_port}']:
         raise Refused('Unexpected upstream source port/options')
-    if any(n[0][0].group() not in ('server', 'keepalive') for n in children):
+    # G36 (25/11): keepalive_timeout must stay below Node's 5 s keepAliveTimeout,
+    # or nginx reuses a socket Node is closing → "upstream prematurely closed
+    # connection" 502 on non-idempotent requests (PATCH/POST are never retried).
+    if any(n[0][0].group() not in ('server', 'keepalive', 'keepalive_timeout') for n in children):
         raise Refused('Unexpected upstream directives')
     upload = []
     for n in select(nodes, ['server']):
