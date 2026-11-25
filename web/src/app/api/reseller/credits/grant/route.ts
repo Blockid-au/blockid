@@ -23,6 +23,7 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import { decideReveal } from "@/lib/reseller/customer-reveal";
 import {
   computeMonthlyUsage,
@@ -150,40 +151,19 @@ async function POST_handler(request: Request) {
 
   const targetUserId = target.customerId;
 
-  const { data: balanceRow, error: balReadErr } = await supabase
-    .from("credit_balances")
-    .select("balance, lifetime_earned")
-    .eq("user_id", targetUserId)
-    .maybeSingle();
-  if (balReadErr) {
+  // G36-B: compare-and-set (+amount), not read → upsert(absolute). The old
+  // upsert wrote `read + amount` over any spend or grant that landed between
+  // the read and the write (a racing debit vanished; two grants lost one).
+  const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, targetUserId, amount, {
+    lifetime: { column: "lifetime_earned", delta: amount },
+  });
+  if (!adjusted.ok) {
     return NextResponse.json(
-      { ok: false, reason: "balance_read_failed", error: balReadErr.message },
+      { ok: false, reason: "balance_upsert_failed", error: adjusted.error ?? adjusted.reason },
       { status: 500 },
     );
   }
-
-  const currentBalance = (balanceRow?.balance as number | null) ?? 0;
-  const lifetimeEarned = (balanceRow?.lifetime_earned as number | null) ?? 0;
-  const newBalance = currentBalance + amount;
-  const now = new Date().toISOString();
-
-  const { error: balUpErr } = await supabase
-    .from("credit_balances")
-    .upsert(
-      {
-        user_id: targetUserId,
-        balance: newBalance,
-        lifetime_earned: lifetimeEarned + amount,
-        updated_at: now,
-      },
-      { onConflict: "user_id" },
-    );
-  if (balUpErr) {
-    return NextResponse.json(
-      { ok: false, reason: "balance_upsert_failed", error: balUpErr.message },
-      { status: 500 },
-    );
-  }
+  const newBalance = adjusted.balance;
 
   const { data: txRow, error: txErr } = await supabase
     .from("credit_transactions")

@@ -13,7 +13,7 @@
 //   - 403 when capability disabled
 //   - 400 when amount invalid
 //   - 500 on balance read error
-//   - 500 on balance upsert error
+//   - 500 on balance write error (grant is compare-and-set; a racing spend survives, G36)
 //   - 500 on transaction insert error
 //   - 500 on mirror insert error
 //   - 500 on audit log error
@@ -56,6 +56,8 @@ vi.mock("@/lib/reseller/credit-grants", () => ({
 }));
 
 import { POST } from "./route";
+import { PaygFakeDb } from "@/lib/pricing/payg-fake-db.fixture";
+import { casTestClient } from "@/lib/credit-balance-cas.fixture";
 
 const { ResellerScopeError } = await import("@/lib/reseller/scope");
 
@@ -72,8 +74,10 @@ function makeScope() {
 function makeDb(opts?: {
   selfReseller?: unknown;
   monthGrants?: { data: unknown[]; error: null } | { data: null; error: { message: string } };
-  balanceRow?: { data: unknown; error: null } | { data: null; error: { message: string } };
-  balUpErr?: null | { message: string };
+  /** Stateful credit_balances (G36-B: the grant is a compare-and-set). */
+  balance?: number;
+  balanceFailing?: boolean;
+  onBalanceRead?: (db: PaygFakeDb) => void;
   txRow?: { data: { id: string } | null; error: null | { message: string } };
   mirrorErr?: null | { message: string };
 }) {
@@ -87,6 +91,11 @@ function makeDb(opts?: {
     opts && "selfReseller" in opts ? opts.selfReseller : defaultSelf,
   );
   const auditLog = vi.fn().mockResolvedValue(undefined);
+  const balances = new PaygFakeDb(
+    { credit_balances: [{ user_id: "cust-1", balance: opts?.balance ?? 50, lifetime_earned: 50, lifetime_spent: 0 }] },
+    { unique: { credit_balances: [["user_id"]] }, failing: opts?.balanceFailing ? ["credit_balances"] : [] },
+  );
+  const balanceClient = casTestClient(balances, opts?.onBalanceRead);
 
   const supabaseMock = {
     from: vi.fn((table: string) => {
@@ -100,18 +109,7 @@ function makeDb(opts?: {
           insert: vi.fn().mockReturnValue({ error: opts?.mirrorErr ?? null }),
         };
       }
-      if (table === "credit_balances") {
-        return {
-          select: () => ({
-            eq: () => ({
-              maybeSingle: vi.fn().mockResolvedValue(
-                opts?.balanceRow ?? { data: { balance: 50, lifetime_earned: 50 }, error: null },
-              ),
-            }),
-          }),
-          upsert: vi.fn().mockReturnValue({ error: opts?.balUpErr ?? null }),
-        };
-      }
+      if (table === "credit_balances") return balanceClient.from(table);
       if (table === "credit_transactions") {
         return {
           insert: () => ({
@@ -127,7 +125,7 @@ function makeDb(opts?: {
     }),
   };
 
-  return { selfReseller, auditLog, _supabase: supabaseMock };
+  return { selfReseller, auditLog, _supabase: supabaseMock, _balances: balances };
 }
 
 function req(body: unknown, opts?: { badJson?: boolean }) {
@@ -142,6 +140,9 @@ async function json(res: Response) {
   return (await res.json()) as Record<string, unknown>;
 }
 
+let defaultDb: ReturnType<typeof makeDb>;
+const db0 = () => defaultDb;
+
 beforeEach(() => {
   mocks.gateRequireFeature.mockResolvedValue({ ok: true, user: RESELLER_USER });
   mocks.scopedReseller.mockResolvedValue(makeScope());
@@ -150,7 +151,7 @@ beforeEach(() => {
   mocks.decideReveal.mockReturnValue({ ok: true, customerId: "cust-1" });
   mocks.decideGrant.mockReturnValue({ ok: true, over_budget: false });
 
-  const db = makeDb();
+  const db = (defaultDb = makeDb());
   mocks.resellerSupabase.mockReturnValue(db);
   mocks.getSupabaseAdmin.mockReturnValue(db._supabase);
 });
@@ -236,8 +237,8 @@ describe("POST /api/reseller/credits/grant", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 500 on balance upsert error", async () => {
-    const db = makeDb({ balUpErr: { message: "upsert failed" } });
+  it("returns 500 on balance write error", async () => {
+    const db = makeDb({ balanceFailing: true });
     mocks.resellerSupabase.mockReturnValue(db);
     mocks.getSupabaseAdmin.mockReturnValue(db._supabase);
     const res = await POST(req({ target_user_id: "cust-1", amount: 10, reason: "bonus" }));
@@ -260,8 +261,24 @@ describe("POST /api/reseller/credits/grant", () => {
     const body = await json(res);
     expect(body.ok).toBe(true);
     expect(body.balance).toBe(60); // 50 + 10
+    expect(db0()._balances.rows("credit_balances")[0]).toMatchObject({ balance: 60, lifetime_earned: 60 });
     expect(body.credit_transaction_id).toBe("tx-1");
     expect(body.over_budget).toBe(false);
+  });
+
+  it("G36: a spend landing between the grant's read and write is not erased", async () => {
+    // Old code: read 50 → (spend 30 → 20) → upsert(50 + 10 = 60): the spend vanished.
+    const db = makeDb({
+      onBalanceRead: (d) => {
+        d.rows("credit_balances")[0]!.balance = 20;
+      },
+    });
+    mocks.resellerSupabase.mockReturnValue(db);
+    mocks.getSupabaseAdmin.mockReturnValue(db._supabase);
+    const res = await POST(req({ target_user_id: "cust-1", amount: 10, reason: "bonus" }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).balance).toBe(30);
+    expect(db._balances.rows("credit_balances")[0]?.balance).toBe(30);
   });
 
   it("stamps granted_by_reseller_id on transaction", async () => {
