@@ -5,9 +5,9 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 
 ---
 
-## Tick 1 — 2026-11-25 (00:27 → 13:10 UTC)
+## Tick 1 — 2026-11-25 (00:27 → 14:10 UTC)
 
-**Outcome:** 2 P0 outages and 3 P1 bugs fixed and live. blockid.au **`8ece82edf` → `73c62f722`**, qa:live **307 / 0** (was 306 / 1), full unit suite 44,456 / 0, typecheck + eslint 0 errors. hr/eth/scan back up.
+**Outcome:** 2 P0 outages and 3 P1 bugs fixed and live. blockid.au **`bc356985f` → `396fa3c9a`** (deploys `8ece82edf`, `396fa3c9a`; two attempts stopped safely by gates — Next 16.4.2 SecurityFatalError, cold self-proxy 500 on `/funding/grants?type=tax_deduction&stage=…`), qa:live **307 / 0** (was 306 / 1), full unit suite 44,456 / 0, typecheck + eslint 0 errors. hr/eth/scan back up.
 
 ### P0 — production outages
 | # | Site | Problem | Since | Fix | Status |
@@ -32,6 +32,8 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 | C AI | Daily admin report re-ran the agent-upgrade job (timeouts, double Monday e-mail) → reads last result | `6ce80d0a2` |
 | AI | **Cerebras removed** (founder): key commented out in `web/.env` (backup `~/env-backups/web.env.pre-g36-cerebras-20261125T1121`) | env |
 | AI | Free-model list keeps only models that answer a **real-sized** live probe (flint-v1.0 answered "ok" but 0 chars on real prompts) | `3f2e35dd2`, `73c62f722` |
+| AI | 25/11 refresh after deploy: flint-v1.0 dropped (timeout on the 400-token task); free list = Groq qwen3.8-27b / gpt-oss-120b / gpt-oss-20b, OpenRouter nemotron-3-ultra-550b / ernie-5.5-flash | `396fa3c9a` |
+| deploy | Candidate warms the self-proxy rewrite routes before the link check (cold first hits → 500 blocked 2 deploys) | `396fa3c9a` |
 | deps | Next.js 16.4.2 → **16.4.6** (build refused: 7 moderate advisories) | `8ece82edf` |
 | hr/eth | CSP allows HashKey testnet RPC ("Verify on-chain" button) — applied on VM nginx | eth-blockid `2f72c34` |
 
