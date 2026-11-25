@@ -25,8 +25,19 @@ const mocks = vi.hoisted(() => {
     getSupabaseAdminMock: vi.fn<() => unknown | null>(),
     writeFileMock: vi.fn<(path: string, data: string) => void>(),
     mkdirMock: vi.fn<(path: string, opts: { recursive: boolean }) => void>(),
+    checkBatchMock: vi.fn<(
+      targets: { provider: string; model: string }[],
+      opts?: { timeoutMs?: number; concurrency?: number },
+    ) => Promise<{ provider: string; model: string; status: string; healthy: boolean }[]>>(),
   };
 });
+
+vi.mock("@/lib/ai/health-check", () => ({
+  checkModelsBatch: (
+    targets: { provider: string; model: string }[],
+    opts?: { timeoutMs?: number; concurrency?: number },
+  ) => mocks.checkBatchMock(targets, opts),
+}));
 
 vi.mock("@/lib/ai-client", () => ({
   FREE_MODELS_CONFIG: "/tmp/test-free-models.json",
@@ -77,6 +88,10 @@ beforeEach(() => {
   mocks.getSupabaseAdminMock.mockReset().mockReturnValue(null);
   mocks.writeFileMock.mockReset();
   mocks.mkdirMock.mockReset();
+  // Default: every candidate answers the live probe.
+  mocks.checkBatchMock.mockReset().mockImplementation(async (targets) =>
+    targets.map((t) => ({ ...t, status: "healthy", healthy: true })),
+  );
 
   // Clear provider env keys so tests explicitly opt-in.
   delete process.env.GROQ_API_KEY;
@@ -294,5 +309,57 @@ describe("POST /api/cron/refresh-models — file write", () => {
     expect(res.status).toBe(500);
     const body = await json(res);
     expect(String(body.error)).toContain("Write failed");
+  });
+});
+
+describe("G36 — only models that answer the live probe are listed", () => {
+  function setup(statuses: Record<string, string>) {
+    mocks.fetchJsonMock.mockResolvedValue([{ id: "x" }]);
+    mocks.filterFreeOpenRouterMock.mockReturnValue([{ id: "x" }]);
+    mocks.rankMock.mockReturnValue(Object.keys(statuses));
+    mocks.checkBatchMock.mockImplementation(async (targets) =>
+      targets.map((t) => ({ ...t, status: statuses[t.model], healthy: statuses[t.model] === "healthy" })),
+    );
+  }
+  function written(): Record<string, unknown> {
+    return JSON.parse(String(mocks.writeFileMock.mock.calls.at(-1)?.[1])) as Record<string, unknown>;
+  }
+
+  it("drops empty / timeout / not_found models and keeps rank order", async () => {
+    setup({ "or/a": "healthy", "or/flint": "empty_response", "or/b": "healthy", "or/slow": "timeout", "or/gone": "not_found" });
+    const res = await POST(req({ authorization: "Bearer test_cron_secret" }));
+    expect(res.status).toBe(200);
+    expect(written().openrouter).toEqual(["or/a", "or/b"]);
+    const body = await json(res);
+    expect(body.droppedByProbe).toEqual({
+      openrouter: [
+        { model: "or/flint", status: "empty_response" },
+        { model: "or/slow", status: "timeout" },
+        { model: "or/gone", status: "not_found" },
+      ],
+    });
+  });
+
+  it("keeps a model that was only rate-limited at probe time (free-tier 429 is transient)", async () => {
+    setup({ "or/a": "quota_exceeded", "or/b": "empty_response" });
+    await POST(req({ authorization: "Bearer test_cron_secret" }));
+    expect(written().openrouter).toEqual(["or/a"]);
+  });
+
+  it("keeps the unverified rank when nothing answers (outage) instead of emptying the chain", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    setup({ "or/a": "timeout", "or/b": "error" });
+    await POST(req({ authorization: "Bearer test_cron_secret" }));
+    expect(written().openrouter).toEqual(["or/a", "or/b"]);
+    warn.mockRestore();
+  });
+
+  it("probes with a 20 s cap", async () => {
+    setup({ "or/a": "healthy" });
+    await POST(req({ authorization: "Bearer test_cron_secret" }));
+    expect(mocks.checkBatchMock).toHaveBeenCalledWith(
+      [{ provider: "openrouter", model: "or/a" }],
+      expect.objectContaining({ timeoutMs: 20_000 }),
+    );
   });
 });

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { answeredWithContent } from "./health-check";
+import { answeredWithContent, checkModel } from "./health-check";
 
 // G30 D-A6. The probe used to score any 200 as healthy. Reasoning models answer
 // 200 with an EMPTY `message.content` (the whole budget goes to the hidden
@@ -36,5 +36,30 @@ describe("answeredWithContent", () => {
 
   it("rejects an empty body", () => {
     expect(answeredWithContent("")).toBe(false);
+  });
+});
+
+// G36: gpt-oss on Groq reasons at "medium" by default and the hidden trace ate
+// the 64-token probe budget → empty content → a working model scored empty.
+describe("checkModel request body", () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+  async function bodyFor(provider: string, model: string): Promise<Record<string, unknown>> {
+    vi.stubEnv(provider === "groq" ? "GROQ_API_KEY" : "OPENROUTER_API_KEY", "k");
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await checkModel(provider, model);
+    expect(r.status).toBe("healthy");
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    return JSON.parse(String(init.body)) as Record<string, unknown>;
+  }
+
+  it("asks gpt-oss on Groq for low reasoning effort", async () => {
+    expect((await bodyFor("groq", "openai/gpt-oss-20b")).reasoning_effort).toBe("low");
+  });
+
+  it("sends no reasoning field for other models or providers", async () => {
+    expect((await bodyFor("groq", "qwen/qwen3.8-27b")).reasoning_effort).toBeUndefined();
+    expect((await bodyFor("openrouter", "openai/gpt-oss-120b:free")).reasoning_effort).toBeUndefined();
   });
 });

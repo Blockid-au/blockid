@@ -118,6 +118,10 @@ export async function checkModel(
         // — while every real report call on it failed with "Empty response".
         // 64 is still a trivial spend but leaves room for an actual answer.
         max_tokens: 64,
+        // G36: gpt-oss on Groq reasons at "medium" by default and the hidden
+        // trace eats the 64 tokens → empty content → a working model is scored
+        // empty_response. Mirror ai-client's reasoningParamsFor (Groq path only).
+        ...(provider === "groq" && /(^|\/)gpt-oss-/.test(model) ? { reasoning_effort: "low" } : {}),
       }),
       signal: ctrl.signal,
     });

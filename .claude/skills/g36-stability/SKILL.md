@@ -20,7 +20,9 @@ Hard rules (founder memory — never break):
 2. `tail -20 web/content/reports/error-digest.jsonl`; grep the newest `~/.local/state/blockid-runtime/*.service.log` for `error|failed|invariant|unhandled|500` and group counts (strip ids).
 3. `web/content/reports/live-qa-latest.json` (+ `-partial`) → `findings`.
 4. hr.blockid.au / eth.blockid.au: HTTP status, bundle hash, linked assets/APIs reachable (source: GitHub `Blockid-au/eth-blockid` / `monad-blockid`, clone in `/home/dovanlong/passport-review/`).
-5. Compare with the previous tick in `docs/reviews/g36-stability-report.md`; only NEW or still-open issues count.
+5. **Report price policy:** days left on `REPORT_PRICE_POLICY_EXPIRES_AT` (`web/src/lib/ai/report-attempt-budget.ts`). At ≤ 7 days ask the founder to approve `web/content/reports/ai-price-policy-renewal.json` — when it lapsed on 22/11 every report AI call was refused (0-word reports) for 3 days.
+6. Satellite sites: `tail /data/logs/blockid-satellite-uptime.log` (cron every 2 min, alerts after 3 fails, auto-starts the eth VM).
+7. Compare with the previous tick in `docs/reviews/g36-stability-report.md`; only NEW or still-open issues count.
 
 ## 2. Triage
 Severity: **P0** login/payment/data loss/site down · **P1** AI report/agent failure, wrong price, failing qa:live · **P2** noisy logs, degraded provider, UX dead end. Skip noise (bot probes) unless it hides real errors.
