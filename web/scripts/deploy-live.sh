@@ -1463,6 +1463,9 @@ fi
 # this gate twice on the same two URLs, while warm they answer in ~50 ms.
 # Real users hit the same cold path right after a swap. Best-effort: a failure
 # here is ignored — the link check below still judges every URL.
+# G36 tick 2: the HTTP self-proxy is gone (proxy stamps the route, next.config
+# beforeFiles rewrites serve it in-process); the warm-up stays as a cheap
+# first render of those routes before the concurrent crawl.
 for warm_path in "/funding/grants?type=grant" "/funding/grants?type=tax_deduction&stage=idea" "/funding/grants?state=NSW" "/tbr/demo?band=A"; do
   curl -s -o /dev/null --max-time 60 -H "Host: blockid.au" -H "X-Forwarded-Proto: https" \
     "http://127.0.0.1:$TEMP_PORT$warm_path" || true

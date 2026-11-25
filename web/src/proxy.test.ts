@@ -55,8 +55,9 @@ vi.mock("@/lib/security-headers", async (importOriginal) => {
 });
 
 // Import AFTER mocks are in place.
-import { IP_CEILING_MULTIPLIER, buildContentSecurityPolicy, config, crossSiteApiGate, proxy, serverActionProbeGate } from "./proxy";
+import { IP_CEILING_MULTIPLIER, buildContentSecurityPolicy, config, crossSiteApiGate, internalRewriteUrl, proxy, serverActionProbeGate } from "./proxy";
 import { SESSION_COOKIE } from "@/lib/auth-cookie";
+import { INTERNAL_ROUTE_HEADER } from "@/lib/routing/internal-route-rewrites";
 
 const COOKIE = `${SESSION_COOKIE}=sess-token-123`;
 
@@ -840,47 +841,73 @@ describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
     expect(res.headers.get("cache-control")).toBeNull();
   });
 
-  describe("/funding/grants rewrite (URL contract unchanged)", () => {
+  // G36: the proxy no longer issues NextResponse.rewrite() for these (it was
+  // proxied back to this origin over HTTP behind nginx). It stamps the
+  // serving route on the request; next.config beforeFiles rewrites
+  // (lib/routing/internal-route-rewrites.ts) do the in-process hop.
+  const routeOf = (res: Response) => res.headers.get(`x-middleware-request-${INTERNAL_ROUTE_HEADER}`);
+
+  describe("/funding/grants internal route (URL contract unchanged)", () => {
     it("?state=NSW alone → the static per-state route, cached like the base page", async () => {
       process.env.CSP_PUBLIC_HASH_MODE = "1";
       const res = await proxy(pageReq("/funding/grants?state=nsw"));
-      expect(res.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/funding/grants/state/NSW?state=nsw");
+      expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+      expect(res.headers.get("x-middleware-next")).toBe("1");
+      expect(routeOf(res)).toBe("/funding/grants/state/NSW");
+      expect(res.headers.get("x-middleware-override-headers")).toContain(INTERNAL_ROUTE_HEADER);
       expect(res.headers.get("x-blockid-csp")).toBe("hash");
       expect(res.headers.get("cache-control")).toBe("public, s-maxage=600, stale-while-revalidate=600");
     });
 
-    it("any other filter combination → the dynamic view (nonce, private); the bare directory is not rewritten", async () => {
+    it("any other filter combination → the dynamic view (nonce, private); the bare directory gets no route", async () => {
       process.env.CSP_PUBLIC_HASH_MODE = "1";
       const view = await proxy(pageReq("/funding/grants?state=NSW&type=voucher"));
-      expect(view.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/funding/grants/view?state=NSW&type=voucher");
+      expect(view.headers.get("x-middleware-rewrite")).toBeNull();
+      expect(routeOf(view)).toBe("/funding/grants/view");
       expect(view.headers.get("x-blockid-csp")).toBe("nonce");
+      // The nonce the view renders with is the one on the response CSP (single proxy pass now).
+      expect(view.headers.get("x-middleware-request-x-nonce")).toBe(view.headers.get("x-nonce"));
+      expect(cspOfRes(view)).toContain(`'nonce-${view.headers.get("x-nonce")}'`);
       // Not allow-listed and dynamic: Next itself emits `private, no-store` for the render.
       expect(view.headers.get("cache-control")).toBeNull();
       const base = await proxy(pageReq("/funding/grants"));
       expect(base.headers.get("x-middleware-rewrite")).toBeNull();
+      expect(routeOf(base)).toBeNull();
     });
 
-    it("rewrites happen with the flag off too (the routes exist regardless)", async () => {
+    it("routes are stamped with the flag off too (the routes exist regardless)", async () => {
       const res = await proxy(pageReq("/funding/grants?state=WA"));
-      expect(res.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/funding/grants/state/WA?state=WA");
+      expect(routeOf(res)).toBe("/funding/grants/state/WA");
       expect(res.headers.get("x-blockid-csp")).toBe("nonce");
     });
+
+    it("a client-supplied route header is never forwarded (only the proxy picks the route)", async () => {
+      const spoof = { [INTERNAL_ROUTE_HEADER]: "/funding/grants/view" };
+      const base = await proxy(req("/funding/grants", { method: "GET", site: "none", extraHeaders: spoof }));
+      expect(routeOf(base)).toBeNull();
+      expect(base.headers.get("x-middleware-override-headers") ?? "").not.toContain(INTERNAL_ROUTE_HEADER);
+      const other = await proxy(req("/funding/grants?state=NSW", { method: "GET", site: "none", extraHeaders: spoof }));
+      expect(routeOf(other)).toBe("/funding/grants/state/NSW");
+    });
   });
 
-  it("rewrite destinations stay on the plain-http origin behind X-Forwarded-Proto: https (Next proxied https://localhost → EPROTO 500)", async () => {
-    const res = await proxy(pageReq("/funding/grants?state=NSW"));
-    const dest = new URL(res.headers.get("x-middleware-rewrite") ?? "");
+  it("the subdomain rewrite destination stays on the plain-http origin behind X-Forwarded-Proto: https (Next proxied https://localhost → EPROTO 500)", () => {
+    const dest = internalRewriteUrl(
+      req("/x", { method: "GET", extraHeaders: { "x-forwarded-proto": "https" } }),
+      "/startup/acme",
+    );
     expect(dest.protocol).toBe("http:");
-    expect(dest.pathname).toBe("/funding/grants/state/NSW");
+    expect(dest.pathname).toBe("/startup/acme");
   });
 
-  describe("/tbr/demo?band= rewrite (G28-D: the four verdict-band demos stay static)", () => {
-    it("?band=a → the static per-band route (case-insensitive); the bare demo and junk bands are not rewritten", async () => {
+  describe("/tbr/demo?band= internal route (G28-D: the four verdict-band demos stay static)", () => {
+    it("?band=a → the static per-band route (case-insensitive); the bare demo and junk bands get no route", async () => {
       const res = await proxy(pageReq("/tbr/demo?band=a"));
-      expect(res.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/tbr/demo/band/A?band=a");
-      expect((await proxy(pageReq("/tbr/demo"))).headers.get("x-middleware-rewrite")).toBeNull();
-      expect((await proxy(pageReq("/tbr/demo?band=E"))).headers.get("x-middleware-rewrite")).toBeNull();
-      expect((await proxy(pageReq("/tbr/demo/band/D?band=A"))).headers.get("x-middleware-rewrite")).toBeNull();
+      expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+      expect(routeOf(res)).toBe("/tbr/demo/band/A");
+      expect(routeOf(await proxy(pageReq("/tbr/demo")))).toBeNull();
+      expect(routeOf(await proxy(pageReq("/tbr/demo?band=E")))).toBeNull();
+      expect(routeOf(await proxy(pageReq("/tbr/demo/band/D?band=A")))).toBeNull();
     });
   });
 });

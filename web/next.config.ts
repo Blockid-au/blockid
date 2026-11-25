@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { legacyRedirectRows } from "./src/lib/nav/legacy-redirects";
+import { internalRouteRewrites } from "./src/lib/routing/internal-route-rewrites";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -256,6 +257,18 @@ const nextConfig: NextConfig = {
         statusCode: 301,
       },
     ];
+  },
+  /**
+   * G36 — filtered public URLs (`/funding/grants?state=NSW|type=…`,
+   * `/tbr/demo?band=A`) are served by another route. The proxy decides which
+   * (CSP + Cache-Control depend on it) and stamps it on the request; these
+   * `beforeFiles` rewrites run right after the proxy, in the router, so the
+   * hop is in-process. `NextResponse.rewrite()` from the proxy was proxied
+   * back to this origin over HTTP instead (localhost vs 127.0.0.1 origin
+   * mismatch). See src/lib/routing/internal-route-rewrites.ts.
+   */
+  async rewrites() {
+    return { beforeFiles: internalRouteRewrites(), afterFiles: [], fallback: [] };
   },
   async headers() {
     return [
