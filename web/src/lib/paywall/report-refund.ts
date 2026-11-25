@@ -32,6 +32,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import {
   nextState,
   ReportOrderStateSchema,
@@ -204,34 +205,23 @@ export async function refundFailedOrder(
     const userId = String(order.user_id ?? "");
     if (!userId) return { ok: false, reason: "order_missing_user" };
 
-    const { data: balRow, error: balReadErr } = await supabase
-      .from("credit_balances")
-      .select("balance, lifetime_spent")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (balReadErr) {
-      return { ok: false, reason: `balance_lookup_failed: ${msg(balReadErr)}` };
-    }
-
-    const balance = Number(balRow?.balance ?? 0);
-    const lifetimeSpent = Number(balRow?.lifetime_spent ?? 0);
-
-    const { error: balErr } = await supabase
-      .from("credit_balances")
-      .update({
-        balance: balance + creditsUsed,
-        lifetime_spent: Math.max(0, lifetimeSpent - creditsUsed),
-        updated_at: now().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (balErr) {
-      return { ok: false, reason: `credit_reversal_failed: ${msg(balErr)}` };
+    // G36-B: compare-and-set (+creditsUsed), not read → update(absolute).
+    // The old write set `balance = <read> + creditsUsed`, so a debit or grant
+    // landing between the read and the write was silently erased.
+    // The real supabase-js client satisfies CasDb; RefundSupabase only
+    // narrows what the order reads need.
+    const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, userId, creditsUsed, {
+      lifetime: { column: "lifetime_spent", delta: -creditsUsed },
+    });
+    if (!adjusted.ok) {
+      return {
+        ok: false,
+        reason: `credit_reversal_failed: ${adjusted.error ?? adjusted.reason}`,
+      };
     }
 
     refundMeta.credits_reversed = creditsUsed;
-    refundMeta.credit_balance_after = balance + creditsUsed;
+    refundMeta.credit_balance_after = adjusted.balance;
     // A mixed order (both paths) is not currently reachable, but if it
     // ever is the Stripe leg is the headline.
     if (path !== "stripe") path = "credits";
