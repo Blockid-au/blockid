@@ -5,8 +5,8 @@
 //
 //   ?error=<code>         → 302 /auth/login?google_error=<code>   (Google refused:
 //                           access_denied, org_internal, admin_policy_enforced, …)
-//   state cookie missing / tampered / expired / ≠ ?state  → 400 (CSRF / replay guard;
-//                           the JSON carries a `retry` link back to /auth/login)
+//   state cookie missing / tampered / expired / ≠ ?state  → 302 /auth/login?google_error=
+//                           state_mismatch (CSRF / replay guard: no exchange, no session)
 //   code exchange fails   → 302 /auth/login?google_error=<redirect_uri_mismatch |
 //                           invalid_client | invalid_grant | token_invalid | exchange_failed>
 //   happy path            → session cookie + 302 to `next` (same-origin path from the
@@ -80,16 +80,11 @@ export async function GET(request: Request) {
     const reason = opened.ok ? "state_mismatch" : `state_${opened.reason}`;
     logGoogleAuthFailure("callback", reason, { flow: "redirect" });
     await clearStateCookie();
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "state_mismatch",
-        message:
-          "This Google sign-in link is not the one this browser started (expired, reused, or cookies were blocked).",
-        retry: "/auth/login?google_error=state_mismatch",
-      },
-      { status: 400, headers: NO_STORE },
-    );
+    // G36-A: this is a top-level browser navigation — a JSON 400 here was a
+    // raw-JSON dead end mid sign-in (state cookie older than 10 min, a second
+    // tab, the back button). Same guard, no exchange, no session: just land on
+    // the login page with the "link expired, start again" copy.
+    return backToLogin("state_mismatch", next);
   }
 
   const code = searchParams.get("code");

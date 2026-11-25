@@ -1,7 +1,8 @@
 // Colocated tests for GET /api/auth/google/callback — step 2 of the
 // server-side Google sign-in. Pins:
 //   * Google `?error=` → 302 /auth/login?google_error=<code> (sanitised)
-//   * missing / tampered / expired / mismatched state → 400, no exchange
+//   * missing / tampered / expired / mismatched state → 302 /auth/login?google_error=state_mismatch
+//     (G36-A: a browser navigation, never a raw JSON page), no exchange
 //   * exchange failure → 302 with the classified code (redirect_uri_mismatch…)
 //   * happy path: getToken(code + PKCE verifier) → verifyIdToken → the shared
 //     back half (loginWithGoogle, setSessionCookie, claim) → 302 next|redirect
@@ -152,24 +153,29 @@ describe("GET /api/auth/google/callback — Google refused", () => {
 });
 
 describe("GET /api/auth/google/callback — state guard", () => {
-  it("no state cookie → 400 with a retry link, no exchange", async () => {
+  it("no state cookie → 302 to the login page with google_error=state_mismatch (never raw JSON), no exchange", async () => {
     const res = await run("?code=abc&state=nonce");
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(await res.json()).toMatchObject({ ok: false, error: "state_mismatch", retry: "/auth/login?google_error=state_mismatch" });
+    expect(loc(res).pathname).toBe("/auth/login");
+    expect(loc(res).searchParams.get("google_error")).toBe("state_mismatch");
+    // No sealed cookie → no trusted `next` to carry.
+    expect(loc(res).searchParams.get("next")).toBeNull();
     expect(google.getToken).not.toHaveBeenCalled();
     expect(auth.setSessionCookie).not.toHaveBeenCalled();
   });
 
-  it("?state differs from the cookie's nonce → 400", async () => {
-    armState();
+  it("?state differs from the cookie's nonce → 302 state_mismatch, keeps the sealed same-origin next", async () => {
+    armState("/workspace/valuation");
     const res = await run("?code=abc&state=someone-elses-nonce");
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(loc(res).searchParams.get("google_error")).toBe("state_mismatch");
+    expect(loc(res).searchParams.get("next")).toBe("/workspace/valuation");
     expect(google.getToken).not.toHaveBeenCalled();
     expect(clearedStateCookie()).toBe(true);
   });
 
-  it("tampered cookie → 400", async () => {
+  it("tampered cookie → 302 state_mismatch", async () => {
     const nonce = armState();
     // Flip a character in the MIDDLE of the sealed token. The last base64url
     // character carries unused low bits, so flipping A↔B there can decode to
@@ -179,15 +185,18 @@ describe("GET /api/auth/google/callback — state guard", () => {
     const flipped = sealed[i] === "A" ? "B" : "A";
     jar.get.set("blockid_google_oauth", sealed.slice(0, i) + flipped + sealed.slice(i + 1));
     const res = await run(`?code=abc&state=${nonce}`);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(loc(res).searchParams.get("google_error")).toBe("state_mismatch");
     expect(google.getToken).not.toHaveBeenCalled();
   });
 
-  it("expired cookie (> 10 min) → 400", async () => {
+  it("expired cookie (> 10 min) → 302 state_mismatch (the 'link expired, start again' copy)", async () => {
     const nonce = armState("/dashboard", Date.now() - 11 * 60 * 1000);
     const res = await run(`?code=abc&state=${nonce}`);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(loc(res).searchParams.get("google_error")).toBe("state_mismatch");
     expect(google.getToken).not.toHaveBeenCalled();
+    expect(auth.setSessionCookie).not.toHaveBeenCalled();
   });
 
   it("valid state but no code → 302 google_error=missing_code", async () => {
