@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -37,6 +38,8 @@ async function POST_handler(req: NextRequest) {
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // G36-A: moderation list (every submitter's e-mail) — admin only.
+  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ testimonials: [] });
   const { data } = await supabase
@@ -51,6 +54,8 @@ async function PATCH_handler(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // G36-A: approving is moderation — admin only (any account could self-approve before).
+    if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id, approved } = await req.json() as { id: string; approved: boolean };
     const supabase = getSupabaseAdmin();
     if (!supabase) return NextResponse.json({ ok: false, error: "Service unavailable" }, { status: 503 });

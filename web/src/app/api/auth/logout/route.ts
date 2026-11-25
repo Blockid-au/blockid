@@ -6,8 +6,12 @@ import { apiRoute } from "@/lib/audit/api-route";
 // @rate-limit-exempt — only ends the caller's own session (no AI, e-mail or outbound call).
 async function POST_handler() {
   await destroySession();
+  // 303, not the 307 default: a 307 makes the browser (and every
+  // `fetch(…, { method: "POST" })` caller) re-POST to "/", which the live
+  // log shows answering 405 after every sign-out (G36-A). 303 = follow with GET.
   return NextResponse.redirect(
     new URL("/", process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au"),
+    303,
   );
 }
 

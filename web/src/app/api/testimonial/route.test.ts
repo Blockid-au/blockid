@@ -28,7 +28,10 @@ const getCurrentUserMock = vi.fn<
 >();
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => getCurrentUserMock(),
+  ADMIN_EMAIL: "admin@blockid.au",
 }));
+
+const ADMIN = { id: "u-admin", email: "admin@blockid.au" };
 
 const getSupabaseAdminMock = vi.fn<() => unknown | null>();
 vi.mock("@/lib/supabase", () => ({
@@ -263,6 +266,18 @@ describe("POST — never-block-user guarantee", () => {
 });
 
 describe("GET — admin dashboard", () => {
+  beforeEach(() => {
+    getCurrentUserMock.mockResolvedValue(ADMIN);
+  });
+
+  it("G36-A: returns 403 for a signed-in NON-admin and never reads the table (every submitter's e-mail leaked before)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "user@x.com" });
+    const res = await GET();
+    expect(res.status).toBe(403);
+    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+    expect(state.fromCalls).toBe(0);
+  });
+
   it("returns 401 { error:'Unauthorized' } for an anonymous caller (no leak of private drafts)", async () => {
     getCurrentUserMock.mockResolvedValue(null);
     const res = await GET();
@@ -313,6 +328,17 @@ describe("GET — admin dashboard", () => {
 });
 
 describe("PATCH — moderator approval flip", () => {
+  beforeEach(() => {
+    getCurrentUserMock.mockResolvedValue(ADMIN);
+  });
+
+  it("G36-A: returns 403 for a signed-in NON-admin (no self-approval) and never writes", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "user@x.com" });
+    const res = await PATCH(jsonReq({ id: "t1", approved: true }, "PATCH"));
+    expect(res.status).toBe(403);
+    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+  });
+
   it("returns 401 { error:'Unauthorized' } for an anonymous caller", async () => {
     getCurrentUserMock.mockResolvedValue(null);
     const res = await PATCH(jsonReq({ id: "t1", approved: true }, "PATCH"));

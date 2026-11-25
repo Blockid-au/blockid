@@ -69,7 +69,7 @@ console `[auth:google] client <flow> <code>` + GA4 events `login_google_start`
 | `redirect_uri_mismatch` | exchange | the callback URI is not in *Authorised redirect URIs*. The log line and the login page print the exact URI to add. |
 | `invalid_client` | exchange | client ID / secret pair wrong or rotated. Re-copy both from the console. |
 | `invalid_grant` | exchange | code already used or expired (user hit back / refreshed the callback). Retry. |
-| `state_mismatch` (HTTP 400 on the callback) | callback | cookie missing / tampered / >10 min / different nonce: cookies blocked, link reused, or a cross-browser paste. Retry from the button. |
+| `state_mismatch` (callback 302s back to `/auth/login?google_error=state_mismatch` — was a raw JSON 400 before G36-A) | callback | cookie missing / tampered / >10 min / different nonce: cookies blocked, link reused, or a cross-browser paste. Retry from the button. |
 | `missing_code` | callback | Google returned without `code` and without `error` — retry; if persistent, check `response_type=code` was not altered. |
 | `token_invalid`, `email_unverified`, `exchange_failed`, `network` | verify / exchange | ID token failed signature/audience/expiry, unverified Google address, or Google's token endpoint unreachable. Check `GOOGLE_CLIENT_ID` equals the public one; check outbound network. |
 | `login_failed` | login | Google vouched, our DB write failed (`reason: db_error \| not_configured`). Check Supabase. |
@@ -90,8 +90,8 @@ curl -sI 'https://blockid.au/api/auth/google/start?next=/dashboard' | grep -iE '
 #   location: https://accounts.google.com/o/oauth2/v2/auth?client_id=…&redirect_uri=https%3A%2F%2Fblockid.au%2Fapi%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=openid+email+profile&state=…&code_challenge=…&code_challenge_method=S256&prompt=select_account…
 #   set-cookie: blockid_google_oauth=…; Path=/api/auth/google; Max-Age=600; HttpOnly; Secure; SameSite=lax
 
-# callback without the cookie → 400 (state guard), never a 500
-curl -s -o /dev/null -w '%{http_code}\n' 'https://blockid.au/api/auth/google/callback?code=x&state=y'   # 400
+# callback without the cookie → 302 to /auth/login?google_error=state_mismatch (state guard), never a 500
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' 'https://blockid.au/api/auth/google/callback?code=x&state=y'   # 302 …google_error=state_mismatch
 
 # Google-side refusal → back to the login page with the code
 curl -sI 'https://blockid.au/api/auth/google/callback?error=access_denied' | grep -i '^location'

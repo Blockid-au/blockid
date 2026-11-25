@@ -55,7 +55,7 @@ vi.mock("@/lib/security-headers", async (importOriginal) => {
 });
 
 // Import AFTER mocks are in place.
-import { IP_CEILING_MULTIPLIER, buildContentSecurityPolicy, config, crossSiteApiGate, proxy } from "./proxy";
+import { IP_CEILING_MULTIPLIER, buildContentSecurityPolicy, config, crossSiteApiGate, proxy, serverActionProbeGate } from "./proxy";
 import { SESSION_COOKIE } from "@/lib/auth-cookie";
 
 const COOKIE = `${SESSION_COOKIE}=sess-token-123`;
@@ -87,6 +87,43 @@ beforeEach(() => {
 afterEach(() => {
   warn.mockRestore();
   delete process.env.HOST_OVERRIDE;
+});
+
+describe("serverActionProbeGate — G36-A Server Action probes", () => {
+  const VALID_ID = "a233ed0de2fb3b8a572761563e408ba8307386fcde"; // 42 hex — Next 16 shape
+
+  it("passes every request without a Next-Action header (pages, APIs, form posts)", () => {
+    expect(serverActionProbeGate(req("/", { method: "GET" }))).toBeNull();
+    expect(serverActionProbeGate(req("/api/lead"))).toBeNull();
+    expect(serverActionProbeGate(req("/", { extraHeaders: { rsc: "1" } }))).toBeNull();
+  });
+
+  it("400s the malformed ids the live logs show (\"x\", \"cachefn\", 40-hex legacy) before Next's action handler", async () => {
+    for (const id of ["x", "cachefn", "7192d23ae4d20a108bb75401bc738ce19e7cadc8", "", `${VALID_ID}00`, "../../etc"]) {
+      const res = serverActionProbeGate(req("/", { extraHeaders: { "next-action": id } }));
+      expect(res?.status, id).toBe(400);
+      expect(res?.headers.get("cache-control")).toBe("no-store");
+      expect(await res?.text()).toBe("Invalid Server Action request.");
+    }
+  });
+
+  it("400s a well-formed id sent WITH `RSC: 1` — the Next client never sends both; Next 500s it with an InvariantError", () => {
+    expect(serverActionProbeGate(req("/?_rsc", { extraHeaders: { "next-action": VALID_ID, rsc: "1" } }))?.status).toBe(400);
+  });
+
+  it("lets a well-formed id without RSC through so Next can answer a stale tab with its own 409 action-not-found", () => {
+    expect(serverActionProbeGate(req("/dashboard", { extraHeaders: { "next-action": VALID_ID } }))).toBeNull();
+    expect(serverActionProbeGate(req("/dashboard", { extraHeaders: { "next-action": VALID_ID.toUpperCase() } }))).toBeNull();
+  });
+
+  it("is wired first in proxy(): a probe never reaches the limiter, the session refresh or a subdomain rewrite", async () => {
+    const res = await proxy(req("/", { host: "aurora-health.blockid.au", extraHeaders: { "next-action": "x", rsc: "1" } }));
+    expect(res.status).toBe(400);
+    expect(res.headers.get("X-Test-Security")).toBe("1");
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+    expect(refreshMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("crossSiteApiGate — S9-A CSRF posture", () => {

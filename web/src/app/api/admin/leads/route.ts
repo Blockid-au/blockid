@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // G36-A: signed in is not enough — the leads inbox (contact-form e-mails +
+  // payloads) is admin-only. Any free account could read / rewrite it before.
+  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ leads: [] });
@@ -24,6 +28,9 @@ export async function GET() {
 async function POST_handler(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // G36-A: signed in is not enough — the leads inbox (contact-form e-mails +
+  // payloads) is admin-only. Any free account could read / rewrite it before.
+  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false });

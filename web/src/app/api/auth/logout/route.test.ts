@@ -84,7 +84,12 @@ describe("POST /api/auth/logout — session teardown", () => {
 });
 
 describe("POST /api/auth/logout — redirect response", () => {
-  it("returns a 3xx redirect (NextResponse.redirect defaults to 307 for POST — anything <300 or ≥400 breaks the browser handoff)", async () => {
+  it("G36-A: answers 303 See Other so the follow-up is a GET / (a 307 re-POSTed to / → 405 on every sign-out)", async () => {
+    const res = await POST();
+    expect(res.status).toBe(303);
+  });
+
+  it("returns a 3xx redirect (anything <300 or ≥400 breaks the browser handoff)", async () => {
     const res = await POST();
     expect(res.status).toBeGreaterThanOrEqual(300);
     expect(res.status).toBeLessThan(400);
