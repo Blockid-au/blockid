@@ -84,6 +84,18 @@ describe("adjustCreditBalance", () => {
     expect(empty.rows("credit_balances")).toHaveLength(0);
   });
 
+  it("clampAtZero takes what is left instead of refusing, re-checked on the fresh value", async () => {
+    const db = seed(50);
+    const racing = withInterleave(db, () => {
+      db.rows("credit_balances")[0].balance = 20; // a concurrent spend
+    });
+    expect(await adjustCreditBalance(racing, "u1", -30, { clampAtZero: true })).toEqual({ ok: true, before: 20, balance: 0 });
+    expect(db.rows("credit_balances")[0].balance).toBe(0);
+    const empty = seed(null);
+    expect(await adjustCreditBalance(empty as unknown as CasDb, "u1", -5, { clampAtZero: true })).toEqual({ ok: true, before: 0, balance: 0 });
+    expect(empty.rows("credit_balances")).toHaveLength(0);
+  });
+
   it("floors the lifetime counter at zero on a reversal", async () => {
     const db = seed(0, { lifetime_spent: 10 });
     await adjustCreditBalance(db as unknown as CasDb, "u1", 49, { lifetime: { column: "lifetime_spent", delta: -49 } });

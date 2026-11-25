@@ -9,7 +9,7 @@
 //   - POST 503 when DB not configured
 //   - POST 404 when target user not found
 //   - POST grant happy path
-//   - POST revoke happy path
+//   - POST revoke happy path (compare-and-set; a racing grant survives, G36)
 //   - POST 400 on unknown action
 //   - GET 403 for non-admin
 //   - GET 503 when DB not configured
@@ -27,6 +27,8 @@ vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
 vi.mock("@/lib/credits", () => ({ grantCredits: (...args: unknown[]) => mocks.grantCredits(...args) }));
 
+import { PaygFakeDb } from "@/lib/pricing/payg-fake-db.fixture";
+import { casTestClient } from "@/lib/credit-balance-cas.fixture";
 import { POST, GET } from "./route";
 
 const ADMIN_USER = { id: "admin-1", email: "admin@blockid.au", plan: "admin", role: "admin" };
@@ -158,24 +160,52 @@ describe("POST /api/admin/credits", () => {
     expect(mocks.grantCredits).toHaveBeenCalledWith("target-1", 10, "bonus", expect.objectContaining({ admin_action: true }));
   });
 
+  // Revoke is a compare-and-set on credit_balances (G36-B) — needs row state.
+  function revokeDb(balance: number, onBalanceRead?: (db: PaygFakeDb) => void) {
+    const db = new PaygFakeDb(
+      {
+        app_users: [{ ...TARGET_USER }],
+        credit_balances: [{ user_id: TARGET_USER.id, balance, lifetime_earned: 100, lifetime_spent: 0 }],
+      },
+      { unique: { credit_balances: [["user_id"]] } },
+    );
+    mocks.getSupabaseAdmin.mockReturnValue(casTestClient(db, onBalanceRead));
+    return db;
+  }
+
   it("revoke action: returns ok + new balance", async () => {
-    const sb = makeSb();
-    sb._creditBalanceSelect.mockReturnValue({ data: { balance: 100 } });
-    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    const db = revokeDb(100);
     const res = await POST(postReq({ email: "target@example.com", amount: 30, reason: "penalty", action: "revoke" }));
     expect(res.status).toBe(200);
     const body = await json(res);
     expect(body.ok).toBe(true);
     expect(body.balance).toBe(70); // 100 - 30
+    expect(db.rows("credit_balances")[0]?.balance).toBe(70);
+    expect(db.rows("credit_transactions")[0]).toMatchObject({ amount: -30, balance_after: 70 });
   });
 
-  it("revoke never goes below zero", async () => {
-    const sb = makeSb();
-    sb._creditBalanceSelect.mockReturnValue({ data: { balance: 5 } });
-    mocks.getSupabaseAdmin.mockReturnValue(sb);
+  it("revoke never goes below zero and books only what was taken", async () => {
+    const db = revokeDb(5);
     const res = await POST(postReq({ email: "target@example.com", amount: 100, reason: "penalty", action: "revoke" }));
     const body = await json(res);
     expect(body.balance).toBe(0);
+    expect(db.rows("credit_balances")[0]?.balance).toBe(0);
+    expect(db.rows("credit_transactions")[0]).toMatchObject({ amount: -5, balance_after: 0 });
+  });
+
+  it("G36: a grant landing between the revoke's read and write is not erased", async () => {
+    // Old code: read 100 → (grant +50 → 150) → upsert(100 - 30 = 70): the grant vanished.
+    const db = revokeDb(100, (d) => {
+      d.rows("credit_balances")[0]!.balance = 150;
+    });
+    const res = await POST(postReq({ email: "target@example.com", amount: 30, reason: "penalty", action: "revoke" }));
+    expect(res.status).toBe(200);
+    expect(db.rows("credit_balances")[0]?.balance).toBe(120);
+  });
+
+  it("rejects a non-positive amount (a negative revoke would add credits)", async () => {
+    const res = await POST(postReq({ email: "target@example.com", amount: -50, reason: "x", action: "revoke" }));
+    expect(res.status).toBe(400);
   });
 
   it("returns 400 on unknown action", async () => {

@@ -6,8 +6,9 @@
  *
  *   1. Stripe path  — amount_aud > 0 → stripe.refunds.create against the
  *      stored payment intent, order → REFUNDED.
- *   2. Credit path  — credits_used > 0 → credit_balances restored, order
- *      → REFUNDED, Stripe never touched.
+ *   2. Credit path  — credits_used > 0 → credit_balances restored with a
+ *      compare-and-set (a concurrent debit survives, G36), order →
+ *      REFUNDED, Stripe never touched.
  *   3. Idempotency  — an already-REFUNDED row is a no-op.
  *   4. Illegal state — READY cannot be refunded through this path.
  *   5. Stripe failure leaves the order FAILED (no silent status flip).
@@ -25,6 +26,7 @@ import {
   type RefundUpdateBuilder,
   type RefundCapableStripe,
 } from "./report-refund";
+import { PaygFakeDb } from "@/lib/pricing/payg-fake-db.fixture";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Doubles
@@ -280,27 +282,40 @@ describe("refundFailedOrder — Stripe path", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("refundFailedOrder — credit path", () => {
-  it("reverses the debit onto credit_balances and moves to REFUNDED", async () => {
-    const db = new FakeDb({
-      rows: {
-        report_orders: {
-          id: "order-2",
-          user_id: "user-2",
-          status: "FAILED",
-          amount_aud: 0,
-          credits_used: 200,
-          stripe_payment_intent_id: null,
-          metadata: { payment_path: "credits" },
-        },
-        credit_balances: { balance: 40, lifetime_spent: 260 },
+  // In-memory PostgREST double: the reversal is a compare-and-set
+  // (update … eq(balance, read) … select), so the test needs real row state.
+  function creditDb(balanceRow: Row | null, order: Row, opts: { failing?: string[] } = {}) {
+    return new PaygFakeDb(
+      {
+        report_orders: [order],
+        credit_balances: balanceRow ? [{ user_id: order.user_id, ...balanceRow }] : [],
       },
-    });
+      { unique: { credit_balances: [["user_id"]] }, failing: opts.failing },
+    );
+  }
+  const failedCreditOrder = (id: string, user: string, credits: number, metadata: Row = {}): Row => ({
+    id,
+    user_id: user,
+    status: "FAILED",
+    amount_aud: 0,
+    credits_used: credits,
+    stripe_payment_intent_id: null,
+    metadata,
+  });
+  const orderPatches = (db: PaygFakeDb) =>
+    db.log.filter((l) => l.table === "report_orders" && l.kind === "update").map((l) => l.patch as Row);
+
+  it("reverses the debit onto credit_balances and moves to REFUNDED", async () => {
+    const db = creditDb(
+      { balance: 40, lifetime_spent: 260 },
+      failedCreditOrder("order-2", "user-2", 200, { payment_path: "credits" }),
+    );
 
     const { stripe, create } = makeStripeSpy();
 
     const outcome = await refundFailedOrder(
       { orderId: "order-2", reason: "no_svi_analysis_for_business" },
-      { supabase: db.client(), stripe, now },
+      { supabase: db as unknown as RefundSupabase, stripe, now },
     );
 
     expect(outcome).toEqual({ ok: true, path: "credits" });
@@ -310,80 +325,82 @@ describe("refundFailedOrder — credit path", () => {
 
     // Mirrors /api/reports/redeem's compensating write: balance back up,
     // lifetime_spent back down.
-    const balanceUpdates = db.updatesFor("credit_balances");
-    expect(balanceUpdates).toHaveLength(1);
-    expect(balanceUpdates[0]?.patch).toMatchObject({
-      balance: 240,
-      lifetime_spent: 60,
-      updated_at: FIXED_NOW.toISOString(),
-    });
-    expect(balanceUpdates[0]?.filters).toEqual([
-      { col: "user_id", val: "user-2" },
-    ]);
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 240, lifetime_spent: 60 });
 
-    const orderUpdates = db.updatesFor("report_orders");
-    expect(orderUpdates).toHaveLength(1);
-    expect(orderUpdates[0]?.patch.status).toBe("REFUNDED");
-    const refundMeta = (orderUpdates[0]?.patch.metadata as Row).refund as Row;
+    const orders = orderPatches(db);
+    expect(orders).toHaveLength(1);
+    expect(orders[0]?.status).toBe("REFUNDED");
+    const refundMeta = (orders[0]?.metadata as Row).refund as Row;
     expect(refundMeta.credits_reversed).toBe(200);
     expect(refundMeta.credit_balance_after).toBe(240);
   });
 
-  it("floors lifetime_spent at zero rather than going negative", async () => {
-    const db = new FakeDb({
-      rows: {
-        report_orders: {
-          id: "order-3",
-          user_id: "user-3",
-          status: "FAILED",
-          amount_aud: 0,
-          credits_used: 200,
-          stripe_payment_intent_id: null,
-          metadata: {},
-        },
-        credit_balances: { balance: 0, lifetime_spent: 50 },
+  it("G36: a debit landing between the balance read and the write is not erased", async () => {
+    const db = creditDb({ balance: 40, lifetime_spent: 260 }, failedCreditOrder("order-6", "user-6", 200));
+    // A concurrent spend_credits_atomic debit of 30 after the refund read the
+    // balance. The old read → update(balance: 40 + 200) wrote 240 and the
+    // 30-credit debit vanished.
+    let fired = false;
+    const racing = {
+      from(table: string) {
+        const t = db.from(table);
+        return {
+          ...t,
+          select: (cols: string) => {
+            const q = t.select(cols);
+            const orig = q.maybeSingle.bind(q);
+            q.maybeSingle = async () => {
+              const r = await orig();
+              if (table === "credit_balances" && !fired) {
+                fired = true;
+                db.rows("credit_balances")[0]!.balance = 10;
+              }
+              return r;
+            };
+            return q;
+          },
+        };
       },
-    });
+    };
 
     const outcome = await refundFailedOrder(
-      { orderId: "order-3", reason: "boom" },
-      { supabase: db.client(), stripe: null, now },
+      { orderId: "order-6", reason: "boom" },
+      { supabase: racing as unknown as RefundSupabase, stripe: null, now },
     );
 
     expect(outcome).toEqual({ ok: true, path: "credits" });
-    expect(db.updatesFor("credit_balances")[0]?.patch).toMatchObject({
-      balance: 200,
-      lifetime_spent: 0,
-    });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(210);
+    const refundMeta = (orderPatches(db)[0]?.metadata as Row).refund as Row;
+    expect(refundMeta.credit_balance_after).toBe(210);
+  });
+
+  it("floors lifetime_spent at zero rather than going negative", async () => {
+    const db = creditDb({ balance: 0, lifetime_spent: 50 }, failedCreditOrder("order-3", "user-3", 200));
+
+    const outcome = await refundFailedOrder(
+      { orderId: "order-3", reason: "boom" },
+      { supabase: db as unknown as RefundSupabase, stripe: null, now },
+    );
+
+    expect(outcome).toEqual({ ok: true, path: "credits" });
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 200, lifetime_spent: 0 });
   });
 
   it("does not flip the order when the balance write fails", async () => {
-    const db = new FakeDb({
-      rows: {
-        report_orders: {
-          id: "order-4",
-          user_id: "user-4",
-          status: "FAILED",
-          amount_aud: 0,
-          credits_used: 200,
-          stripe_payment_intent_id: null,
-          metadata: {},
-        },
-        credit_balances: { balance: 10, lifetime_spent: 210 },
-      },
-      updateErrors: { credit_balances: { message: "deadlock detected" } },
+    const db = creditDb({ balance: 10, lifetime_spent: 210 }, failedCreditOrder("order-4", "user-4", 200), {
+      failing: ["credit_balances"],
     });
 
     const outcome = await refundFailedOrder(
       { orderId: "order-4", reason: "boom" },
-      { supabase: db.client(), stripe: null, now },
+      { supabase: db as unknown as RefundSupabase, stripe: null, now },
     );
 
     expect(outcome).toEqual({
       ok: false,
-      reason: "credit_reversal_failed: deadlock detected",
+      reason: "credit_reversal_failed: credit_balances unavailable",
     });
-    expect(db.updatesFor("report_orders")).toHaveLength(0);
+    expect(orderPatches(db)).toHaveLength(0);
   });
 });
 
@@ -466,9 +483,9 @@ describe("refundFailedOrder — guards", () => {
   });
 
   it("allows a PAID order to be refunded (support-side, pre-generation)", async () => {
-    const db = new FakeDb({
-      rows: {
-        report_orders: {
+    const db = new PaygFakeDb({
+      report_orders: [
+        {
           id: "order-7",
           user_id: "user-7",
           status: "PAID",
@@ -477,17 +494,18 @@ describe("refundFailedOrder — guards", () => {
           stripe_payment_intent_id: null,
           metadata: {},
         },
-        credit_balances: { balance: 0, lifetime_spent: 200 },
-      },
+      ],
+      credit_balances: [{ user_id: "user-7", balance: 0, lifetime_spent: 200 }],
     });
 
     const outcome = await refundFailedOrder(
       { orderId: "order-7", reason: "support_refund" },
-      { supabase: db.client(), stripe: null, now },
+      { supabase: db as unknown as RefundSupabase, stripe: null, now },
     );
 
     expect(outcome).toEqual({ ok: true, path: "credits" });
-    expect(db.updatesFor("report_orders")[0]?.patch.status).toBe("REFUNDED");
+    expect(db.row("report_orders", "order-7")?.status).toBe("REFUNDED");
+    expect(db.rows("credit_balances")[0]?.balance).toBe(200);
   });
 
   it("returns order_not_found when the row is missing", async () => {

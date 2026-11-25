@@ -37,6 +37,7 @@ import {
 import { AdminGateError, requireAdmin } from "@/lib/reseller/require-admin";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import { monthKey } from "@/lib/reseller/credit-grants";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -438,32 +439,19 @@ async function POST_handler(request: Request) {
       const targetUserId = userId;
       const amount = body.seed_credits;
 
-      const { data: balanceRow } = await supabase
-        .from("credit_balances")
-        .select("balance, lifetime_earned, lifetime_spent")
-        .eq("user_id", targetUserId)
-        .maybeSingle();
-      const currentBalance = Number(balanceRow?.balance ?? 0);
-      const lifetimeEarned = Number(balanceRow?.lifetime_earned ?? 0);
-      const lifetimeSpent = Number(balanceRow?.lifetime_spent ?? 0);
-      const newBalance = currentBalance + amount;
-
-      const { error: balErr } = await supabase.from("credit_balances").upsert(
-        {
-          user_id: targetUserId,
-          balance: newBalance,
-          lifetime_earned: lifetimeEarned + amount,
-          lifetime_spent: lifetimeSpent,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" },
-      );
-      if (balErr) {
+      // G36-B: compare-and-set (+amount), not read → upsert(absolute). The old
+      // upsert wrote `read + amount` over any spend or grant that landed between
+      // the read and the write (a racing debit vanished; two grants lost one).
+      const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, targetUserId, amount, {
+        lifetime: { column: "lifetime_earned", delta: amount },
+      });
+      if (!adjusted.ok) {
         return NextResponse.json(
-          { ok: false, reason: "credit_balance_failed", error: balErr.message },
+          { ok: false, reason: "credit_balance_failed", error: adjusted.error ?? adjusted.reason },
           { status: 500 },
         );
       }
+      const newBalance = adjusted.balance;
 
       const { data: txRow, error: txErr } = await supabase
         .from("credit_transactions")

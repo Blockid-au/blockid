@@ -671,6 +671,26 @@ describe("grantCredits (G36-B compare-and-set)", () => {
     expect(Math.max(...db.rows("credit_transactions").map((t) => Number(t.balance_after)))).toBe(125);
   });
 
+  it("legacy spend fallback: two concurrent spends both debit (the old read → update(read - cost) lost one)", async () => {
+    const { PaygFakeDb } = await import("@/lib/pricing/payg-fake-db.fixture");
+    const { spendCredits } = await import("./credits");
+    const db = new PaygFakeDb({ credit_balances: [{ user_id: "u3", balance: 30, lifetime_spent: 0 }] });
+    // spend_credits_atomic not deployed → legacy path.
+    supabaseRef.current = {
+      rpc: async () => ({ data: null, error: { code: "PGRST202", message: "missing" } }),
+      from: (t: string) => db.from(t),
+    };
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const [a, b] = await Promise.all([spendCredits("u3", "grant_match"), spendCredits("u3", "grant_match")]);
+    expect(a.ok && b.ok).toBe(true);
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 24, lifetime_spent: 6 });
+    // A spend the balance cannot cover is refused without a write.
+    db.rows("credit_balances")[0]!.balance = 2;
+    expect(await spendCredits("u3", "grant_match")).toEqual({ ok: false, balance: 2 });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(2);
+    vi.restoreAllMocks();
+  });
+
   it("creates the balance row on a first grant", async () => {
     const { PaygFakeDb } = await import("@/lib/pricing/payg-fake-db.fixture");
     const { grantCredits } = await import("./credits");

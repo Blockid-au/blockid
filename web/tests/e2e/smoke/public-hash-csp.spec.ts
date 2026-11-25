@@ -95,13 +95,16 @@ test.describe("S31-D public pages — hash CSP, hydrated, zero violations", () =
     const probe = await armCspProbe(page);
     const res = await page.goto("/pricing", { waitUntil: "domcontentloaded" });
     expectHashModeHeaders(res!, "/pricing");
-    for (const id of ["tier-free", "tier-growth", "tier-pro"]) {
+    // The static document carries the Evaluator ladder (PricingSegmentSwitch
+    // defaults to "evaluator"; founder ids only exist after a tab switch).
+    for (const id of ["tier-scout", "tier-firm", "tier-program", "tier-fund"]) {
       await expect(page.locator(`#${id}`)).toBeVisible({ timeout: PAGE_TIMEOUT });
     }
-    // Client interaction = hydration proof.
-    await page.getByRole("tab", { name: /evaluator/i }).click();
-    await expect(page.locator("#tier-scout")).toBeVisible({ timeout: PAGE_TIMEOUT });
     await expect(page.locator('[data-testid="pricing-segment-switch"]')).toHaveAttribute("data-active-tab", "evaluator");
+    // Client interaction = hydration proof.
+    await page.getByRole("tab", { name: /founder/i }).click();
+    await expect(page.locator("#tier-free")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(page.locator('[data-testid="pricing-segment-switch"]')).toHaveAttribute("data-active-tab", "founder");
     expect(await collectViolations(page, probe)).toEqual([]);
   });
 

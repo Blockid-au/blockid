@@ -35,6 +35,11 @@ export interface AdjustOptions {
   lifetime?: { column: LifetimeColumn; delta: number };
   /** Refuse (no write) when the new balance would drop below zero. */
   requireNonNegative?: boolean;
+  /**
+   * Clamp the new balance at zero instead of refusing (admin revoke: take
+   * whatever is left). The applied change is `balance - before`.
+   */
+  clampAtZero?: boolean;
   /** Contention retries before giving up (default 5). */
   maxAttempts?: number;
 }
@@ -71,6 +76,7 @@ export async function adjustCreditBalance(
 
     if (!row) {
       if (delta < 0 && opts.requireNonNegative) return { ok: false, reason: "insufficient", balance: 0 };
+      if (delta < 0 && opts.clampAtZero) return { ok: true, before: 0, balance: 0 }; // nothing to take
       const insertRow: Record<string, unknown> = { user_id: userId, balance: roundCredits(delta), updated_at: now };
       if (lifeCol) insertRow[lifeCol] = roundCredits(Math.max(0, opts.lifetime!.delta));
       const ins = await db.from("credit_balances").insert(insertRow);
@@ -81,7 +87,8 @@ export async function adjustCreditBalance(
 
     const before = Number(row.balance ?? 0);
     last = before;
-    const next = roundCredits(before + delta);
+    const raw = roundCredits(before + delta);
+    const next = opts.clampAtZero ? Math.max(0, raw) : raw;
     if (opts.requireNonNegative && next < 0) return { ok: false, reason: "insufficient", balance: before };
 
     const patch: Record<string, unknown> = { balance: next, updated_at: now };

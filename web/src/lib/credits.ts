@@ -805,55 +805,28 @@ async function spendCreditsAtomic(
 }
 
 /**
- * Pre-0324 path: read, guard with `.gte("balance", cost)`, write the audit
- * rows afterwards. Kept only as the fallback while the RPC is not deployed —
- * it still has the concurrent-read race described in the migration header.
+ * Pre-0324 path: compare-and-set debit, then the audit rows. Kept only as the
+ * fallback while the RPC is not deployed. G36-B: the old read →
+ * update(balance: read - cost).gte(balance, cost) let two concurrent spends
+ * both pass the guard and write the same value (one debit lost); the debit
+ * now pins the balance it read and re-reads on contention.
  */
 async function spendCreditsLegacy(
   supabase: SupabaseAdmin,
   args: { userId: string; feature: string; cost: number; metadata: Record<string, unknown> },
 ): Promise<{ ok: boolean; balance: number }> {
   const { userId, feature, cost, metadata } = args;
-  const { data: row } = await supabase
-    .from("credit_balances")
-    .select("balance, lifetime_spent")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const currentBalance = row?.balance ?? 0;
-  const lifetimeSpent = row?.lifetime_spent ?? 0;
-
-  if (currentBalance < cost) {
-    return { ok: false, balance: currentBalance };
+  const debited = await adjustCreditBalance(supabase as unknown as CasDb, userId, -cost, {
+    requireNonNegative: true,
+    lifetime: { column: "lifetime_spent", delta: cost },
+  });
+  if (!debited.ok) {
+    if (debited.reason !== "insufficient") {
+      console.error("[blockid:credits] balance update failed", { reason: debited.reason, error: debited.error });
+    }
+    return { ok: false, balance: debited.balance };
   }
-
-  const newBalance = currentBalance - cost;
-  const now = new Date().toISOString();
-
-  // Update with .gte("balance", cost) guard — if a concurrent request already
-  // spent credits and the balance dropped below cost, this update will match
-  // 0 rows and we detect the race.
-  const { data: updated, error: balErr } = await supabase
-    .from("credit_balances")
-    .update({
-      balance: newBalance,
-      lifetime_spent: lifetimeSpent + cost,
-      updated_at: now,
-    })
-    .eq("user_id", userId)
-    .gte("balance", cost)
-    .select("balance");
-
-  if (balErr) {
-    console.error("[blockid:credits] balance update failed", balErr);
-    return { ok: false, balance: currentBalance };
-  }
-
-  if (!updated || updated.length === 0) {
-    // Race condition: another request spent credits first — re-read balance
-    const freshBalance = await getBalance(userId);
-    return { ok: false, balance: freshBalance };
-  }
+  const newBalance = debited.balance;
 
   // Insert transaction log.
   const { error: txErr } = await supabase

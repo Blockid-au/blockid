@@ -28,6 +28,7 @@ import {
 import { extendTimedGrant, invalidateTimedGrants } from "@/lib/entitlements/timed-grants";
 import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
 import { onInvoicePaid } from "@/lib/analytics/fi-events";
+import { decideSubscriptionDeleted } from "@/lib/stripe/subscription-deleted";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -769,6 +770,28 @@ export async function POST(request: Request) {
       .select("id, email, plan")
       .eq("stripe_customer_id", customerId)
       .maybeSingle();
+
+    // G36: only downgrade when the customer has no OTHER live plan
+    // subscription. Downgrading by customer on any deletion set paying users
+    // to free when a superseded subscription's deletion arrived late or out
+    // of order after a plan change (see lib/stripe/subscription-deleted.ts).
+    const customerSubscriptions = await listCustomerSubscriptions(customerId);
+    const decision = decideSubscriptionDeleted({
+      deletedId: subscription.id,
+      recorded: await readRecordedSubscription(userRow?.id ?? null),
+      customerSubscriptions,
+    });
+    if (!decision.downgrade) {
+      console.info(
+        `[blockid:stripe] subscription ${subscription.id} deleted for customer ${customerId} — kept plan (${decision.reason}: ${decision.survivorId})`,
+      );
+      // The add-on follows the surviving subscription, when Stripe handed it to us.
+      const survivor = customerSubscriptions?.find((s) => s.id === decision.survivorId);
+      if (survivor) {
+        await reconcileSubscriptionAddon({ supabase, subscription: survivor, userId: userRow?.id ?? null, customerId });
+      }
+      return;
+    }
 
     const { error } = await supabase
       .from("app_users")
@@ -1798,6 +1821,39 @@ export async function POST(request: Request) {
         ([, id]) => id === priceId,
       )?.[0] ?? null
     );
+  }
+
+  /** The app's record of the user's current subscription (one row per user). Null on miss / error. */
+  async function readRecordedSubscription(
+    userId: string | null,
+  ): Promise<{ stripe_subscription_id?: string | null; status?: string | null } | null> {
+    if (!userId) return null;
+    try {
+      const { data } = await supabase
+        .from("subscription_trial_state")
+        .select("stripe_subscription_id, status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      return (data as { stripe_subscription_id?: string | null; status?: string | null } | null) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** The customer's subscriptions per Stripe (read-only list); null when Stripe cannot be asked. */
+  async function listCustomerSubscriptions(customerId: string): Promise<Stripe.Subscription[] | null> {
+    const stripe = getStripe();
+    if (!stripe) return null;
+    try {
+      const page = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 100 });
+      return Array.isArray(page?.data) ? page.data : null;
+    } catch (err) {
+      console.warn(
+        "[blockid:stripe] subscription list failed — falling back to the recorded subscription",
+        err instanceof Error ? err.message : String(err),
+      );
+      return null;
+    }
   }
 
   async function upsertTrialState(

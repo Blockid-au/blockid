@@ -106,11 +106,12 @@ vi.mock("@/lib/supabase", () => ({
 const stripeSessionsRetrieve = vi.fn();
 const stripeSubscriptionsRetrieve = vi.fn();
 const stripeSubscriptionsCancel = vi.fn();
+const stripeSubscriptionsList = vi.fn();
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => true,
   getStripe: () => ({
     checkout: { sessions: { retrieve: stripeSessionsRetrieve } },
-    subscriptions: { retrieve: stripeSubscriptionsRetrieve, cancel: stripeSubscriptionsCancel },
+    subscriptions: { retrieve: stripeSubscriptionsRetrieve, cancel: stripeSubscriptionsCancel, list: stripeSubscriptionsList },
   }),
   STRIPE_PRICE_MAP: {
     founding50: "price_founding50_TEST",
@@ -303,6 +304,7 @@ beforeEach(() => {
   markWebhookEventProcessed.mockReset();
   markWebhookEventProcessed.mockResolvedValue(undefined);
   stripeSubscriptionsRetrieve.mockReset();
+  stripeSubscriptionsList.mockReset().mockResolvedValue({ data: [] });
   stripeSubscriptionsCancel.mockReset().mockResolvedValue({ id: "sub_old", status: "canceled" });
   grantCreditsMock.mockReset();
   grantCreditsMock.mockResolvedValue({ ok: true });
@@ -873,6 +875,124 @@ describe("POST /api/stripe/webhook — customer.subscription.deleted during tria
       expect(markWebhookEventProcessed).toHaveBeenCalledWith(`evt_sub_deleted_${status}`, undefined);
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// G36 — a superseded subscription's deletion must not downgrade the user
+// ---------------------------------------------------------------------------
+// The handler used to set app_users.plan='free' BY CUSTOMER on any deletion.
+// After a plan change (new subscription, old one cancelled) the old one's
+// deletion can arrive late or out of order; the user is still paying on the
+// new subscription and must stay on their plan.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — customer.subscription.deleted out of order (G36)", () => {
+  function deletedEvent(subId: string, id = `evt_del_${subId}`): Stripe.Event {
+    return {
+      id,
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: subId,
+          object: "subscription",
+          customer: "cus_switch_1",
+          status: "canceled",
+          cancel_at_period_end: false,
+          items: { data: [] },
+        },
+      },
+    } as unknown as Stripe.Event;
+  }
+
+  beforeEach(() => {
+    selectResponses.set("app_users:select", { data: { id: "user-switch-1", email: "fund@vc.test", plan: "investor_firm" }, error: null });
+  });
+
+  const downgrades = () => updateCalls.filter((c) => c.table === "app_users" && (c.row as Row).plan === "free");
+  const trialSnapshots = () => upsertCalls.filter((c) => c.table === "subscription_trial_state");
+
+  it("late deletion of the old subscription after a plan change: Stripe lists the new one active → plan kept", async () => {
+    selectResponses.set("subscription_trial_state:select", { data: { stripe_subscription_id: "sub_new", status: "active" }, error: null });
+    stripeSubscriptionsList.mockResolvedValue({
+      data: [
+        { id: "sub_new", status: "active", items: { data: [] } },
+        { id: "sub_old", status: "canceled", items: { data: [] } },
+      ],
+    });
+    verifyWebhookSignature.mockReturnValue(deletedEvent("sub_old"));
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(stripeSubscriptionsList).toHaveBeenCalledWith({ customer: "cus_switch_1", status: "all", limit: 100 });
+    expect(downgrades()).toHaveLength(0);
+    expect(trialSnapshots()).toHaveLength(0); // the record still points at sub_new
+    expect(emailMock.sendSubscriptionCancelled).not.toHaveBeenCalled();
+  });
+
+  it("out of order: the record was overwritten by the old subscription's update event, but Stripe lists the new one → plan kept", async () => {
+    // customer.subscription.updated(sub_old, cancel_at_period_end) landed after
+    // sub_new was recorded, so the record now names sub_old.
+    selectResponses.set("subscription_trial_state:select", { data: { stripe_subscription_id: "sub_old", status: "active" }, error: null });
+    stripeSubscriptionsList.mockResolvedValue({
+      data: [
+        { id: "sub_old", status: "canceled", items: { data: [] } },
+        { id: "sub_new", status: "trialing", items: { data: [] } },
+      ],
+    });
+    verifyWebhookSignature.mockReturnValue(deletedEvent("sub_old"));
+
+    expect((await invoke()).status).toBe(200);
+    expect(downgrades()).toHaveLength(0);
+  });
+
+  it("Stripe unreachable: the recorded current subscription is a different live one → plan kept", async () => {
+    selectResponses.set("subscription_trial_state:select", { data: { stripe_subscription_id: "sub_new", status: "active" }, error: null });
+    stripeSubscriptionsList.mockRejectedValue(new Error("stripe down"));
+    verifyWebhookSignature.mockReturnValue(deletedEvent("sub_old"));
+
+    expect((await invoke()).status).toBe(200);
+    expect(downgrades()).toHaveLength(0);
+  });
+
+  it("the current subscription is deleted and nothing else is live → downgraded to free + snapshot + email", async () => {
+    selectResponses.set("subscription_trial_state:select", { data: { stripe_subscription_id: "sub_new", status: "active" }, error: null });
+    stripeSubscriptionsList.mockResolvedValue({
+      data: [
+        { id: "sub_new", status: "canceled", items: { data: [] } },
+        { id: "sub_old", status: "canceled", items: { data: [] } },
+      ],
+    });
+    verifyWebhookSignature.mockReturnValue(deletedEvent("sub_new"));
+
+    expect((await invoke()).status).toBe(200);
+    expect(downgrades()).toHaveLength(1);
+    expect(trialSnapshots()[0]?.row).toMatchObject({ stripe_subscription_id: "sub_new", status: "canceled" });
+    expect(emailMock.sendSubscriptionCancelled).toHaveBeenCalledWith({ to: "fund@vc.test" });
+  });
+
+  it("both deletions delivered in either order: the user ends on free only after the last live subscription ends", async () => {
+    selectResponses.set("subscription_trial_state:select", { data: { stripe_subscription_id: "sub_new", status: "active" }, error: null });
+    // 1) sub_new deleted first while sub_old is still (briefly) active → kept.
+    stripeSubscriptionsList.mockResolvedValueOnce({
+      data: [
+        { id: "sub_new", status: "canceled", items: { data: [] } },
+        { id: "sub_old", status: "active", items: { data: [] } },
+      ],
+    });
+    verifyWebhookSignature.mockReturnValue(deletedEvent("sub_new"));
+    await invoke();
+    expect(downgrades()).toHaveLength(0);
+    // 2) sub_old deleted next → nothing live remains → free.
+    stripeSubscriptionsList.mockResolvedValueOnce({
+      data: [
+        { id: "sub_new", status: "canceled", items: { data: [] } },
+        { id: "sub_old", status: "canceled", items: { data: [] } },
+      ],
+    });
+    verifyWebhookSignature.mockReturnValue(deletedEvent("sub_old"));
+    await invoke();
+    expect(downgrades()).toHaveLength(1);
+  });
 });
 
 // ---------------------------------------------------------------------------

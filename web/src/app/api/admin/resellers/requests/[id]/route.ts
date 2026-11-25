@@ -23,6 +23,7 @@ import Stripe from "stripe";
 import { getCurrentUser } from "@/lib/auth";
 import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import { getStripe } from "@/lib/stripe";
 import { validateAdminDecision } from "@/lib/reseller/requests";
 import { monthKey } from "@/lib/reseller/credit-grants";
@@ -220,38 +221,19 @@ async function PATCH_handler(
       );
     }
 
-    const { data: balanceRow, error: balReadErr } = await supabase
-      .from("credit_balances")
-      .select("balance, lifetime_earned")
-      .eq("user_id", payload.target_user_id)
-      .maybeSingle();
-    if (balReadErr) {
+    // G36-B: compare-and-set (+amount), not read → upsert(absolute). The old
+    // upsert wrote `read + amount` over any spend or grant that landed between
+    // the read and the write (a racing debit vanished; two grants lost one).
+    const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, payload.target_user_id, payload.requested_amount, {
+      lifetime: { column: "lifetime_earned", delta: payload.requested_amount },
+    });
+    if (!adjusted.ok) {
       return NextResponse.json(
-        { ok: false, reason: "balance_read_failed", error: balReadErr.message },
+        { ok: false, reason: "balance_upsert_failed", error: adjusted.error ?? adjusted.reason },
         { status: 500 },
       );
     }
-    const currentBalance = (balanceRow?.balance as number | null) ?? 0;
-    const lifetimeEarned = (balanceRow?.lifetime_earned as number | null) ?? 0;
-    const newBalance = currentBalance + payload.requested_amount;
-
-    const { error: balUpErr } = await supabase
-      .from("credit_balances")
-      .upsert(
-        {
-          user_id: payload.target_user_id,
-          balance: newBalance,
-          lifetime_earned: lifetimeEarned + payload.requested_amount,
-          updated_at: now,
-        },
-        { onConflict: "user_id" },
-      );
-    if (balUpErr) {
-      return NextResponse.json(
-        { ok: false, reason: "balance_upsert_failed", error: balUpErr.message },
-        { status: 500 },
-      );
-    }
+    const newBalance = adjusted.balance;
 
     const { data: txRow, error: txErr } = await supabase
       .from("credit_transactions")
