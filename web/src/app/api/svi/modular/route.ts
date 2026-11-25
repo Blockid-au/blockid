@@ -13,6 +13,7 @@ import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { aiCapacityResponse, isAICapacityError } from "@/lib/ai/capacity";
 import { getBalance, SECTION_DEPTH_CONFIG, calculateSectionCost, type SectionDepth } from "@/lib/credits";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -297,34 +298,35 @@ Return as JSON: { "sections": { "sectionId": "markdown content", ... } }`;
   // ── Charge credits ──────────────────────────────────────────────────────
   let newBalance = currentBalance;
   if (supabase && isSupabaseConfigured()) {
-    const now = new Date().toISOString();
-
-    // Deduct balance
-    const { data: row } = await supabase
-      .from("credit_balances")
-      .select("balance, lifetime_spent")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const balance = row?.balance ?? currentBalance;
-    const lifetimeSpent = row?.lifetime_spent ?? 0;
-    newBalance = balance - cost.totalCredits;
-
-    const { error: balErr } = await supabase
-      .from("credit_balances")
-      .upsert(
-        {
-          user_id: user.id,
-          balance: newBalance,
-          lifetime_spent: lifetimeSpent + cost.totalCredits,
-          updated_at: now,
-        },
-        { onConflict: "user_id" },
+    // G36-B: compare-and-set debit, never below zero. The old read →
+    // upsert(balance: read - cost) let two concurrent requests that both
+    // passed the pre-generation gate write the same value (one charge, two
+    // reports) and erased any debit / grant landing during generation.
+    const charged = await adjustCreditBalance(supabase as unknown as CasDb, user.id, -cost.totalCredits, {
+      requireNonNegative: true,
+      lifetime: { column: "lifetime_spent", delta: cost.totalCredits },
+    });
+    if (!charged.ok) {
+      if (charged.reason === "insufficient") {
+        // The balance was spent elsewhere while this report generated.
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Insufficient credits",
+            balance: charged.balance,
+            cost: cost.totalCredits,
+            breakdown: cost.items,
+          },
+          { status: 402 },
+        );
+      }
+      console.error("[blockid:modular] credit debit failed", { reason: charged.reason, error: charged.error });
+      return NextResponse.json(
+        { ok: false, error: "Could not charge credits — you were not charged, please retry." },
+        { status: 503 },
       );
-
-    if (balErr) {
-      console.error("[blockid:modular] balance upsert failed", balErr);
     }
+    newBalance = charged.balance;
 
     // Transaction log
     await supabase.from("credit_transactions").insert({
