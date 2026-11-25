@@ -10,9 +10,11 @@
  *   /funding/grants?state=NSW          → …/grants/state/[state]/page.tsx  (static, generateStaticParams)
  *   /funding/grants?type=…&stage=…&…   → …/grants/view/page.tsx           (dynamic: reads searchParams)
  *
- * The proxy performs the rewrite (URL in the address bar stays the same);
- * this module is the pure decision so it is unit-testable. `null` means
- * "no rewrite".
+ * The proxy takes this decision (its CSP + Cache-Control follow the target
+ * route) and stamps it on the request; the next.config beforeFiles rewrites
+ * in lib/routing/internal-route-rewrites.ts carry it out in-process (URL in
+ * the address bar stays the same — G36). This module is the pure decision
+ * so it is unit-testable. `null` means "no rewrite".
  *
  * Dependency-light on purpose: imported by the proxy, so no Supabase, no
  * `next/headers`.

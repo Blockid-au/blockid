@@ -10,6 +10,7 @@ import {
 } from "@/lib/i18n/locales";
 import { grantsRewriteTarget } from "@/lib/funding/grants-route";
 import { demoBandRewriteTarget } from "@/lib/report-v2/demo-band-route";
+import { INTERNAL_ROUTE_HEADER } from "@/lib/routing/internal-route-rewrites";
 import { checkRateLimit, type RateLimitBucket } from "@/lib/rate-limit";
 import { securityHeaders } from "@/lib/security-headers";
 import { absoluteSiteUrl } from "@/lib/site-url";
@@ -263,6 +264,9 @@ function requestHeadersFor(
   // count as a share-page view (lib/share/view-notify.ts). Overwrites any
   // client-supplied value.
   h.set("x-blockid-method", req.method);
+  // Only the proxy may pick the internal route (next.config beforeFiles
+  // rewrites read this header) — never a client-supplied value.
+  h.delete(INTERNAL_ROUTE_HEADER);
   if (nonce) h.set("x-nonce", nonce);
   else h.delete("x-nonce");
   h.set("Content-Security-Policy", cspHeader);
@@ -398,6 +402,13 @@ const MAIN_DOMAIN = "blockid.au";
  * therefore `https://localhost:<port>/…`, which Next proxies over TLS to a
  * plain-http port (EPROTO → 500 on every rewritten page, e.g.
  * `/funding/grants?state=NSW`, `/tbr/demo?band=A`).
+ *
+ * Even on http the destination is still NOT internal on production: Next
+ * normalises the host to `localhost` while the router's origin is the bind
+ * address `127.0.0.1`, so the rewrite is proxied back over HTTP (G36). The
+ * filtered public pages therefore no longer use this — they go through the
+ * next.config beforeFiles rewrites (lib/routing/internal-route-rewrites.ts).
+ * Only the wildcard-subdomain rewrite still does.
  *
  * @internal — exported for unit tests only
  */
@@ -652,9 +663,11 @@ export async function proxy(request: NextRequest) {
   // cookie + CSP + security headers ────────────────────────────────────
   const plan = planPageResponse(request, nonce, cspHeader);
   const reqHeaders = requestHeadersFor(request, plan.nonce, plan.csp, locale);
-  const response = plan.rewriteUrl
-    ? NextResponse.rewrite(plan.rewriteUrl, { request: { headers: reqHeaders } })
-    : NextResponse.next({ request: { headers: reqHeaders } });
+  // Filtered URL served by another route: the router's beforeFiles rewrite
+  // (next.config.ts) does the in-process hop. NOT NextResponse.rewrite() —
+  // behind nginx that was proxied back to this origin over HTTP (G36).
+  if (plan.internalRoute) reqHeaders.set(INTERNAL_ROUTE_HEADER, plan.internalRoute);
+  const response = NextResponse.next({ request: { headers: reqHeaders } });
   if (plan.sharedCacheable) {
     // Nothing that varies per visitor may ride on a response the edge
     // will hand to everyone: no Set-Cookie (Cloudflare / nginx refuse to
@@ -677,7 +690,8 @@ export async function proxy(request: NextRequest) {
 //
 // Decides, for one page request, which CSP shape to emit, whether the
 // response may be shared-cached, and whether the URL is served by another
-// route (the `/funding/grants?state=…` rewrite). See
+// route (the `/funding/grants?state=…` rewrite, carried out by the
+// next.config beforeFiles rewrites in lib/routing/internal-route-rewrites.ts). See
 // `docs/ops/public-page-caching.md`.
 //
 //   flag off (default)         → nonce CSP, headers untouched — today's behaviour.
@@ -699,7 +713,8 @@ export async function proxy(request: NextRequest) {
 // `proxy_cache_bypass`).
 
 interface PageResponsePlan {
-  rewriteUrl: URL | null;
+  /** Route that serves this URL when it is not the URL's own path (stamped as INTERNAL_ROUTE_HEADER). */
+  internalRoute: string | null;
   nonce: string | null;
   csp: string;
   cacheControl: string | null;
@@ -721,10 +736,9 @@ export function hasVisitorIdentityCookie(request: NextRequest): boolean {
 
 function planPageResponse(request: NextRequest, nonce: string, nonceCsp: string): PageResponsePlan {
   const { pathname, searchParams } = request.nextUrl;
-  const rewriteTarget = grantsRewriteTarget(pathname, searchParams) ?? demoBandRewriteTarget(pathname, searchParams);
-  const rewriteUrl = rewriteTarget ? internalRewriteUrl(request, rewriteTarget) : null;
-  const servedPath = rewriteTarget ?? pathname;
-  const nonceMode: PageResponsePlan = { rewriteUrl, nonce, csp: nonceCsp, cacheControl: null, sharedCacheable: false };
+  const internalRoute = grantsRewriteTarget(pathname, searchParams) ?? demoBandRewriteTarget(pathname, searchParams);
+  const servedPath = internalRoute ?? pathname;
+  const nonceMode: PageResponsePlan = { internalRoute, nonce, csp: nonceCsp, cacheControl: null, sharedCacheable: false };
 
   if (!publicHashModeEnabled()) return nonceMode;
   if (pathname.startsWith("/api/")) return nonceMode;
@@ -737,7 +751,7 @@ function planPageResponse(request: NextRequest, nonce: string, nonceCsp: string)
   const anonymous = !hasVisitorIdentityCookie(request);
   const shared = Boolean(route) && anonymous;
   return {
-    rewriteUrl,
+    internalRoute,
     nonce: null,
     csp: buildHashContentSecurityPolicy(documentHashes),
     cacheControl: shared && route ? publicCacheControl(route) : PRIVATE_CACHE_CONTROL,
