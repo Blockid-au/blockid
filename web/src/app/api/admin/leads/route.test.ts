@@ -44,6 +44,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => mocks.getCurrentUser(),
+  ADMIN_EMAIL: "admin@blockid.au",
 }));
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => mocks.getSupabaseAdmin(),
@@ -183,6 +184,34 @@ describe("GET auth gate", () => {
     await GET();
     expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled();
     expect(state.logs).toHaveLength(0);
+  });
+});
+
+// -------------------------------------------------------------------------
+describe("G36-A admin gate — signed in is not enough", () => {
+  const FOUNDER = { id: "u-founder", email: "founder@x.com" };
+
+  it("GET returns 403 for a signed-in non-admin and never reads the leads table", async () => {
+    mocks.getCurrentUser.mockResolvedValue(FOUNDER);
+    const res = await GET();
+    expect(res.status).toBe(403);
+    expect(await jsonOf(res)).toEqual({ error: "Forbidden" });
+    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled();
+    expect(state.logs).toHaveLength(0);
+  });
+
+  it("POST returns 403 for a signed-in non-admin and never writes", async () => {
+    mocks.getCurrentUser.mockResolvedValue(FOUNDER);
+    const res = await POST(postReq({ id: "l-1", status: "lost", notes: "x" }));
+    expect(res.status).toBe(403);
+    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled();
+    expect(state.logs).toHaveLength(0);
+  });
+
+  it("admin e-mail match is case-insensitive", async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: "u-a", email: "Admin@BlockID.au" });
+    const res = await GET();
+    expect(res.status).toBe(200);
   });
 });
 

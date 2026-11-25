@@ -20,6 +20,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 import { emitEventSafe } from "@/lib/analytics/server";
@@ -147,6 +148,9 @@ async function POST_handler(req: NextRequest) {
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // G36-A: the CCSO dashboard list carries every respondent's e-mail +
+  // comment — admin only (any signed-in account could read it before).
+  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ responses: [] });
   const { data } = await supabase

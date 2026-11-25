@@ -30,7 +30,10 @@ const getCurrentUserMock = vi.fn<
 >();
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => getCurrentUserMock(),
+  ADMIN_EMAIL: "admin@blockid.au",
 }));
+
+const ADMIN = { id: "u-admin", email: "admin@blockid.au" };
 
 const getSupabaseAdminMock = vi.fn<() => unknown | null>();
 vi.mock("@/lib/supabase", () => ({
@@ -483,6 +486,24 @@ describe("POST — legacy widget flow", () => {
 });
 
 describe("GET — admin dashboard", () => {
+  beforeEach(() => {
+    getCurrentUserMock.mockResolvedValue(ADMIN);
+  });
+
+  it("G36-A: returns 403 for a signed-in NON-admin and never reads the table (respondent e-mails leaked before)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "user@x.com" });
+    const res = await GET();
+    expect(res.status).toBe(403);
+    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+    expect(state.fromCalls).toBe(0);
+  });
+
+  it("G36-A: role=admin passes the gate even without the admin e-mail", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-2", email: "ops@x.com", role: "admin" } as never);
+    const res = await GET();
+    expect(res.status).toBe(200);
+  });
+
   it("returns 401 { error:'Unauthorized' } for an anonymous caller (no CCSO leak)", async () => {
     getCurrentUserMock.mockResolvedValue(null);
     const res = await GET();
