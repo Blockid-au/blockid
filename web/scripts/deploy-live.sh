@@ -1456,6 +1456,17 @@ fi
 # gate runs even under G30_DEFER_EXTENDED_REVIEW=1: that flag (22/09) deferred
 # the broad crawl for speed; W1 supersedes it for this gate. The deferral
 # still covers gate 11 (hydrated/contrast suite).
+# G36 (25/11): warm the proxy-rewrite routes one at a time before the crawl.
+# proxy.ts serves `/funding/grants?type=…` and `/tbr/demo?band=` by proxying
+# back to this same origin over HTTP; on a cold origin the first concurrent
+# hits on `/funding/grants/view` hung up ("socket hang up" → 500) and failed
+# this gate twice on the same two URLs, while warm they answer in ~50 ms.
+# Real users hit the same cold path right after a swap. Best-effort: a failure
+# here is ignored — the link check below still judges every URL.
+for warm_path in "/funding/grants?type=grant" "/funding/grants?type=tax_deduction&stage=idea" "/funding/grants?state=NSW" "/tbr/demo?band=A"; do
+  curl -s -o /dev/null --max-time 60 -H "Host: blockid.au" -H "X-Forwarded-Proto: https" \
+    "http://127.0.0.1:$TEMP_PORT$warm_path" || true
+done
 if [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs" ]; then
   if [ "${G30_DEFER_EXTENDED_REVIEW:-0}" = "1" ]; then
     echo "  ℹ  G30_DEFER_EXTENDED_REVIEW=1 no longer skips the link check (W1) — running it"
