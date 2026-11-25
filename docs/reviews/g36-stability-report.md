@@ -5,6 +5,20 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 
 ---
 
+## Tick 3 — 2026-11-25 (17:42 → 19:45 UTC)
+
+**Outcome:** new signal = orphaned evaluation-batch run after the qa:live account erasure (15× `ai_runs_business_id_fkey`, `report_persistence_unconfirmed`, no customer impact); fixed together with the top backlog item. blockid.au **`c88bfc278` → `7652cfb66`**, unit 44,544 / 0, typecheck 0, qa:live **307 / 0**, teardown drain "cancelled 1 queued", **0** FK/orphan errors after the run.
+
+| Sev | Fix | Commit |
+|---|---|---|
+| P2 | Batch report runs check that their item / batch / owner / project still exist (before each item, each wave, before save); a deleted owner → quiet `owner_deleted` stop, no more AI calls, no error-digest entry; FK errors on existing parents stay loud | `0b79cef0d` |
+| P2 | qa:live teardown drains / cancels the run's in-flight evaluation-batch items before erasing the QA accounts | `e8cbe9716` |
+| P2 | Grants filter chips, state links and `/tbr/demo` band links use a document navigation (`RewriteAwareLink`) — the client router drew the cached base page (NSW chip showed all 53 grants); one shared `internalRouteFor` decision for proxy + links, guard test | `54d33fe2f`, `a655ce68f` |
+
+Residual: interactive report routes don't run the owner check yet; `/pricing` smoke spec (`#tier-free`) still stale.
+
+---
+
 ## Tick 2 — 2026-11-25 (15:08 → 16:45 UTC)
 
 **Outcome:** signals green on arrival (errors_1h 1 = self-proxy ECONNRESET, hr/eth/scan 200, VM disk 37%), so two backlog P2s were fixed by worktree agents and shipped. blockid.au **`396fa3c9a` → `c88bfc278`**, unit 44,507 / 0, typecheck 0, qa:live **307 / 0**, 0 proxy errors on the new origin.
