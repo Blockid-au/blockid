@@ -639,6 +639,16 @@ export async function destroySession(): Promise<void> {
 
 const BCRYPT_ROUNDS = 12;
 
+/**
+ * G36-A: a fixed cost-12 hash of a throwaway string. loginWithPassword
+ * compares against it when there is no hash to check (unknown e-mail, or a
+ * Google / magic-link account with no password) so all three failures cost
+ * one bcrypt compare. Without it an unknown e-mail answered in a few ms and
+ * a wrong password in ~0.3-0.7 s — a timing oracle that undid the P2-a
+ * "one message, one status" anti-enumeration rule.
+ */
+const TIMING_EQUALISER_HASH = "$2b$12$qXtaMGkT/4YDq8MgzYr3R.hyyb/cSrIxbkLO/mJnPlG1jaCtaWHH6";
+
 export interface RegisterWithPasswordResult {
   ok: boolean;
   sessionToken?: string;
@@ -776,8 +786,10 @@ export async function loginWithPassword(args: {
     console.error("[auth:loginWithPassword] DB query error:", error.message);
     return { ok: false, reason: "db_error" };
   }
-  if (!user) return { ok: false, reason: "invalid_credentials" };
-  if (!user.password_hash) return { ok: false, reason: "no_password" };
+  if (!user || !user.password_hash) {
+    await bcrypt.compare(args.password, TIMING_EQUALISER_HASH);
+    return { ok: false, reason: user ? "no_password" : "invalid_credentials" };
+  }
 
   const valid = await bcrypt.compare(args.password, user.password_hash);
   if (!valid) return { ok: false, reason: "invalid_credentials" };

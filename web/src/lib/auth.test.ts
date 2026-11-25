@@ -1117,6 +1117,20 @@ describe("auth — loginWithPassword", () => {
     expect(out).toEqual({ ok: false, reason: "no_password" });
   });
 
+  it("G36-A: unknown e-mail and password-less account still pay one bcrypt compare (no timing oracle)", async () => {
+    const compare = vi.spyOn(bcrypt, "compare").mockResolvedValue(false as never);
+    push("app_users", "select", { data: null, error: null });
+    expect(await loginWithPassword({ email: "ghost@x.co", password: "guess" })).toEqual({ ok: false, reason: "invalid_credentials" });
+    push("app_users", "select", { data: { id: "u-1", password_hash: null }, error: null });
+    expect(await loginWithPassword({ email: "a@b.co", password: "guess" })).toEqual({ ok: false, reason: "no_password" });
+    expect(compare).toHaveBeenCalledTimes(2);
+    for (const call of compare.mock.calls) {
+      expect(call[0]).toBe("guess");
+      // Same cost as real hashes (BCRYPT_ROUNDS = 12), so the work matches.
+      expect(String(call[1])).toMatch(/^\$2[aby]\$12\$/);
+    }
+  });
+
   it("returns invalid_credentials when bcrypt.compare fails", async () => {
     const hash = await bcrypt.hash("actual-password", 4);
     push("app_users", "select", { data: { id: "u-1", password_hash: hash }, error: null });
