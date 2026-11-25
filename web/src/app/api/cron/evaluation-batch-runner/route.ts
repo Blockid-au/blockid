@@ -26,6 +26,13 @@
 //      shows as "Last report" on the list page. A throw marks the item failed
 //      (error text kept) and the loop CONTINUES with the next item; nothing is
 //      charged for a failed item.
+//   3b. G36 tick 3 — owner deleted mid-run: each item gets a RunCancellation
+//      over its parents (item, batch, batch owner, project — all cascade from
+//      app_users). Probed before the item starts and, throttled, through the
+//      pipeline; when a parent is gone the item stops QUIETLY: one info line,
+//      error='owner_deleted' (a no-op when the row cascaded away), outcome
+//      `cancelled` — no warn line for the error digest, no retry, no charge.
+//      A failure while every parent still exists stays a loud `failed` item.
 //   4. finaliseBatch() — recount; when no item is queued/running the batch
 //      closes (done, or failed when every item failed) and ONE
 //      `weekly_next_step` notification is written: "Batch '{name}' scored:
@@ -63,6 +70,7 @@ import {
 import { BATCH_ITEMS_PER_TICK, flattenDimensionScores, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
 import { takeCohortSnapshot } from "@/lib/evaluations/cohort-snapshots";
 import { emitFiEvent } from "@/lib/analytics/fi-events";
+import { OWNER_DELETED, RunCancellation, evaluationBatchItemProbe, ownerDeletedCause } from "@/lib/report-pipeline/run-cancellation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,7 +92,7 @@ interface ItemSummary {
   evaluation_id: string;
   project_id: string | null;
   startup: string | null;
-  outcome: "done" | "failed" | "would_run" | "skipped_budget";
+  outcome: "done" | "failed" | "cancelled" | "would_run" | "skipped_budget";
   svi?: number;
   error?: string;
 }
@@ -144,6 +152,7 @@ export async function GET(request: Request) {
 
   let done = 0;
   let failed = 0;
+  let cancelled = 0;
   let budgetExceeded = false;
   const owner = items.length > 0 ? ((await loadBatchOwner(batch.userId)) ?? { id: batch.userId, plan: null }) : null;
 
@@ -163,6 +172,21 @@ export async function GET(request: Request) {
       summaries.push({ ...base, outcome: "failed", error: "evaluation_missing" });
       continue;
     }
+    // G36 tick 3: the item's parents must still exist — before the quota read
+    // and before any model call; the same gate rides along into the pipeline.
+    const cancellation = new RunCancellation(
+      evaluationBatchItemProbe(supabase, { itemId: it.id, batchId: batch.id, ownerUserId: batch.userId, projectId: it.projectId }),
+    );
+    const stopQuietly = async (missing: string) => {
+      cancelled++;
+      console.info(`[evaluation-batch-runner] item ${it.id} stopped: ${missing} was deleted mid-run`);
+      await markItem(it.id, { status: "failed", error: OWNER_DELETED });
+      summaries.push({ ...base, outcome: "cancelled", error: OWNER_DELETED });
+    };
+    if (await cancellation.check(true)) {
+      await stopQuietly(cancellation.missing ?? "owner");
+      continue;
+    }
     // Quota re-check per item (review #8): the queue reserved a slot when the
     // batch was created, but direct runs / a downgrade since then may have
     // used it. Never run — and never silently charge credits — at 0.
@@ -179,6 +203,7 @@ export async function GET(request: Request) {
         requestedByUserId: batch.userId,
         tier: "standard",
         creditsCost: 0,
+        cancellation,
       });
       const rawScores = await loadSnapshotDimensionScores(run.snapshotId);
       const reportRow = await recordEvaluationReport({
@@ -221,6 +246,11 @@ export async function GET(request: Request) {
       done++;
       summaries.push({ ...base, outcome: "done", svi: run.svi });
     } catch (err) {
+      const orphaned = await ownerDeletedCause(err, cancellation);
+      if (orphaned) {
+        await stopQuietly(orphaned.missing);
+        continue;
+      }
       failed++;
       const message = err instanceof Error ? err.message : String(err);
       console.warn("[evaluation-batch-runner] item failed", it.id, message);
@@ -268,9 +298,10 @@ export async function GET(request: Request) {
     batch: refreshed
       ? { id: refreshed.id, name: refreshed.name, status: refreshed.status, total: refreshed.total, done: refreshed.doneCount, failed: refreshed.failedCount }
       : { id: batch.id, name: batch.name, status: batch.status, total: batch.total },
-    processed: done + failed,
+    processed: done + failed + cancelled,
     done,
     failed,
+    cancelled,
     closed,
     snapshotId,
     budgetExceeded,

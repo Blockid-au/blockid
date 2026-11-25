@@ -25,6 +25,16 @@ export function dbAllowed(): boolean {
 
 export function psql(sql: string): string {
   if (!env.allowDb) throw new Error("live-qa db step refused: LIVE_QA_ALLOW_DB is not set");
+  return runPsql(sql);
+}
+
+/**
+ * The raw connection, WITHOUT the LIVE_QA_ALLOW_DB gate — for the global
+ * teardown only, which already reaches the same database through
+ * scripts/db/erase-account.mjs on every run (G36 tick 3: the in-flight batch
+ * drain in lib/inflight.ts; every statement there is scoped to QA addresses).
+ */
+export function runPsql(sql: string): string {
   const common = { input: sql, encoding: "utf8" as const, maxBuffer: 8 * 1024 * 1024 };
   if (process.env.PSQL) return execFileSync("sh", ["-c", `${process.env.PSQL} -At -v ON_ERROR_STOP=1`], common);
   if (process.env.PGURL) return execFileSync("psql", [process.env.PGURL, "-At", "-v", "ON_ERROR_STOP=1"], common);

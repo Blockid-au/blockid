@@ -11,6 +11,10 @@
 // items arrive already claimed by nextQueuedItems (no second `running`
 // mark, #6), and each item re-checks the owner's quota — at 0 it is failed
 // with error=quota_exhausted and the pipeline never runs (#8).
+// G36 tick 3: an item whose parents (item / batch / owner / project) were
+// deleted — before it starts or mid-run — stops quietly: outcome `cancelled`,
+// error=owner_deleted, an info line only (no warn for the error digest); a
+// failure while every parent still exists stays a loud `failed` item.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -33,6 +37,8 @@ const h = vi.hoisted(() => ({
   enqueueMock: vi.fn(),
   snapshotMock: vi.fn(),
   emitMock: vi.fn(),
+  /** G36 tick 3: `table:id` rows the liveness probe must read as deleted. */
+  gone: new Set<string>(),
 }));
 // G21 P2-A — the closing batch takes a cohort snapshot + emits batch_scored.
 vi.mock("@/lib/evaluations/cohort-snapshots", () => ({ takeCohortSnapshot: (id: string, opts: unknown) => h.snapshotMock(id, opts) }));
@@ -41,7 +47,21 @@ vi.mock("@/lib/analytics/fi-events", () => ({ emitFiEvent: (name: string, env: u
 // S20-B — outbound webhook emitter (enqueue only).
 vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => h.enqueueMock(...a) }));
 
-vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => (h.supabaseAvailable ? { from: () => ({}) } : null) }));
+vi.mock("@/lib/supabase", () => ({
+  getSupabaseAdmin: () =>
+    h.supabaseAvailable
+      ? {
+          // G36 tick 3: only the owner-liveness probe (select id … eq id … maybeSingle) reaches the client here.
+          from: (table: string) => ({
+            select: () => ({
+              eq: (_col: string, id: unknown) => ({
+                maybeSingle: async () => ({ data: h.gone.has(`${table}:${id}`) ? null : { id }, error: null }),
+              }),
+            }),
+          }),
+        }
+      : null,
+}));
 vi.mock("@/lib/ai-client", () => ({ isAIConfigured: () => h.aiConfigured }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: (a: unknown) => h.notifyMock(a) }));
 vi.mock("@/lib/evaluations/report-quota", () => ({
@@ -60,6 +80,7 @@ vi.mock("@/lib/evaluations/batch", () => ({
 }));
 
 import { GET, POST, QUOTA_EXHAUSTED_ERROR, batchNotificationPayload, dynamic, maxDuration } from "./route";
+import { ReportRunCancelledError, RunCancellation } from "@/lib/report-pipeline/run-cancellation";
 
 const BATCH = { id: "b-1", userId: "u-1", name: "Cohort 4", rubricWeights: {}, status: "running", total: 3, doneCount: 0, failedCount: 0, createdAt: "2026-09-10T00:00:00Z", startedAt: "2026-09-10T12:00:00Z", finishedAt: null };
 function item(id: number, evaluationId: string, projectId: string | null = `p-${id}`) {
@@ -75,6 +96,7 @@ function req(query = "", auth: string | null = "Bearer test-secret"): Request {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  h.gone.clear();
   process.env.CRON_SECRET = "test-secret";
   h.supabaseAvailable = true;
   h.snapshotMock.mockResolvedValue({ ok: true, snapshot: { id: "snap-1" } });
@@ -159,7 +181,7 @@ describe("/api/cron/evaluation-batch-runner", () => {
     expect(h.claimMock).toHaveBeenCalledWith(false);
     expect(h.nextItemsMock).toHaveBeenCalledWith("b-1", 5, false);
     expect(h.runMock).toHaveBeenCalledTimes(2);
-    expect(h.runMock).toHaveBeenCalledWith({ projectId: "p-1", requestedByUserId: "u-1", tier: "standard", creditsCost: 0 });
+    expect(h.runMock).toHaveBeenCalledWith({ projectId: "p-1", requestedByUserId: "u-1", tier: "standard", creditsCost: 0, cancellation: expect.any(RunCancellation) });
     // #6: nextQueuedItems already claimed the item (conditional update) — no
     // second unconditional `running` mark; the first mark is the done mark.
     expect(h.markMock).not.toHaveBeenCalledWith(expect.anything(), { status: "running" });
@@ -270,6 +292,70 @@ describe("/api/cron/evaluation-batch-runner", () => {
     const json = await (await GET(req())).json();
     expect(h.runMock).toHaveBeenCalledTimes(2);
     expect(json).toMatchObject({ done: 2, failed: 0 });
+  });
+
+  describe("G36 tick 3 — owner deleted mid-run", () => {
+    it("an item whose project is already gone never reaches quota or the pipeline and is cancelled quietly", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const info = vi.spyOn(console, "info").mockImplementation(() => {});
+      h.gone.add("projects:p-1");
+      const json = await (await GET(req())).json();
+      expect(h.runMock).toHaveBeenCalledTimes(1);
+      expect(h.runMock).toHaveBeenCalledWith(expect.objectContaining({ projectId: "p-2" }));
+      expect(h.quotaMock).toHaveBeenCalledTimes(1);
+      expect(h.markMock).toHaveBeenCalledWith(1, { status: "failed", error: "owner_deleted" });
+      expect(json).toMatchObject({ processed: 2, done: 1, failed: 0, cancelled: 1 });
+      expect(json.items[0]).toMatchObject({ item_id: 1, outcome: "cancelled", error: "owner_deleted" });
+      expect(warn).not.toHaveBeenCalled();
+      expect(info.mock.calls.map((c) => String(c[0]))).toContain("[evaluation-batch-runner] item 1 stopped: project was deleted mid-run");
+      warn.mockRestore();
+      info.mockRestore();
+    });
+
+    it("the account erased mid-run: report_persistence_unconfirmed (23503) is re-classified as owner_deleted — no warn, no record, no webhook", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const info = vi.spyOn(console, "info").mockImplementation(() => {});
+      h.nextItemsMock.mockResolvedValue([item(135, "e-135")]);
+      h.runMock.mockImplementationOnce(async () => {
+        // The QA teardown erases the evaluator: app_users → batches → items, projects cascade.
+        ["evaluation_batch_items:135", "evaluation_batches:b-1", "app_users:u-1", "projects:p-135"].forEach((r) => h.gone.add(r));
+        throw Object.assign(new Error("report_persistence_unconfirmed"), { code: "23503" });
+      });
+      const json = await (await GET(req())).json();
+      expect(json).toMatchObject({ processed: 1, done: 0, failed: 0, cancelled: 1 });
+      expect(json.items[0]).toMatchObject({ item_id: 135, outcome: "cancelled", error: "owner_deleted" });
+      expect(h.recordMock).not.toHaveBeenCalled();
+      expect(h.enqueueMock).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalled();
+      expect(info.mock.calls.map((c) => String(c[0]))).toContain("[evaluation-batch-runner] item 135 stopped: batch item was deleted mid-run");
+      warn.mockRestore();
+      info.mockRestore();
+    });
+
+    it("the pipeline's own ReportRunCancelledError is a quiet cancel too", async () => {
+      vi.spyOn(console, "info").mockImplementation(() => {});
+      h.nextItemsMock.mockResolvedValue([item(1, "e-1")]);
+      h.runMock.mockImplementationOnce(async () => {
+        throw new ReportRunCancelledError("project");
+      });
+      const json = await (await GET(req())).json();
+      expect(json).toMatchObject({ done: 0, failed: 0, cancelled: 1 });
+      expect(h.markMock).toHaveBeenCalledWith(1, { status: "failed", error: "owner_deleted" });
+      vi.restoreAllMocks();
+    });
+
+    it("a 23503 while every parent still exists stays a loud failed item", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      h.nextItemsMock.mockResolvedValue([item(1, "e-1")]);
+      h.runMock.mockImplementationOnce(async () => {
+        throw Object.assign(new Error("report_persistence_unconfirmed"), { code: "23503" });
+      });
+      const json = await (await GET(req())).json();
+      expect(json).toMatchObject({ done: 0, failed: 1, cancelled: 0 });
+      expect(h.markMock).toHaveBeenCalledWith(1, { status: "failed", error: "report_persistence_unconfirmed" });
+      expect(warn).toHaveBeenCalledWith("[evaluation-batch-runner] item failed", 1, "report_persistence_unconfirmed");
+      warn.mockRestore();
+    });
   });
 
   it("POST === GET", async () => {

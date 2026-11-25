@@ -24,6 +24,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { env, QA_ANY_EMAIL_RE, QA_EMAIL_RE, QA_EVALUATOR_EMAIL_RE, QA_MEMBER_EMAIL_RE } from "./lib/env";
 import { patchRunState, readRunState, RUN_STATE_PATH } from "./lib/run-state";
+import { runPsql } from "./lib/db";
+import { drainInFlightBatchItems } from "./lib/inflight";
 
 const WEB_DIR = path.resolve(__dirname, "..", "..");
 
@@ -96,6 +98,16 @@ export default async function globalTeardown(): Promise<void> {
     });
     return;
   }
+
+  // G36 tick 3: no orphaned background work. The batch runner cron may be
+  // scoring a batch this run queued (37-cohort); erasing mid-run cascaded the
+  // batch + project away under it (2026-11-25: ~10 min of model calls on
+  // deleted data + FK noise). Cancel the run's queued items, wait ≤ 2 min for
+  // running ones, then erase whatever the outcome — never blocks erasure.
+  const drainEmails = [email, member?.email, evaluator?.email].filter((e): e is string => typeof e === "string" && e.length > 0);
+  const drain = await drainInFlightBatchItems(drainEmails, { run: runPsql });
+  console.log(`[live-qa] in-flight batch drain (${drain.ok ? "ok" : "incomplete"}, ${drain.polls} poll(s), ${Math.round(drain.waitedMs / 1000)} s): ${drain.detail}`);
+  patchRunState({ inflightDrain: { ok: drain.ok, cancelled: drain.cancelled, running: drain.running, waitedMs: drain.waitedMs, detail: drain.detail } });
 
   // Member first (it holds a membership row on the founder's project), then
   // the evaluator seat (its evaluation row references the founder as

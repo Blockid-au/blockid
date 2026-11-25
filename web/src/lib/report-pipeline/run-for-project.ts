@@ -63,6 +63,7 @@ import { loadDimensionEvidenceRows, type GatherDb } from "@/lib/report-pipeline/
 import { hubRowsToEvidenceItems } from "@/lib/evidence/hub-rows";
 import { buildTbrQualityRow, formatTbrQualityLine, recordTbrQualityAsync, type TbrQualityRow, type TbrQualityWriter } from "@/lib/report-pipeline/quality-log";
 import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
+import { ownerDeletedCause, type RunCancellation } from "@/lib/report-pipeline/run-cancellation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,6 +133,14 @@ export interface GenerateReportInput {
   qualityLog?: "record" | "defer";
   /** Test seam for the telemetry writer. */
   qualityWriter?: TbrQualityWriter;
+  /**
+   * G36 tick 3: owner-liveness gate for background runs (run-cancellation.ts).
+   * Probed before the run, before model calls (throttled) and before
+   * persistence; a failure while a parent row is gone re-throws as
+   * `ReportRunCancelledError` — info log only, no failed-status row, no
+   * quality row. Absent → today's behaviour.
+   */
+  cancellation?: RunCancellation;
 }
 
 export interface TrustReportRunResult {
@@ -429,7 +438,7 @@ export function qualityRowFor(
 // ---------------------------------------------------------------------------
 
 export async function generateAndPersistReport(input: GenerateReportInput): Promise<AssembledReport> {
-  const { ctx, userId, tier, locale, creditsCost, tierV2 } = input;
+  const { ctx, userId, tier, locale, creditsCost, tierV2, cancellation } = input;
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("report_storage_unavailable");
 
@@ -478,6 +487,8 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     taskClass?: "classify" | "report" | "synthesis",
     hint?: PipelineCallHint,
   ): Promise<AICallerResult> => {
+    // G36 tick 3: never spend a model call on a run whose owner is gone.
+    if (cancellation) await cancellation.throwIfCancelled();
     const result = await callAI({
       policy: "blockid-report-v1",
       system: systemPrompt,
@@ -492,6 +503,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   };
 
   try {
+    if (cancellation) await cancellation.throwIfCancelled(true);
     const report = await orchestrateReport({
       accountId: ctx.account.id,
       userId,
@@ -511,7 +523,11 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       ...backgroundRunBudget(),
       callAI: aiCaller,
       onEvent,
+      ...(cancellation ? { cancellation } : {}),
     });
+    // G36 tick 3: forced probe before anything is written — an orphaned run
+    // stops here instead of failing its FK inserts.
+    if (cancellation) await cancellation.throwIfCancelled(true);
     // Throws into the catch below → failed-status row, and the evaluator
     // route's refund path (a throw after a credit spend refunds it).
     assertReportUsable(report);
@@ -579,7 +595,12 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
         status: "complete",
         credits_cost: creditsCost,
       }, finalDocument);
-      if (!stored) throw new Error("report_persistence_unconfirmed");
+      if (!stored) {
+        // G36 tick 3: 23503 on a parent deleted since the pre-write probe is
+        // "owner deleted", not a persistence bug — the catch re-classifies.
+        if (cancellation && (await cancellation.check(true))) throw cancellation.error();
+        throw new Error("report_persistence_unconfirmed");
+      }
       report.reportV2 = { ...finalDocument, reportId: report.id };
       {
         // G21 P1-A: connector / register rows GATHER minted for this report
@@ -629,6 +650,14 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     }
     return report;
   } catch (err) {
+    // G36 tick 3: the owner (account / project / batch) vanished mid-run —
+    // a quiet stop: info line, no failed-status row (its FK would fail too),
+    // no quality / diagnostics row, no error-digest entry.
+    const orphaned = await ownerDeletedCause(err, cancellation);
+    if (orphaned) {
+      console.info(`[blockid:report-pipeline] run stopped: ${orphaned.missing} was deleted mid-run (project=${ctx.projectId ?? "-"})`);
+      throw orphaned;
+    }
     console.error("[blockid:report-pipeline] orchestration failed:", err);
     // G19-S46: a fully-degraded run is still a run — log it (8 degraded, no
     // snapshot) so /api/status.tbr_quality sees the outage as degradedShare.
@@ -987,9 +1016,27 @@ export async function runTrustReportForProject(args: {
   qualityWriter?: TbrQualityWriter;
   /** G19-S46: pipeline events (the self-report script logs phases + timings). */
   onEvent?: PipelineEventHandler;
+  /**
+   * G36 tick 3: owner-liveness gate (background callers — the evaluation
+   * batch runner). Any failure while a parent row is gone surfaces as
+   * `ReportRunCancelledError`; genuine failures keep their own error.
+   */
+  cancellation?: RunCancellation;
 }): Promise<TrustReportRunResult> {
+  try {
+    return await runTrustReportForProjectInner(args);
+  } catch (err) {
+    const orphaned = await ownerDeletedCause(err, args.cancellation);
+    if (orphaned) throw orphaned;
+    throw err;
+  }
+}
+
+async function runTrustReportForProjectInner(args: Parameters<typeof runTrustReportForProject>[0]): Promise<TrustReportRunResult> {
   const tier: ReportTier = args.tier ?? "standard";
   const locale = args.locale ?? "en";
+  const cancellation = args.cancellation;
+  if (cancellation) await cancellation.throwIfCancelled(true);
   const { project, ctx, synthesisedAnalysis } = await prepareProjectReportBaseline(args.projectId);
 
   let finalEvent: PipelineEvent | null = null;
@@ -1001,6 +1048,7 @@ export async function runTrustReportForProject(args: {
     creditsCost: args.creditsCost ?? 0,
     qualityLog: "defer",
     qualityWriter: args.qualityWriter,
+    ...(cancellation ? { cancellation } : {}),
     onEvent: (event) => {
       if (event.type === "done") finalEvent = event;
       else args.onEvent?.(event);

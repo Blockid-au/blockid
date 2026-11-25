@@ -46,6 +46,8 @@ export interface RunState {
   erasure?: { ok: boolean; detail: string };
   memberErasure?: { ok: boolean; detail: string };
   evaluatorErasure?: { ok: boolean; detail: string };
+  /** G36 tick 3: the pre-erasure drain of the run's queued / running evaluation-batch items (lib/inflight.ts). */
+  inflightDrain?: { ok: boolean; cancelled: number; running: number; waitedMs: number; detail: string };
 }
 
 export function readRunState(): RunState {
