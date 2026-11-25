@@ -8,7 +8,7 @@
  * component, no icons (SVG budget), semantic tokens only.
  */
 
-import Link from "next/link";
+import { RewriteAwareLink } from "@/components/site/rewrite-aware-link";
 import type { ReactNode } from "react";
 
 export interface TailLink {
@@ -55,9 +55,9 @@ export function DirectoryGroup({
     <section {...dataAttrs} aria-labelledby={headingId} className="border-t border-line-subtle pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id={headingId} className="font-display text-2xl font-semibold tracking-tight text-primary">
-          <Link href={href} className="underline-offset-4 hover:underline">
+          <RewriteAwareLink href={href} className="underline-offset-4 hover:underline">
             {heading}
-          </Link>
+          </RewriteAwareLink>
         </h2>
         <p className="text-sm text-secondary">{note}</p>
       </div>
@@ -66,10 +66,10 @@ export function DirectoryGroup({
 
       {seeAllLabel ? (
         <p className="mt-3 text-sm font-semibold">
-          <Link href={href} className="inline-flex min-h-11 items-center gap-1 text-action hover:text-action-hover">
+          <RewriteAwareLink href={href} className="inline-flex min-h-11 items-center gap-1 text-action hover:text-action-hover">
             {seeAllLabel}
             <span aria-hidden="true">→</span>
-          </Link>
+          </RewriteAwareLink>
         </p>
       ) : null}
 
@@ -83,7 +83,7 @@ export function DirectoryGroup({
             <ul className="columns-1 gap-x-6 text-sm sm:columns-2 [&>li]:break-inside-avoid [&>li]:py-1.5 [&_a]:text-primary [&_a]:underline-offset-2 [&_a]:hover:underline">
               {tail.map((t) => (
                 <li key={t.href}>
-                  <Link href={t.href}>{t.name}</Link>
+                  <RewriteAwareLink href={t.href}>{t.name}</RewriteAwareLink>
                 </li>
               ))}
             </ul>

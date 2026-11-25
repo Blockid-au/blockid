@@ -2,10 +2,12 @@
  * FilterChips — one row of link chips per filter dimension (state, type,
  * stage …) for the directory list pages (T0241). Filtering is server-side
  * off `searchParams`; a chip is just a link that patches one key, so there
- * is no client state. Server component.
+ * is no client state. Server component. Chips whose URL the proxy serves
+ * from another route (`/funding/grants?state=…`) are plain `<a>` full
+ * page loads — see RewriteAwareLink (G36 tick 3).
  */
 
-import Link from "next/link";
+import { RewriteAwareLink } from "@/components/site/rewrite-aware-link";
 import { filterHref } from "@/lib/funding/directory";
 
 export interface FilterChipGroup {
@@ -30,17 +32,17 @@ export function FilterChips({ base, current, groups }: FilterChipsProps) {
         return (
           <div key={g.param} className="flex flex-wrap items-center gap-2">
             <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-wide text-secondary">{g.label}</span>
-            <Link
+            <RewriteAwareLink
               href={filterHref(base, current, { [g.param]: null })}
               aria-current={active ? undefined : "true"}
               className={chipClass(!active)}
             >
               All
-            </Link>
+            </RewriteAwareLink>
             {g.options.map((o) => {
               const isActive = active === o.value;
               return (
-                <Link
+                <RewriteAwareLink
                   key={o.value}
                   href={filterHref(base, current, { [g.param]: isActive ? null : o.value })}
                   aria-current={isActive ? "true" : undefined}
@@ -50,7 +52,7 @@ export function FilterChips({ base, current, groups }: FilterChipsProps) {
                   {typeof o.count === "number" ? (
                     <span className={isActive ? "ml-1 text-on-action/80" : "ml-1 text-secondary"}>{o.count}</span>
                   ) : null}
-                </Link>
+                </RewriteAwareLink>
               );
             })}
           </div>
@@ -58,9 +60,9 @@ export function FilterChips({ base, current, groups }: FilterChipsProps) {
       })}
       {anyActive ? (
         <p className="text-xs">
-          <Link href={base} className="font-semibold text-action underline-offset-2 hover:underline">
+          <RewriteAwareLink href={base} className="font-semibold text-action underline-offset-2 hover:underline">
             Clear all filters
-          </Link>
+          </RewriteAwareLink>
         </p>
       ) : null}
     </div>

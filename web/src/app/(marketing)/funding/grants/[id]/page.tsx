@@ -16,6 +16,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RewriteAwareLink } from "@/components/site/rewrite-aware-link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -193,9 +194,9 @@ export default async function GrantDetailPage({ params }: { params: Promise<Para
             <nav className={`space-y-1.5 text-sm ${g.superseded_by || g.source_url ? "mt-6 border-t border-line-subtle pt-4" : ""}`} aria-label="Related">
               <p className="text-xs font-semibold uppercase tracking-wide text-secondary">More funding</p>
               <p>
-                <Link href={e.related.stateGrants.href} className="text-action underline-offset-2 hover:underline">
+                <RewriteAwareLink href={e.related.stateGrants.href} className="text-action underline-offset-2 hover:underline">
                   {e.related.stateGrants.label}
-                </Link>
+                </RewriteAwareLink>
               </p>
               <p>
                 <Link href="/funding/programs" className="text-action underline-offset-2 hover:underline">

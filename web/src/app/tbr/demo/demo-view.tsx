@@ -24,6 +24,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RewriteAwareLink } from "@/components/site/rewrite-aware-link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
@@ -83,7 +84,7 @@ function BandSwitcher({ current }: { current: InvestmentBandFixture }) {
           const active = band === current;
           return (
             <li key={band}>
-              <Link
+              <RewriteAwareLink
                 href={demoBandHref(band)}
                 aria-current={active ? "page" : undefined}
                 data-tbr-demo-band={band}
@@ -93,7 +94,7 @@ function BandSwitcher({ current }: { current: InvestmentBandFixture }) {
                 )}
               >
                 <VerdictBandBadge band={band} label={t.bandLabel[band]} />
-              </Link>
+              </RewriteAwareLink>
             </li>
           );
         })}
