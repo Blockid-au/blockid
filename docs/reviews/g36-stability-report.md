@@ -5,6 +5,21 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 
 ---
 
+## Tick 4 — 2026-11-25 (20:25 → 22:20 UTC)
+
+**Outcome:** signals green on arrival; payment backlog shipped. blockid.au **`7652cfb66` → `af788d2ae`**, unit 44,566 / 0, typecheck 0. Full qa:live right after the deploy: 304 / 3 — all three re-ran green (12 / 0): two pages rendered without h1 and one 502 during old-origin retirement / release retention. The 502 was real: nginx `upstream prematurely closed connection` on a PATCH (4 such in 2 weeks) → upstream `keepalive_timeout 4s` (Node closes idle sockets at 5 s; nginx default 60 s), proxy switch updated to accept it.
+
+| Sev | Fix | Commit |
+|---|---|---|
+| P2 | Credit balance compare-and-set on refund (`report-refund.ts`), `api/svi/modular` debit (two concurrent requests = two reports, one charge), admin revoke (negative amount added credits; now 400), reseller grant, reseller over-budget approval, affiliate seed, `spendCreditsLegacy` | `7a777f4c9`, `07eb02deb`, `901202a07`, `da5ef137c`, `5edc44d63`, `cae4fa2b2`, `77693e396` |
+| P2 | `handleSubscriptionDeleted` keeps the plan while another plan subscription is live (Stripe read-only list, falls back to the recorded sub) | `27321bd09` |
+| P3 | `/pricing` hash-CSP smoke waits for the evaluator tiers, then the Founder tab | `75faecb46` |
+| P2 | nginx upstream `keepalive_timeout 4s` (applied live, backup `/etc/nginx/blockid-live.pre-g36-keepalive`); `g30-proxy-switch.py` allows it | `31e58ee20` |
+
+New backlog: concurrent approval of the same over-budget reseller request grants twice (claim first); refund + failed order-status write could refund twice on retry.
+
+---
+
 ## Tick 3 — 2026-11-25 (17:42 → 19:45 UTC)
 
 **Outcome:** new signal = orphaned evaluation-batch run after the qa:live account erasure (15× `ai_runs_business_id_fkey`, `report_persistence_unconfirmed`, no customer impact); fixed together with the top backlog item. blockid.au **`c88bfc278` → `7652cfb66`**, unit 44,544 / 0, typecheck 0, qa:live **307 / 0**, teardown drain "cancelled 1 queued", **0** FK/orphan errors after the run.
