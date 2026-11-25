@@ -31,11 +31,13 @@ export const REPORT_POLICY_PINNED_PRICES: Readonly<Record<string, Readonly<{ inp
 // (fail closed on stale prices). Prices re-observed on the official DeepInfra
 // pages 2026-10-20 — all four unchanged (V3.2 0.26/0.38, Qwen3-235B-2507
 // 0.09/0.55, V4-Flash 0.09/0.18, Qwen3-VL-235B 0.20/0.88 USD per 1M); founder
-// approval W0 2026-10-20 extended it +30 days (was 2026-10-23). The policy id
+// approval W0 2026-10-20 extended it +30 days (was 2026-10-23); founder G36
+// 2026-11-25 extended it again to 2026-12-24 after it lapsed on 22/11 and every
+// report call was refused (prices re-checked 24/11 by the price feed: unchanged). The policy id
 // above is deliberately unchanged: ledgerSchema pins it, so a new id would
 // invalidate in-flight ledgers. Re-verify prices and extend again before this
 // passes — /api/cron/ai-health-check alerts ops once a day inside 7 days.
-export const REPORT_PRICE_POLICY_EXPIRES_AT = "2026-11-22T00:00:00Z";
+export const REPORT_PRICE_POLICY_EXPIRES_AT = "2026-12-24T00:00:00Z";
 const EXPIRES = Date.parse(REPORT_PRICE_POLICY_EXPIRES_AT);
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
