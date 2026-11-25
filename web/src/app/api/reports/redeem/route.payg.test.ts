@@ -88,6 +88,57 @@ describe("POST /api/reports/redeem — Pricing v5", () => {
     expect(db.rows("credit_balances")[0].balance).toBe(20);
   });
 
+  // G36-B: the debit wrote an absolute `read - cost` guarded only by `.gte`,
+  // so a double-click's two requests both "debited" to the same value, and the
+  // loser's 23505 reversal restored the PRE-debit snapshot — a free report.
+  it.each([
+    ["flag on (Full)", true, { tier: "full" }],
+    ["flag off (legacy credits)", false, {}],
+  ])("%s: a double-click charges exactly once and the reversal never undoes the winner's debit", async (_label, on, extra) => {
+    paygConfig.current = { payg_enabled: on };
+    db = new PaygFakeDb(
+      {
+        report_orders: [],
+        credit_balances: [{ user_id: "user-1", balance: 500, lifetime_spent: 0 }],
+        usage_logs: [],
+      },
+      // report_orders_active_uniq (0270): one active order per (business, user).
+      { unique: { report_orders: [["business_id", "user_id"]] } },
+    );
+    const [a, b] = await Promise.all([POST(req({ businessId: BIZ, ...extra })), POST(req({ businessId: BIZ, ...extra }))]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 409]);
+    const won = (await (a.status === 200 ? a : b).json()) as { credits?: number; quote?: { credits: number } };
+    const cost = won.credits ?? won.quote!.credits;
+    expect(db.rows("report_orders")).toHaveLength(1);
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 500 - cost, lifetime_spent: cost });
+  });
+
+  it("flag on: an order-insert conflict gives the credits back on top of a concurrent change (no snapshot restore)", async () => {
+    paygConfig.current = { payg_enabled: true };
+    db = new PaygFakeDb(
+      { report_orders: [], credit_balances: [{ user_id: "user-1", balance: 100, lifetime_spent: 0 }], usage_logs: [] },
+      { failing: [] },
+    );
+    // Make the order insert fail with 23505 and, meanwhile, a 10-credit grant lands.
+    const from = db.from.bind(db);
+    (db as unknown as { from: typeof db.from }).from = (table: string) => {
+      const t = from(table);
+      if (table !== "report_orders") return t;
+      return {
+        ...t,
+        insert: () => {
+          db.rows("credit_balances")[0].balance = Number(db.rows("credit_balances")[0].balance) + 10;
+          return { select: () => ({ single: async () => ({ data: null, error: { code: "23505", message: "dup" } }) }) } as unknown as ReturnType<typeof t.insert>;
+        },
+      };
+    };
+    const res = await POST(req({ businessId: BIZ, tier: "full" }));
+    expect(res.status).toBe(409);
+    // 100 − 49 (debit) + 10 (grant) + 49 (reversal) = 110; the old restore wrote 100 and ate the grant.
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 110, lifetime_spent: 0 });
+  });
+
   it("flag on: one in-flight order per SKU → 409", async () => {
     paygConfig.current = { payg_enabled: true };
     seed(100, [{ id: "o1", status: "GENERATING", product_sku: "report_full" }]);
