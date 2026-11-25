@@ -421,9 +421,9 @@ describe("schema-validated dispatch", () => {
     expect(structuredOutputSchema("free")).toContain("at most 350 words");
     expect(structuredOutputSchema("investor_memo")).toContain("at most 1500 words");
     expect(STRUCTURED_SECTION_WORD_CAP).toEqual({ free: 350, standard: 700, premium: 1200, investor_memo: 1500 });
-    expect(STRUCTURED_MIN_OUTPUT_TOKENS).toBe(2600);
-    expect(structuredMaxTokens("standard", undefined)).toBe(2600);
-    expect(structuredMaxTokens("standard", "large")).toBe(2600);
+    expect(STRUCTURED_MIN_OUTPUT_TOKENS).toBe(3400);
+    expect(structuredMaxTokens("standard", undefined)).toBe(3400);
+    expect(structuredMaxTokens("standard", "large")).toBe(3400);
     expect(structuredMaxTokens("investor_memo", "large")).toBe(4000);
     // W4 owner calls: 900 cut every full chapter payload mid-JSON on BlockID's own run.
     expect(W4_MAX_TOKENS).toEqual({ full: 3200, card: 700 });
@@ -503,13 +503,77 @@ describe("G23-A — auto-cite, per-role budgets, salvage fill, citable ids", () 
     expect(user).not.toContain("every MATERIAL claim (money, percentage, count");
   });
 
-  it("(b) per-role output budgets: CMO / CFO / CPO get 4,000 tokens (G24-D), CRO 3,400, every other role keeps the 2,600 floor; the tier maximum still wins when larger", () => {
-    expect(STRUCTURED_OUTPUT_TOKENS_BY_ROLE).toEqual({ cmo: 4000, cfo: 4000, cpo: 4000, cro: 3400 });
+  it("(b) per-role output budgets: CMO / CFO / CPO (G24-D) and CLO (G36) get 4,000 tokens, every other role the 3,400 floor (G36, was 2,600); the tier maximum still wins when larger", () => {
+    expect(STRUCTURED_OUTPUT_TOKENS_BY_ROLE).toEqual({ cmo: 4000, cfo: 4000, cpo: 4000, clo: 4000 });
     expect(structuredMaxTokens("standard", undefined, "cmo")).toBe(4000);
     expect(structuredMaxTokens("standard", "large", "cfo")).toBe(4000);
+    expect(structuredMaxTokens("standard", undefined, "clo")).toBe(4000);
     expect(structuredMaxTokens("standard", undefined, "cro")).toBe(3400);
-    expect(structuredMaxTokens("standard", undefined, "cto")).toBe(2600);
+    expect(structuredMaxTokens("standard", undefined, "cto")).toBe(3400);
+    expect(structuredMaxTokens("standard", undefined, "chro")).toBe(3400);
     expect(structuredMaxTokens("investor_memo", "large", "cmo")).toBe(4000);
+  });
+
+  // G36 (2026-11-25 showcase run): clo/dataroom was cut at exactly 2,600
+  // tokens twice and fell back to a degraded prose call. The budget must hold a
+  // FULL contract answer at the tier's word cap — a table-heavy 700-word body,
+  // a finding with 3 actions, 5 risks and 5 highlights, every one cited.
+  it("G36: every W1–W3 owner's structured budget holds a max-size standard-tier contract answer (3.8 chars/token, JSON-escaped)", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    const cite = { evidence_id: id, quote: "Constitution, shareholder register and IP assignment are filed in the data room" };
+    // 700 words of data-room markdown: tables + checklist lines with inline markers, like the real CLO answer.
+    const rows = Array.from({ length: 14 }, (_, i) => `| ${i + 1}. Corporate record ${i} | Filed (v${i}) | ASIC extract dated 2026-11-0${i % 9 + 1} [ev:${id}] |`);
+    const lines = Array.from({ length: 30 }, (_, i) => `- Item ${i}: the founder holds the signed document and the register reconciles to it [ev:${id}].`);
+    const body = ["### Data room readiness", "| Document | Status | Evidence |", "|---|---|---|", ...rows, "### Gaps", ...lines].join("\n");
+    const words = body.split(/\s+/).filter(Boolean).length;
+    expect(words).toBeGreaterThanOrEqual(STRUCTURED_SECTION_WORD_CAP.standard - 60);
+    expect(words).toBeLessThanOrEqual(STRUCTURED_SECTION_WORD_CAP.standard + 60);
+    const payload = {
+      finding: {
+        area_id: "governance", title: "Investor-ready data room with three gaps",
+        detail: "The data room holds the constitution, register and IP assignment; three diligence items are still missing.",
+        proposed_score: 64, confidence: 0.7, hallucination_risk: "low", citations: [cite, cite],
+        actions: [1, 2, 3].map((n) => ({ window: "30d", title: `Upload missing diligence item ${n} with a dated version`, effort: "low", owner: "CLO" })),
+      },
+      section: { area_id: "governance", heading: "Data room & document readiness", body_markdown: body, citations: [cite, cite], confidence: 0.7, hallucination_risk: "low" },
+      risks: [1, 2, 3, 4, 5].map((n) => ({
+        area_id: "governance", title: `Diligence gap ${n} delays a term sheet`, severity: "medium", likelihood: "medium", impact: "high",
+        mitigation: `Close gap ${n} before the first investor meeting and record the version in the register.`,
+        confidence: 0.6, hallucination_risk: "low", citations: [cite],
+      })),
+      highlights: [1, 2, 3, 4, 5].map((n) => `Highlight ${n}: a dated, versioned data-room record`),
+      data_points: { documents_filed: "14", gaps: "3", last_update: "2026-11-25" },
+    };
+    expect(AgentAnalysisPayload.safeParse(payload).success).toBe(true);
+    // Prose / markup ≈ 3.8 chars per token (G19-S46 measurement); evidence ids
+    // are hex UUIDs, which BPE tokenizers split into ≈ 2-char pieces.
+    const json = JSON.stringify(payload);
+    const uuidChars = (json.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g) ?? []).join("").length;
+    const tokens = Math.ceil((json.length - uuidChars) / 3.8 + uuidChars / 2);
+    for (const task of [...WAVE_1, ...WAVE_2, ...WAVE_3]) {
+      expect({ role: task.agentRole, fits: structuredMaxTokens("standard", task.budget, task.agentRole) >= tokens }).toEqual({ role: task.agentRole, fits: true });
+    }
+    // The old 2,600 floor could not hold it — the run's failure mode.
+    expect(tokens).toBeGreaterThan(2600);
+  });
+
+  it("G36: a first answer cut INSIDE the risks array (the 2026-11-25 clo/dataroom failure) is salvaged with the half-written risk dropped — ONE call, validated, not degraded", async () => {
+    const context = makeContext();
+    const raw = JSON.parse(validPayload("dataroom", context)) as { risks: Array<Record<string, unknown>> };
+    raw.risks = [raw.risks[0]!, { ...raw.risks[0]!, title: "Second risk" }];
+    const full = JSON.stringify(raw);
+    // Cut right after `"likelihood":` of the second risk → "Unexpected end of JSON input".
+    const cut = full.slice(0, full.indexOf(`"likelihood":`, full.indexOf("Second risk")) + `"likelihood":`.length);
+    const { caller, calls } = scriptedCaller([cut, cut]);
+    const [result] = await dispatchWave([{ agentRole: "clo", criterion: "dataroom" }], context, "standard", async () => "unused prose", { modelCaller: caller, resolvePromptVersionId });
+    expect(calls).toHaveLength(1);
+    expect(result.schemaValidated).toBe(true);
+    expect(result.degraded).toBe(false);
+    expect(result.grounded).toBe(true);
+    expect(result.content).toContain("Bus factor of two");
+    expect(result.content).not.toContain("Second risk");
+    expect(inserted[0]!.status).toBe("ok");
+    expect(context.qualityCounters?.budgetOverruns).toBe(1);
   });
 
   it("(b) a first answer cut inside body_markdown is salvaged and validated (section citations / confidence filled from the finding): ONE call, ok row, budgetOverruns counted, not degraded", async () => {

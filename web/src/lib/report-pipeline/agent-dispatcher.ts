@@ -557,8 +557,17 @@ export function resetPromptVersionCache(): void {
  * STRUCTURED_MIN_OUTPUT_TOKENS whatever the tier (headroom for 700 words of
  * JSON-escaped markdown + finding + risks; cents at DeepInfra rates); the
  * prose fallback keeps the tier's own size.
+ *
+ * G36 (2026-11-25): 2600 → 3400. The spend ledgers since 2025-11 show 2,600 is
+ * the only W1–W3 budget models run into: 24 of 267 V4-Flash calls capped at
+ * 2,600 stopped at exactly 2,600 tokens (+41 more past 90 %), against 0 of 51
+ * at 3,400 (CRO) and 0 of 188 at 4,000; ai_runs since 15/10 shows 7
+ * schema_fail rows for report-clo and 1 each for CTO / CHRO. Billing is per
+ * generated token, so the higher cap costs nothing on answers that close under
+ * it (V4-Flash US$0.18/M out: +800 tokens ≈ US$0.00015 per call) and an
+ * overrun costs two extra calls (repair + prose fallback).
  */
-export const STRUCTURED_MIN_OUTPUT_TOKENS = 2600;
+export const STRUCTURED_MIN_OUTPUT_TOKENS = 3400;
 
 /** Per-section word cap quoted inside the JSON contract (mirrors agent-prompts TIER_WORDS upper bounds). */
 export const STRUCTURED_SECTION_WORD_CAP: Record<ReportTierV2, number> = { free: 350, standard: 700, premium: 1200, investor_memo: 1500 };
@@ -582,7 +591,14 @@ export function structuredOutputSchema(tier: ReportTierV2 | ReportTier): string 
 // G24-D: 3,400 → 4,000 for the long-form roles and a 3,400 floor for CRO (run 2
 // cut a 924-word CRO answer and a 12k-char CMO answer past salvage; the
 // "(unevidenced)" markers and captions the contract now asks for cost tokens).
-export const STRUCTURED_OUTPUT_TOKENS_BY_ROLE: Partial<Record<AgentRole, number>> = { cmo: 4000, cfo: 4000, cpo: 4000, cro: 3400 };
+// G36: CLO joins the long-form roles. The 2026-11-25 showcase run cut
+// clo/dataroom at exactly 2,600 tokens twice (first answer AND repair pass —
+// spend ledger outputUsed 2600/2600, "JSON.parse failed: Unexpected end of
+// JSON input") and the section fell back to a degraded, ungrounded prose call;
+// another 2,600-capped answer in the same run stopped at 2,597. Data-room /
+// document checklists are markdown tables (pipes + escaped newlines cost
+// tokens). CRO's own 3,400 entry is now the floor (STRUCTURED_MIN_OUTPUT_TOKENS).
+export const STRUCTURED_OUTPUT_TOKENS_BY_ROLE: Partial<Record<AgentRole, number>> = { cmo: 4000, cfo: 4000, cpo: 4000, clo: 4000 };
 
 export function structuredMaxTokens(tier: ReportTier, budget: WaveTask["budget"], role?: AgentRole): number {
   const tierConfig = REPORT_TIER_CONFIG[tier];
