@@ -3,7 +3,8 @@ import { execSync } from "child_process";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { sendEmail } from "@/lib/email";
-import { cronSecret, isCronAuthorised } from "@/lib/security/cron-auth";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { readAgentUpgradeActivity } from "@/lib/agents/upgrade-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,9 @@ function shell(cmd: string, timeout = 5_000): string {
 // in the daily email so the team sees it before the orchestrator does.
 // 27/09 health sweep: the run timed out at cron-runner's 60 s because the
 // inner agent-upgrade call alone was allowed 60 s. The crontab line now gives
-// the job `--timeout 180`; the two optional enrichments below are time-boxed
-// well inside it so the KPI e-mail still goes out when either is slow.
-/** @internal exported for tests */
-export const AGENT_UPGRADE_TIMEOUT_MS = 75_000;
+// the job `--timeout 180`; the AI recommendations below are time-boxed well
+// inside it so the KPI e-mail still goes out when they are slow. G36-C: the
+// agent-upgrade call is gone — its latest results are read from a file.
 /** @internal exported for tests */
 export const AI_RECOMMENDATIONS_TIMEOUT_MS = 40_000;
 
@@ -214,26 +214,11 @@ export async function GET(request: Request) {
     // before deploys start failing.
     const diskRows = collectDiskUsage();
 
-    // ── 10. Run C-Level agent tasks and collect results ────────────────
-    let agentResults: Array<{ agent: string; task: string; result: string; ok: boolean }> = [];
-    try {
-      const cronSecretValue = cronSecret() ?? "";
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
-      const agentRes = await fetch(
-        `${baseUrl}/api/cron/agent-upgrade`,
-        {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${cronSecretValue}` },
-          signal: AbortSignal.timeout(AGENT_UPGRADE_TIMEOUT_MS),
-        },
-      );
-      if (agentRes.ok) {
-        const agentData = await agentRes.json();
-        agentResults = (agentData.results ?? []) as typeof agentResults;
-      }
-    } catch (err) {
-      console.warn("[daily-admin-report] agent-upgrade call failed:", err);
-    }
+    // ── 10. C-Level agent activity — the latest agent-upgrade run (G36-C) ──
+    // Read from the summary the 17:00 UTC agent-upgrade cron writes; this
+    // report used to POST the agent-upgrade route and so ran every agent task
+    // a second time (and timed out at 75 s on two-AI-task days).
+    const agentResults = await readAgentUpgradeActivity(now.getTime());
 
     // ── 11. AI-generated recommendations (if free providers available) ──
     let aiRecommendations = "";
