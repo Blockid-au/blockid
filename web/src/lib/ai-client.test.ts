@@ -1582,6 +1582,29 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
     });
   });
 
+  it("G36-C: a ladder that runs out of the CALLER's budget is not a provider fault — no cooldown, provider stays ok", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests, AIBudgetExhaustedError } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    const tier = await import("@/lib/ai/anthropic-tier");
+    spend._resetSpendGuardForTests();
+    tier._resetAnthropicTierForTests();
+    _resetDispatcherForTests();
+    // Live log 2026-11: "[ai-client] deepinfra failed (cooldown 2min): AI call budget exhausted (4s across providers)".
+    tierMock.call.mockRejectedValueOnce(new AIBudgetExhaustedError(4_000));
+    const err = await callAI({ system: "s", user: "u" }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AIBudgetExhaustedError);
+    const snap = getProviderHealthSnapshot();
+    expect(snap.providers).toEqual([{ name: "claude-apikey", state: "ok", cooldown_until: null }]);
+    expect(snap.budget_exhausted_1h).toBe(1);
+    expect(warnSpy?.mock.calls.some((c) => /claude-apikey failed \(cooldown/.test(String(c[0])))).toBe(false);
+    // The next call dials the provider straight away.
+    tierMock.call.mockResolvedValueOnce({ ...okResult(1), cost_usd: 0 });
+    await expect(callAI({ system: "s", user: "u" })).resolves.toMatchObject({ via: "claude-apikey" });
+    spend._resetSpendGuardForTests();
+    tier._resetAnthropicTierForTests();
+  });
+
   it("counts AIBudgetExhaustedError throws for one hour and _resetDispatcherForTests clears them", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
     const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests, AIBudgetExhaustedError } = await loadClient();

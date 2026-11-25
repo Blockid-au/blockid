@@ -2787,6 +2787,12 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
         }
         if (lastError instanceof RunStruckError) continue; // struck by a parallel call of this run — no process-wide cooldown from it
         if (lastError instanceof DeadLadderError) continue; // G29-A: no call was made; the dead-rung table (not a cooldown) owns the skip
+        // G36-C: the CALLER's wall-clock budget ran out inside this provider's
+        // ladder (often before any rung was dialled — DEEPINFRA_MIN_ATTEMPT_MS).
+        // That is not a provider fault: no process-wide cooldown, no run strike
+        // (it used to put DeepInfra, the primary, in a 2 min cooldown for every
+        // later report call).
+        if (lastError instanceof AIBudgetExhaustedError) continue;
         noteRunStrike(opts, provider, lastError);
         const cooldownMs = cooldownForError(provider, lastError);
         providerCooldown.set(provider, Date.now() + cooldownMs);
