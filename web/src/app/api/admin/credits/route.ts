@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { grantCredits } from "@/lib/credits";
+import { adjustCreditBalance, type CasDb } from "@/lib/credit-balance-cas";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,11 @@ async function POST_handler(request: Request) {
       { status: 400 },
     );
   }
+  // A negative "revoke" would add credits (and a negative grant is refused
+  // downstream anyway) — amounts are always positive magnitudes.
+  if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+    return NextResponse.json({ ok: false, error: "amount must be a positive number" }, { status: 400 });
+  }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -68,24 +74,20 @@ async function POST_handler(request: Request) {
   }
 
   if (action === "revoke") {
-    // For revoke: deduct credits (direct update on balance row)
-    const { data: balanceRow } = await supabase
-      .from("credit_balances")
-      .select("balance")
-      .eq("user_id", targetUser.id)
-      .maybeSingle();
-
-    const currentBalance = (balanceRow?.balance as number | null) ?? 0;
-    const newBalance = Math.max(0, currentBalance - amount);
-
-    await supabase.from("credit_balances").upsert(
-      {
-        user_id: targetUser.id,
-        balance: newBalance,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+    // G36-B: compare-and-set, clamped at zero. The old read →
+    // upsert(balance: max(0, read - amount)) overwrote any spend or grant
+    // that landed between the read and the write.
+    const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, targetUser.id, -amount, {
+      clampAtZero: true,
+    });
+    if (!adjusted.ok) {
+      return NextResponse.json(
+        { ok: false, error: `revoke failed: ${adjusted.error ?? adjusted.reason}` },
+        { status: 500 },
+      );
+    }
+    const newBalance = adjusted.balance;
+    const revoked = Math.round((adjusted.before - newBalance) * 100) / 100;
 
     // Admin-revoke rows are always live (real deduction against the
     // user's balance, not reseller-sandbox bookkeeping). The
@@ -93,12 +95,13 @@ async function POST_handler(request: Request) {
     // DEFAULT false, so we intentionally OMIT the field here — that keeps
     // the insert wire-shape backward-compatible with pre-0103 envs while
     // the DEFAULT gives us the correct steady-state value post-0103.
+    // The ledger books what was actually taken (clamped), not the request.
     await supabase.from("credit_transactions").insert({
       user_id: targetUser.id,
-      amount: -amount,
+      amount: -revoked,
       balance_after: newBalance,
       reason: `admin_revoke: ${reason}`,
-      metadata: { revoked_by: user.email },
+      metadata: { revoked_by: user.email, requested_amount: amount },
     });
 
     return NextResponse.json({ ok: true, balance: newBalance, user: targetUser });
