@@ -158,6 +158,93 @@ test.describe("S31-D public pages — hash CSP, hydrated, zero violations", () =
     expect(await collectViolations(page, probe)).toEqual([]);
   });
 
+  test("G36 tick 3 clicks: filter chip, state link and band link show the filtered content (full page load), zero violations", async ({ page }) => {
+    const probe = await armCspProbe(page);
+    // The in-page probe resets on every document load; keep what each page saw.
+    const seen: string[] = [];
+    // A full page load drops this window property; a client-side navigation keeps it.
+    const markDocument = () => page.evaluate(() => ((window as unknown as { __g36Doc?: number }).__g36Doc = 1));
+    const wasDocumentLoad = () => page.evaluate(() => (window as unknown as { __g36Doc?: number }).__g36Doc === undefined);
+    const routerLive = () =>
+      page.waitForFunction(() => typeof (window as unknown as { next?: { router?: unknown } }).next?.router !== "undefined", null, { timeout: PAGE_TIMEOUT });
+    const keepViolations = async () => {
+      seen.push(...(await page.evaluate(() => (window as unknown as { __cspViolations?: string[] }).__cspViolations ?? [])));
+    };
+    const listHeading = page.locator("#grants-list-heading");
+
+    await page.goto("/funding/grants", { waitUntil: "domcontentloaded" });
+    await routerLive();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Australian startup grants/i, { timeout: PAGE_TIMEOUT });
+    const baseCount = (await listHeading.innerText()).trim();
+
+    // 1. State chip → the static NSW landing page (own H1, NSW scope line).
+    await keepViolations();
+    await markDocument();
+    await page.locator("[data-filter-chips] a", { hasText: /^NSW\d/ }).first().click();
+    await page.waitForURL(/\/funding\/grants\?state=NSW$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/NSW startup grants/i, { timeout: PAGE_TIMEOUT });
+    await expect(listHeading).toContainText(/New South Wales/, { timeout: PAGE_TIMEOUT });
+    expect(await wasDocumentLoad(), "state chip = document load").toBe(true);
+    await routerLive();
+
+    // 2. "Also see" state link → another state's page.
+    const other = page.locator('nav[aria-label="Other states"] a').filter({ hasNotText: /Federal/ }).first();
+    const otherHref = (await other.getAttribute("href")) ?? "";
+    const otherState = new URL(otherHref, "http://x").searchParams.get("state") ?? "";
+    const otherName = (await other.innerText()).replace(/ grants$/, "");
+    expect(otherState).toMatch(/^[A-Z]{2,3}$/);
+    await keepViolations();
+    await markDocument();
+    await other.click();
+    await page.waitForURL(new RegExp(`/funding/grants\\?state=${otherState}$`));
+    await expect(listHeading).toContainText(otherName, { timeout: PAGE_TIMEOUT });
+    await expect(page.getByRole("heading", { level: 1 })).not.toContainText(/NSW/);
+    expect(await wasDocumentLoad(), "state link = document load").toBe(true);
+    await routerLive();
+
+    // 3. Type chip (state + type) → the dynamic view, filtered rows.
+    await keepViolations();
+    await markDocument();
+    await page.locator("[data-filter-chips] a", { hasText: /^Grant\d/ }).first().click();
+    await page.waitForURL(new RegExp(`/funding/grants\\?state=${otherState}&type=grant$`));
+    await expect(listHeading).toContainText(`${otherName} · Grant`, { timeout: PAGE_TIMEOUT });
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    expect(await wasDocumentLoad(), "type chip = document load").toBe(true);
+    await routerLive();
+
+    // 4. "Clear all filters" (a next/link to the base URL) → base content again.
+    await keepViolations();
+    await page.getByRole("link", { name: "Clear all filters" }).click();
+    await page.waitForURL(/\/funding\/grants$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Australian startup grants, open right now/i, { timeout: PAGE_TIMEOUT });
+    await expect(listHeading).toHaveText(baseCount, { timeout: PAGE_TIMEOUT });
+
+    // 5. Band switcher on the demo → band C, then back to band A.
+    await keepViolations();
+    await page.goto("/tbr/demo", { waitUntil: "domcontentloaded" });
+    await routerLive();
+    const bands = page.locator('[data-testid="tbr-demo-bands"]');
+    await expect(bands).toContainText("This page shows band B", { timeout: PAGE_TIMEOUT });
+    await keepViolations();
+    await markDocument();
+    await page.locator('[data-tbr-demo-band="C"]').click();
+    await page.waitForURL(/\/tbr\/demo\?band=C$/);
+    await expect(bands).toContainText("This page shows band C", { timeout: PAGE_TIMEOUT });
+    await expect(page.locator('[data-tbr-demo-band="C"]')).toHaveAttribute("aria-current", "page");
+    expect(await wasDocumentLoad(), "band link = document load").toBe(true);
+    await routerLive();
+    await keepViolations();
+    await markDocument();
+    await page.locator('[data-tbr-demo-band="A"]').click();
+    await page.waitForURL(/\/tbr\/demo\?band=A$/);
+    await expect(bands).toContainText("This page shows band A", { timeout: PAGE_TIMEOUT });
+    expect(await wasDocumentLoad(), "band link = document load").toBe(true);
+    await routerLive();
+
+    await keepViolations();
+    expect([...seen, ...probe.violations, ...probe.consoleCsp]).toEqual([]);
+  });
+
   test("analytics keeps working on a hashed page: consent default ran before gtag.js loaded", async ({ page }) => {
     const gaConfigured = Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || process.env.NEXT_PUBLIC_GTM_ID);
     const probe = await armCspProbe(page);
