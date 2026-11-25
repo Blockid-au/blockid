@@ -58,6 +58,17 @@ describe("checkModel request body", () => {
     expect((await bodyFor("groq", "openai/gpt-oss-20b")).reasoning_effort).toBe("low");
   });
 
+  it("defaults to the 64-token 'ok' probe and honours prompt / maxTokens overrides", async () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "k");
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await checkModel("openrouter", "m");
+    await checkModel("openrouter", "m", { prompt: "real task", maxTokens: 400 });
+    const bodies = fetchMock.mock.calls.map((c) => JSON.parse(String((c as unknown as [string, RequestInit])[1].body)));
+    expect(bodies[0]).toMatchObject({ max_tokens: 64, messages: [{ content: "Reply with just 'ok'" }] });
+    expect(bodies[1]).toMatchObject({ max_tokens: 400, messages: [{ content: "real task" }] });
+  });
+
   it("sends no reasoning field for other models or providers", async () => {
     expect((await bodyFor("groq", "qwen/qwen3.8-27b")).reasoning_effort).toBeUndefined();
     expect((await bodyFor("openrouter", "openai/gpt-oss-120b:free")).reasoning_effort).toBeUndefined();

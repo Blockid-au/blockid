@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => {
     mkdirMock: vi.fn<(path: string, opts: { recursive: boolean }) => void>(),
     checkBatchMock: vi.fn<(
       targets: { provider: string; model: string }[],
-      opts?: { timeoutMs?: number; concurrency?: number },
+      opts?: { timeoutMs?: number; concurrency?: number; prompt?: string; maxTokens?: number },
     ) => Promise<{ provider: string; model: string; status: string; healthy: boolean }[]>>(),
   };
 });
@@ -35,7 +35,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/ai/health-check", () => ({
   checkModelsBatch: (
     targets: { provider: string; model: string }[],
-    opts?: { timeoutMs?: number; concurrency?: number },
+    opts?: { timeoutMs?: number; concurrency?: number; prompt?: string; maxTokens?: number },
   ) => mocks.checkBatchMock(targets, opts),
 }));
 
@@ -354,12 +354,12 @@ describe("G36 — only models that answer the live probe are listed", () => {
     warn.mockRestore();
   });
 
-  it("probes with a 20 s cap", async () => {
+  it("probes with a 20 s cap and a real-sized task (not 'reply ok')", async () => {
     setup({ "or/a": "healthy" });
     await POST(req({ authorization: "Bearer test_cron_secret" }));
     expect(mocks.checkBatchMock).toHaveBeenCalledWith(
       [{ provider: "openrouter", model: "or/a" }],
-      expect.objectContaining({ timeoutMs: 20_000 }),
+      expect.objectContaining({ timeoutMs: 20_000, maxTokens: 400, prompt: expect.stringMatching(/risks/) }),
     );
   });
 });

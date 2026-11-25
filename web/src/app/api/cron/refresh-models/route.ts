@@ -44,6 +44,11 @@ async function dbKey(provider: string): Promise<string | null> {
  *  is transient on free tiers → kept. If nothing passes (provider outage) the
  *  unverified rank is kept rather than emptying the fallback chain. */
 const VERIFY_TIMEOUT_MS = 20_000;
+/** A real-sized task, not "reply ok": flint-v1.0 answered "ok" at 64 tokens and
+ *  passed the first live run (25/11 12:43), but on this prompt at 400 tokens it
+ *  reasoned for 14 s and returned 0 chars — exactly what report calls hit. */
+const VERIFY_PROMPT = "In 3 short bullet points, name the key risks for an Australian pre-seed SaaS startup.";
+const VERIFY_MAX_TOKENS = 400;
 const KEEP_ON: ReadonlySet<HealthStatus> = new Set(["healthy", "quota_exceeded"]);
 
 async function keepAnswering(
@@ -53,7 +58,7 @@ async function keepAnswering(
   if (ranked.length === 0) return { kept: ranked, dropped: [] };
   const results = await checkModelsBatch(
     ranked.map((model) => ({ provider, model })),
-    { timeoutMs: VERIFY_TIMEOUT_MS, concurrency: 4 },
+    { timeoutMs: VERIFY_TIMEOUT_MS, concurrency: 4, prompt: VERIFY_PROMPT, maxTokens: VERIFY_MAX_TOKENS },
   );
   const kept: string[] = [];
   const dropped: { model: string; status: HealthStatus }[] = [];

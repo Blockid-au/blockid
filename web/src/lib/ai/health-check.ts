@@ -76,7 +76,7 @@ export function endpointFor(provider: string): { url: string; envKey: string } |
 export async function checkModel(
   provider: string,
   model: string,
-  opts: { timeoutMs?: number } = {},
+  opts: { timeoutMs?: number; prompt?: string; maxTokens?: number } = {},
 ): Promise<HealthResult> {
   const now = new Date().toISOString();
   const ep = endpointFor(provider);
@@ -111,13 +111,13 @@ export async function checkModel(
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: "Reply with just 'ok'" }],
+        messages: [{ role: "user", content: opts.prompt ?? "Reply with just 'ok'" }],
         // G30 D-A6: 4 was too tight to be meaningful. A reasoning model spends
         // its budget on a hidden trace and returns an EMPTY `content`, which the
         // probe scored 200/healthy and the latency sort then promoted to rung 1
         // — while every real report call on it failed with "Empty response".
         // 64 is still a trivial spend but leaves room for an actual answer.
-        max_tokens: 64,
+        max_tokens: opts.maxTokens ?? 64,
         // G36: gpt-oss on Groq reasons at "medium" by default and the hidden
         // trace eats the 64 tokens → empty content → a working model is scored
         // empty_response. Mirror ai-client's reasoningParamsFor (Groq path only).
@@ -161,7 +161,7 @@ export async function checkModel(
 /** Run checks with bounded parallelism to keep the total run below ~2 min. */
 export async function checkModelsBatch(
   targets: { provider: string; model: string }[],
-  opts: { timeoutMs?: number; concurrency?: number } = {},
+  opts: { timeoutMs?: number; concurrency?: number; prompt?: string; maxTokens?: number } = {},
 ): Promise<HealthResult[]> {
   const concurrency = Math.max(1, opts.concurrency ?? 6);
   const results: HealthResult[] = [];
@@ -170,7 +170,7 @@ export async function checkModelsBatch(
     while (idx < targets.length) {
       const i = idx++;
       const t = targets[i];
-      results[i] = await checkModel(t.provider, t.model, { timeoutMs: opts.timeoutMs });
+      results[i] = await checkModel(t.provider, t.model, { timeoutMs: opts.timeoutMs, prompt: opts.prompt, maxTokens: opts.maxTokens });
     }
   });
   await Promise.all(workers);
