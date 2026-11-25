@@ -2309,3 +2309,60 @@ describe("G30 BlockID report policy", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// G36-C — gpt-oss on Groq answered `content: ""` with finish_reason "length"
+// (the default "medium" reasoning trace ate max_tokens) → 480+ "Empty Groq
+// response" lines in the live log. gpt-oss rungs now ask for low effort.
+// ---------------------------------------------------------------------------
+
+describe("G36-C gpt-oss reasoning budget (Groq / Cerebras)", () => {
+  it("reasoningParamsFor: low effort for gpt-oss ids only", async () => {
+    const { reasoningParamsFor } = await loadClient();
+    expect(reasoningParamsFor("openai/gpt-oss-120b")).toEqual({ reasoning_effort: "low" });
+    expect(reasoningParamsFor("openai/gpt-oss-20b")).toEqual({ reasoning_effort: "low" });
+    expect(reasoningParamsFor("gpt-oss-120b")).toEqual({ reasoning_effort: "low" }); // Cerebras id
+    expect(reasoningParamsFor("qwen/qwen3.8-27b")).toEqual({});
+    expect(reasoningParamsFor("meta-llama/Llama-3.3-70B-Instruct-Turbo")).toEqual({});
+  });
+
+  it("a Groq call sends reasoning_effort low to gpt-oss rungs (not to qwen) and names finish_reason on an empty answer", async () => {
+    process.env.GROQ_API_KEY = "gsk-test";
+    process.env.AI_PROVIDER_PROBE = "off";
+    const bodies: Array<Record<string, unknown>> = [];
+    networkMock.request.mockImplementation(((_options: Record<string, unknown>, callback: (res: unknown) => void) => {
+      const req = new EventEmitter() as EventEmitter & { write(b: string): void; end(): void; destroy(e: Error): void };
+      let body = "";
+      req.write = (b) => { body = b; };
+      req.destroy = (e) => { req.emit("error", e); };
+      req.end = () => {
+        const payload = JSON.parse(body) as Record<string, unknown>;
+        bodies.push(payload);
+        const res = new EventEmitter() as EventEmitter & { statusCode: number; setEncoding(): void; complete: boolean };
+        res.statusCode = 200;
+        res.setEncoding = () => {};
+        callback(res);
+        // qwen answers empty (finish_reason length) so the ladder reaches gpt-oss, which answers.
+        const reply = payload.model === "qwen/qwen3.8-27b"
+          ? { choices: [{ message: { content: "", reasoning: "…" }, finish_reason: "length" }] }
+          : { choices: [{ message: { content: "ok" }, finish_reason: "stop" }] };
+        res.emit("data", JSON.stringify(reply));
+        res.complete = true;
+        res.emit("end");
+      };
+      return req;
+    }) as never);
+    try {
+      const { callAI, _resetDispatcherForTests } = await loadClient();
+      _resetDispatcherForTests();
+      const r = await callAI({ system: "s", user: "u", maxTokens: 300, taskClass: "classify" });
+      expect(r).toMatchObject({ via: "groq", model: "openai/gpt-oss-120b", text: "ok" });
+      const byModel = Object.fromEntries(bodies.map((b) => [b.model, b]));
+      expect(byModel["qwen/qwen3.8-27b"]).not.toHaveProperty("reasoning_effort");
+      expect(byModel["openai/gpt-oss-120b"]).toMatchObject({ reasoning_effort: "low", max_tokens: 300 });
+      expect(warnSpy?.mock.calls.some((c) => /Groq qwen\/qwen3\.8-27b failed: Empty Groq response \(finish_reason length\)/.test(String(c[0])))).toBe(true);
+    } finally {
+      networkMock.request.mockReset();
+    }
+  });
+});

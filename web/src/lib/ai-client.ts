@@ -1303,6 +1303,22 @@ const GROQ_DEFAULT_MODELS: string[] = [
   "openai/gpt-oss-20b",        // B-tier: 20B, fast fallback (meets the 20B floor)
 ];
 
+/** G36-C — gpt-oss reasons at "medium" by default on Groq / Cerebras and the
+ *  hidden trace counts against `max_tokens`: at classify-sized budgets it ate
+ *  them all → `content: ""`, `finish_reason: "length"` → "Empty Groq response"
+ *  (480+ lines in the live log). Probe 2026-11-25, max_tokens 300: default →
+ *  0 chars of content / 1,191 of reasoning; `reasoning_effort: "low"` → 941
+ *  chars of content / 49 of reasoning. Other models get no extra field. */
+export function reasoningParamsFor(model: string): { reasoning_effort?: "low" } {
+  return /(^|\/)gpt-oss-/.test(model) ? { reasoning_effort: "low" } : {};
+}
+
+/** The "empty answer" error, naming finish_reason when the provider gave one. */
+function emptyAnswerError(label: string, data: { choices?: Array<{ finish_reason?: unknown }> }): Error {
+  const fr = data.choices?.[0]?.finish_reason;
+  return new Error(`Empty ${label} response${typeof fr === "string" && fr ? ` (finish_reason ${fr})` : ""}`);
+}
+
 async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
@@ -1323,6 +1339,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8000), // Groq free limit
         temperature: opts.temperature ?? 0.7,
+        ...reasoningParamsFor(model),
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
@@ -1332,7 +1349,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "Groq error");
       const text = data.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("Empty Groq response");
+      if (!text) throw emptyAnswerError("Groq", data);
       recordModelOutcome(model, true);
       clearDeadRung("groq", model);
       return { text, provider: "groq", model };
@@ -1388,6 +1405,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
         temperature: opts.temperature ?? 0.7,
+        ...reasoningParamsFor(model),
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
@@ -1397,7 +1415,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "Cerebras error");
       const text = data.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("Empty Cerebras response");
+      if (!text) throw emptyAnswerError("Cerebras", data);
       recordModelOutcome(model, true);
       clearDeadRung("cerebras", model);
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
