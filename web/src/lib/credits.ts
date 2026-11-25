@@ -14,6 +14,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
+import { adjustCreditBalance, type CasDb } from "./credit-balance-cas";
 import { FREE_SIGNUP_CREDITS } from "./credits-public";
 import { sendCreditLowAlert } from "./email";
 import {
@@ -903,34 +904,18 @@ export async function grantCredits(
     if (receipt) return receipt;
   }
 
-  // Read current balance (may not exist yet).
-  const { data: row } = await supabase
-    .from("credit_balances")
-    .select("balance, lifetime_earned")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const currentBalance = row?.balance ?? 0;
-  const lifetimeEarned = row?.lifetime_earned ?? 0;
-  const newBalance = currentBalance + amount;
-  const now = new Date().toISOString();
-
-  // Upsert balance.
-  const { error: balErr } = await supabase
-    .from("credit_balances")
-    .upsert(
-      {
-        user_id: userId,
-        balance: newBalance,
-        lifetime_earned: lifetimeEarned + amount,
-        updated_at: now,
-      },
-      { onConflict: "user_id" },
-    );
-  if (balErr) {
-    console.error("[blockid:credits] grant balance upsert failed", balErr);
-    return { ok: false, balance: currentBalance };
+  // G36-B: compare-and-set, not read → upsert(absolute). The old upsert wrote
+  // `read + amount` over whatever a concurrent spend had just written, so a
+  // monthly grant / webhook grant racing a debit erased the debit (and two
+  // concurrent grants lost one).
+  const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, userId, amount, {
+    lifetime: { column: "lifetime_earned", delta: amount },
+  });
+  if (!adjusted.ok) {
+    console.error("[blockid:credits] grant balance write failed", { userId, reason: adjusted.reason, error: adjusted.error });
+    return { ok: false, balance: adjusted.balance };
   }
+  const newBalance = adjusted.balance;
 
   // Insert transaction log.
   const { error: txErr } = await supabase
