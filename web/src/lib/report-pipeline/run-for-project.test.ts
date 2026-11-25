@@ -574,3 +574,113 @@ describe("G19-S43 — the Evidence Hub (svi_dimension_evidence) reaches the pipe
     expect(analysisRow.analysis_json.subs.find((s) => s.key === "tre")?.breakdown?.some((b) => /revenue/i.test(b.signal))).toBe(true);
   });
 });
+
+// ─── G36 tick 3: owner deleted mid-run ────────────────────────────────────
+import { ReportRunCancelledError, RunCancellation } from "./run-cancellation";
+
+describe("G36 tick 3 — owner deleted mid-run (RunCancellation)", () => {
+  const ctx = () => ({
+    projectId: "p-1",
+    account: ACCOUNT,
+    latestAnalysis: ANALYSIS,
+    evidenceItems: [],
+    criteriaData: {} as never,
+    sviAnalysis: buildSviAnalysisFromStored(ACCOUNT, ANALYSIS),
+  });
+  type CallAI = (s: string, u: string, m: number, c?: string) => Promise<unknown>;
+  /** Like the real dispatchers: a throwing model call degrades that section, the run goes on. */
+  const orchestrateWithCalls = (n: number) =>
+    orchestrateMock.mockImplementation(async (i: { callAI: CallAI }) => {
+      for (let k = 0; k < n; k += 1) await i.callAI("sys", `user-${k}`, 900, "report").catch(() => undefined);
+      return REPORT;
+    });
+
+  it("deleted parent → no further model calls, ReportRunCancelledError, no failed row, no error line", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    let deleted = false;
+    callAIMock.mockImplementation(async () => {
+      deleted = true; // the account is erased while the first call is in flight
+      return { text: "ok" };
+    });
+    orchestrateWithCalls(5);
+    const cancellation = new RunCancellation(async () => (deleted ? "project" : null), { minIntervalMs: 0 });
+    const run = generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 0, cancellation });
+    await expect(run).rejects.toBeInstanceOf(ReportRunCancelledError);
+    expect(callAIMock).toHaveBeenCalledTimes(1);
+    expect(state.calls.some((c) => c.table === "assembled_reports")).toBe(false);
+    expect(error).not.toHaveBeenCalled();
+    expect(info.mock.calls.map((c) => String(c[0]))).toContainEqual(expect.stringContaining("[blockid:report-pipeline] run stopped: project was deleted mid-run"));
+    expect(orchestrateMock).toHaveBeenCalledWith(expect.objectContaining({ cancellation }));
+    error.mockRestore();
+    info.mockRestore();
+    callAIMock.mockImplementation(async () => ({ text: "ok" }));
+  });
+
+  it("a 23503 assembled-report insert after the parent vanished is classified owner-deleted (quiet)", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    orchestrateWithCalls(0);
+    state.queue.push({ table: "assembled_reports", error: { code: "23503", message: "violates foreign key constraint" } });
+    // Alive at the pre-write probe; gone once the insert has been attempted.
+    const probe = vi.fn(async () => (state.calls.some((c) => c.table === "assembled_reports" && c.op === "insert") ? "project" : null));
+    const cancellation = new RunCancellation(probe, { minIntervalMs: 0 });
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 0, cancellation })).rejects.toThrow(/owner_deleted: project/);
+    // Only the one (failed) insert — no `failed`-status row whose FK would fail too.
+    expect(state.calls.filter((c) => c.table === "assembled_reports" && c.op === "insert")).toHaveLength(1);
+    expect(error).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("a 23503 while every parent still exists stays a loud report_persistence_unconfirmed", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    orchestrateWithCalls(1);
+    state.queue.push({ table: "assembled_reports", error: { code: "23503", message: "violates foreign key constraint" } });
+    const probe = vi.fn(async () => null);
+    const cancellation = new RunCancellation(probe, { minIntervalMs: 0 });
+    const run = generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 0, cancellation });
+    await expect(run).rejects.toThrow("report_persistence_unconfirmed");
+    await expect(run).rejects.not.toBeInstanceOf(ReportRunCancelledError);
+    expect(probe).toHaveBeenCalled();
+    expect(error.mock.calls.map((c) => String(c[0]))).toContain("[blockid:report-pipeline] orchestration failed:");
+    const inserts = state.calls.filter((c) => c.table === "assembled_reports" && c.op === "insert").map((c) => (c.payload as { status?: string }).status);
+    expect(inserts).toEqual(["complete", "failed"]);
+    vi.restoreAllMocks();
+  });
+
+  it("runTrustReportForProject: owner already gone → nothing loads, nothing runs", async () => {
+    const cancellation = new RunCancellation(async () => "batch owner");
+    await expect(runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1", cancellation })).rejects.toBeInstanceOf(ReportRunCancelledError);
+    expect(getProjectByIdMock).not.toHaveBeenCalled();
+    expect(orchestrateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
+  });
+
+  it("runTrustReportForProject: a snapshot failure after the owner vanished surfaces as owner-deleted, a genuine one as itself", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const arrange = () => {
+      state.queue.push({ table: "app_users", data: { email: "scout@fund.vc" } });
+      state.queue.push({ table: "svi_snapshots", data: null }); // no row today
+      state.queue.push({ table: "svi_snapshots", error: { code: "23503" } }); // insert fails
+    };
+    arrange();
+    let gone = false;
+    orchestrateMock.mockImplementation(async () => {
+      gone = true; // deleted after the report was assembled
+      return REPORT;
+    });
+    // Un-forced probes are throttled away; the forced pre-write probe sees the
+    // deletion only for the snapshot stage (simulated by flipping after persistence).
+    const probe = vi.fn(async () => (gone && state.calls.some((c) => c.table === "svi_snapshots") ? "project" : null));
+    await expect(runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1", cancellation: new RunCancellation(probe, { minIntervalMs: 0 }) })).rejects.toBeInstanceOf(ReportRunCancelledError);
+
+    state.queue = [];
+    state.calls = [];
+    arrange();
+    orchestrateMock.mockResolvedValue(REPORT);
+    await expect(runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1", cancellation: new RunCancellation(async () => null, { minIntervalMs: 0 }) })).rejects.toThrow("report_snapshot_unconfirmed");
+    vi.restoreAllMocks();
+  });
+});

@@ -2002,3 +2002,51 @@ describe("orchestrateReport() — G28-B provider resilience (fake clock, dead pr
     try { expect(synthReserveMsFor(420_000)).toBe(0); } finally { delete process.env[SYNTH_RESERVE_ENV]; }
   });
 });
+
+// ─── G36 tick 3: owner deleted mid-run ────────────────────────────────────
+import { ReportRunCancelledError, RunCancellation } from "./run-cancellation";
+
+describe("orchestrateReport() — G36 tick 3 owner-liveness gate", () => {
+  it("stops at the next wave boundary once the owner is gone: no further model calls, no fully_degraded record", async () => {
+    H.waveUseCallAI = true;
+    H.w4UseCallAI = true;
+    let deleted = false;
+    const callAI = vi.fn(async () => {
+      deleted = true; // the QA teardown erases the account while W1 is in flight
+      return "AI-OUT";
+    });
+    const cancellation = new RunCancellation(async () => (deleted ? "project" : null), { minIntervalMs: 0 });
+    const degradedWriter = vi.fn();
+    const events: string[] = [];
+    const run = orchestrateReport(baseInput({ callAI, cancellation, degradedWriter, onEvent: (e) => events.push(e.type) }));
+    await expect(run).rejects.toBeInstanceOf(ReportRunCancelledError);
+    await expect(run).rejects.toThrow(/owner_deleted: project/);
+    expect(callAI).toHaveBeenCalledTimes(1); // W1 only — W2/W3/W4/CEO never call
+    expect(dispatchCalls).toHaveLength(1);
+    expect(H.w4Calls).toHaveLength(0);
+    expect(degradedWriter).not.toHaveBeenCalled();
+    expect(events).not.toContain("done");
+  });
+
+  it("an owner that is still there changes nothing", async () => {
+    H.waveUseCallAI = true;
+    H.w4UseCallAI = true;
+    const probe = vi.fn(async () => null);
+    const cancellation = new RunCancellation(probe, { minIntervalMs: 0 });
+    const report = await orchestrateReport(baseInput({ cancellation }));
+    expect(report.id).toBeTruthy();
+    expect(probe).toHaveBeenCalled();
+    expect(cancellation.cancelled).toBe(false);
+  });
+
+  it("meterCallAI refuses a call once the run is known orphaned — without spending budget", async () => {
+    const cancellation = new RunCancellation(async () => "batch owner");
+    await cancellation.check(true);
+    const budget = new ReportCallBudget(5);
+    const inner = vi.fn(async () => "x");
+    const metered = meterCallAI(inner, budget, { cancellation });
+    await expect(metered("s", "u", 10)).rejects.toBeInstanceOf(ReportRunCancelledError);
+    expect(inner).not.toHaveBeenCalled();
+    expect(budget.used).toBe(0);
+  });
+});

@@ -104,6 +104,7 @@ import { isReportV2, type CriterionCard, type DimensionChapter, type ExecutiveSt
 import { FULLY_DEGRADED_MIN_CHAPTERS, recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
 import type { RunDiagnostics } from "./run-diagnostics";
 import { synthReserveMsFor, w4ReserveMsFor, type PipelineCallHint, type PipelineCallStage } from "./pipeline-timeouts";
+import type { RunCancellation } from "./run-cancellation";
 
 // ── AI caller contract ──────────────────────────────────────────────────────
 
@@ -381,13 +382,15 @@ export class ReportDeadline {
 export function meterCallAI(
   callAI: AICallerInput,
   budget: ReportCallBudget,
-  opts: { meter?: CostMeter; deadline?: ReportDeadline; stage?: PipelineCallStage } = {},
+  opts: { meter?: CostMeter; deadline?: ReportDeadline; stage?: PipelineCallStage; cancellation?: RunCancellation } = {},
 ): AICaller {
   // G28-B: the stage is bound per caller (one metered caller per stage), so a
   // late W1 repair that fires after W4 started is still a `criterion` call
   // and is refused inside the reserve — never re-labelled as a chapter call.
   const stage: PipelineCallStage = opts.stage ?? "criterion";
   return async (system, user, maxTokens, taskClass, onMeta) => {
+    // G36 tick 3: an orphaned run (owner deleted mid-run) starts no model call.
+    opts.cancellation?.throwIfCancelledSync();
     if (opts.deadline?.expired()) throw new ReportDeadlineExceededError(opts.deadline.ms);
     // G28-B: a criterion call may not start inside the W4 reserve.
     if (stage === "criterion" && opts.deadline?.softExpired()) throw new ReportDeadlineExceededError(opts.deadline.softMs);
@@ -496,6 +499,13 @@ export interface OrchestratorInput {
   recordSpend?: boolean;
   /** G15-R3.4: sink for the fully-degraded event (default appends to content/reports/report-pipeline-health.jsonl; tests inject). */
   degradedWriter?: DegradedEventWriter;
+  /**
+   * G36 tick 3: owner-liveness gate (run-cancellation.ts). Probed before
+   * GATHER and at every wave boundary; once a parent row is gone every model
+   * call is refused and the run throws `ReportRunCancelledError` — never the
+   * fully-degraded path (no `fully_degraded` alert for a deleted owner).
+   */
+  cancellation?: RunCancellation;
 }
 
 function w4Enabled(): boolean {
@@ -540,9 +550,14 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
     valuationUnavailable ? `${system}\nBusiness valuation is unavailable for this run. Do not infer company value, valuation ranges, valuation confidence or ask alignment. Describe missing inputs. Preserve separately stated revenue, fundraising and market facts without converting them into company value.` : system,
     user, maxTokens, taskClass, hint,
   );
-  const callAI = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "criterion" });
-  const callAIChapter = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "chapter" });
-  const callAISynthesis = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "synthesis" });
+  const cancellation = input.cancellation;
+  const callAI = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "criterion", cancellation });
+  const callAIChapter = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "chapter", cancellation });
+  const callAISynthesis = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "synthesis", cancellation });
+  /** G36 tick 3: wave-boundary liveness check (throttled probe; throws ReportRunCancelledError). */
+  const stopIfOrphaned = async () => {
+    if (cancellation) await cancellation.throwIfCancelled();
+  };
   const partialDims = input.dims && input.dims.length ? DIM_ORDER.filter((d) => input.dims!.includes(d)) : null;
   const emit: PipelineEventHandler = (e) => {
     try {
@@ -636,6 +651,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
       dims: w4Dims,
     });
     notify("gathering", 5);
+    await stopIfOrphaned();
     // S-R5: warm the AU comparables cache (verified table rows, static
     // fallback) so the sync valuation-chapter builder below cites live N.
     await primeComparables().catch(() => undefined);
@@ -687,17 +703,20 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
       // G28-B: W1–W3 race the SOFT deadline (hard − W4 reserve) so a slow
       // provider in W1 can never leave W4 with no wall clock.
       // Wave 1: Independent analyses
+      await stopIfOrphaned();
       notify("wave1", 15);
       if (!deadline.softExpired() && (await deadline.raceSoft(dispatchWave(wave1, context, input.tier, callAI, dispatchOpts))) === "deadline") markDeadline();
 
       // Wave 2: Depends on Wave 1
       if (wave2.length > 0 && !deadline.softExpired()) {
+        await stopIfOrphaned();
         notify("wave2", 45);
         if ((await deadline.raceSoft(dispatchWave(wave2, context, input.tier, callAI, dispatchOpts))) === "deadline") markDeadline();
       }
 
       // Wave 3: Depends on Wave 1 + 2 (may be empty when evidenceCompleteness < 0.5)
       if (wave3.length > 0 && !deadline.softExpired()) {
+        await stopIfOrphaned();
         notify("wave3", 75);
         if ((await deadline.raceSoft(dispatchWave(wave3, context, input.tier, callAI, dispatchOpts))) === "deadline") markDeadline();
       }
@@ -705,6 +724,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
 
     // ── Wave 4: dimension chapters (8 owners in parallel) ───────────────
     if (w4On) {
+      await stopIfOrphaned();
       notify("wave4", 80);
       w4Dims.forEach((dim) => emit({ type: "dimension_start", dim, ownerAgent: DIMENSION_OWNERS[dim].primary }));
       const degradeAll = (reason: string) => {
@@ -763,6 +783,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
     }
 
     // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
+    await stopIfOrphaned();
     notify("synthesizing", 85);
 
     // CDO cross-validation: one LLM call at premium+ (§B.9); deterministic elsewhere.
@@ -805,6 +826,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
     // criterion sections). Fully fail-safe and metered; the critic passes run
     // in parallel under the tier cap. After the deadline only the free
     // deterministic citation gate runs.
+    await stopIfOrphaned();
     const audit = await auditAllSections(context, tierV2, callAISynthesis, {
       budgetOk: () => !deadline.expired() && !partialDims && monthlyOk() && budget.remaining >= 2,
     });
@@ -846,6 +868,8 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
     // report; the persisting callers (paywall generator, run-for-project) turn
     // the flag into their failure path (retry tick / refund) instead of storing
     // `complete` and charging A$3.
+    // G36 tick 3: chapters degraded because the owner vanished are not an AI outage.
+    cancellation?.throwIfCancelledSync();
     const degradedReason = fullyDegradedReason(report, context.dimensionChapters, { deadlineHit: deadline.expired() });
     report.fullyDegraded = degradedReason !== null;
     // G15-R3.4: count it (structured log line + report-pipeline-health.jsonl)
