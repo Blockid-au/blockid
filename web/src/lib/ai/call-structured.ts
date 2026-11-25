@@ -33,7 +33,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { looksTruncated, salvageTruncatedJson } from "@/lib/ai/json-salvage";
+import { looksTruncated, salvageTruncatedJsonCandidates } from "@/lib/ai/json-salvage";
 import { costUsdFor } from "@/lib/ai/model-prices";
 import { canonicalizeScore } from "@/lib/proofs/canonical-json";
 import { hashScore } from "@/lib/proofs/hash";
@@ -507,14 +507,16 @@ function tryParse<T>(schema: z.ZodType<T>, text: string): ParseResult<T> {
     // repair pass that is cut the same way. Nothing the model did not write
     // is added; a salvage that still fails the schema falls through to the
     // ordinary repair pass with the original error.
-    const rescued = salvageTruncatedJson(cleaned);
-    if (rescued !== null) {
+    // G36: when the last-complete-value rewind still fails the schema (a cut
+    // inside a `risks` / `citations` element leaves a half-written object),
+    // the alternatives drop that partial trailing element instead.
+    for (const rescued of salvageTruncatedJsonCandidates(cleaned)) {
       try {
         const candidate: unknown = JSON.parse(rescued);
         const zres = schema.safeParse(candidate);
         if (zres.success) return { ok: true, data: zres.data, salvaged: true };
       } catch {
-        /* fall through */
+        /* next candidate */
       }
     }
     return { ok: false, error: `JSON.parse failed: ${message}`, truncated: looksTruncated(message) };

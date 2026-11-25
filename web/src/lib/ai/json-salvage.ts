@@ -45,19 +45,48 @@ function lastSentenceEnd(body: string): number {
  * A document that already parses is returned unchanged.
  */
 export function salvageTruncatedJson(raw: string): string | null {
-  if (typeof raw !== "string") return null;
+  return salvageScan(raw).primary;
+}
+
+/**
+ * G36: every salvage of a truncated document, best first. The first entry is
+ * `salvageTruncatedJson`'s answer (when there is one); the rest drop the
+ * PARTIAL trailing element of each array still open at the cut, innermost
+ * first, then close the document. Measured on the 2026-11-25 showcase run:
+ * clo/dataroom was cut at its 2,600-token budget inside the `risks` array —
+ * the last-complete-value rewind kept `{"area_id": …, "title": …}` of the
+ * half-written risk, which no schema accepts, so the salvage was thrown away
+ * and the repair pass (cut the same way) cost a third, prose-only call.
+ * Dropping the half-written element keeps every risk / citation / highlight
+ * the model did finish. Like the rewind, nothing is invented — the
+ * alternatives only drop more of the tail. Every entry `JSON.parse`s;
+ * duplicates are removed. Callers validate each against their schema and
+ * keep the first that passes.
+ */
+export function salvageTruncatedJsonCandidates(raw: string): string[] {
+  const { primary, drops } = salvageScan(raw);
+  const out: string[] = [];
+  for (const c of [primary, ...drops]) if (c !== null && !out.includes(c)) out.push(c);
+  return out;
+}
+
+function salvageScan(raw: string): { primary: string | null; drops: string[] } {
+  const none = { primary: null, drops: [] as string[] };
+  if (typeof raw !== "string") return none;
   const start = raw.indexOf("{");
-  if (start < 0) return null;
+  if (start < 0) return none;
   const s = raw.slice(start);
   try {
     JSON.parse(s);
-    return s;
+    return { primary: s, drops: [] };
   } catch {
     /* fall through to the rewind */
   }
 
   const stack: string[] = [];
   const awaitingKey: boolean[] = [];
+  /** Per stack level: where an array's CURRENT element starts (just after "[" or at its ","); -1 for objects. */
+  const elemStart: number[] = [];
   let inStr = false;
   let esc = false;
   let strStart = -1;
@@ -90,17 +119,20 @@ export function salvageTruncatedJson(raw: string): string | null {
     if (c === "{" || c === "[") {
       stack.push(c);
       awaitingKey.push(c === "{");
+      elemStart.push(c === "[" ? i + 1 : -1);
       continue;
     }
     if (c === "}" || c === "]") {
-      if (!stack.length) return null;
+      if (!stack.length) return none;
       stack.pop();
       awaitingKey.pop();
+      elemStart.pop();
       markGood(i + 1);
       continue;
     }
     if (c === ",") {
       if (stack[stack.length - 1] === "{") awaitingKey[awaitingKey.length - 1] = true;
+      else if (stack[stack.length - 1] === "[") elemStart[elemStart.length - 1] = i;
       continue;
     }
     if (c === ":" || /\s/.test(c)) continue;
@@ -113,10 +145,24 @@ export function salvageTruncatedJson(raw: string): string | null {
       continue;
     }
     // Anything else is a syntax error the salvage does not understand.
-    return null;
+    return none;
   }
 
-  if (!stack.length) return null;
+  if (!stack.length) return none;
+
+  // G36: one alternative per array open at the cut — its partial element dropped.
+  const drops: string[] = [];
+  for (let d = stack.length - 1; d >= 0; d--) {
+    if (stack[d] !== "[") continue;
+    let out = s.slice(0, elemStart[d]!).trimEnd();
+    for (let k = d; k >= 0; k--) out += CLOSER[stack[k]!];
+    try {
+      JSON.parse(out);
+      drops.push(out);
+    } catch {
+      /* not a closable prefix — skip this level */
+    }
+  }
 
   if (inStr && !strIsKey && strStart >= 0) {
     // Cut inside a prose value: keep whole sentences (else whole words), close the string.
@@ -132,19 +178,19 @@ export function salvageTruncatedJson(raw: string): string | null {
       for (let d = stack.length - 1; d >= 0; d--) out += CLOSER[stack[d]!];
       try {
         JSON.parse(out);
-        return out;
+        return { primary: out, drops };
       } catch {
         /* fall back to the last complete value */
       }
     }
   }
-  if (lastGood < 0) return null;
+  if (lastGood < 0) return { primary: null, drops };
   let out = s.slice(0, lastGood);
   for (let d = lastGoodStack.length - 1; d >= 0; d--) out += CLOSER[lastGoodStack[d]!];
   try {
     JSON.parse(out);
-    return out;
+    return { primary: out, drops };
   } catch {
-    return null;
+    return { primary: null, drops };
   }
 }

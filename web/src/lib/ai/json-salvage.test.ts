@@ -1,6 +1,6 @@
 // json-salvage — G23-A fix (b): the hard trim before a JSON parse.
 import { describe, expect, it } from "vitest";
-import { looksTruncated, salvageTruncatedJson } from "./json-salvage";
+import { looksTruncated, salvageTruncatedJson, salvageTruncatedJsonCandidates } from "./json-salvage";
 
 const FULL = { finding: { title: "Revenue", detail: "Pre-revenue: 5 one-off charges.", proposed_score: 50, citations: [{ evidence_id: "a", quote: "5 one-off" }] }, section: { heading: "Revenue", body_markdown: "Line one. Line two.", citations: [], confidence: 0.6 }, risks: [] };
 
@@ -68,5 +68,48 @@ describe("looksTruncated", () => {
     expect(looksTruncated("Unterminated string in JSON at position 9569 (line 102 column 13)")).toBe(true);
     expect(looksTruncated("Unexpected end of JSON input")).toBe(true);
     expect(looksTruncated("Unexpected token < in JSON at position 0")).toBe(false);
+  });
+});
+
+// G36 (2026-11-25 showcase run, clo/dataroom): the cut landed inside the
+// `risks` array; the last-complete-value rewind kept a half-written risk that
+// no schema accepts, and the whole salvage was thrown away.
+describe("salvageTruncatedJsonCandidates", () => {
+  const risk = (n: number) => ({ title: `Risk ${n}`, severity: "medium", mitigation: `Fix ${n}.`, citations: [{ evidence_id: "a", quote: "q" }] });
+  const doc = { finding: FULL.finding, section: { heading: "H", body_markdown: "Body." }, risks: [risk(1), risk(2), risk(3)], highlights: ["x"] };
+  const full = JSON.stringify(doc);
+
+  it("first candidate is the ordinary salvage; the next drops the partial trailing element of each open array, innermost first", () => {
+    // Cut after `"severity":` of risk 3 — the parse error the run logged.
+    const cut = full.slice(0, full.indexOf(`"severity"`, full.indexOf("Risk 3")) + `"severity":`.length);
+    expect(() => JSON.parse(cut)).toThrow(/Unexpected end of JSON input/);
+    const cands = salvageTruncatedJsonCandidates(cut).map((c) => JSON.parse(c));
+    expect(cands[0]).toEqual(JSON.parse(salvageTruncatedJson(cut)!));
+    expect(cands[0].risks[2]).toEqual({ title: "Risk 3" }); // half-written — fails any risk schema
+    expect(cands[1]).toEqual({ finding: FULL.finding, section: doc.section, risks: [risk(1), risk(2)] });
+    expect(cands).toHaveLength(2);
+  });
+
+  it("a cut inside a nested array (a risk's citation) offers the citation drop, then the whole-risk drop", () => {
+    const at = full.indexOf(`"quote"`, full.indexOf("Risk 2"));
+    const cands = salvageTruncatedJsonCandidates(full.slice(0, at + 3)).map((c) => JSON.parse(c));
+    expect(cands.map((c) => c.risks.length)).toEqual([2, 2, 1]);
+    expect(cands[1].risks[1].citations).toEqual([]);
+    expect(cands[2].risks).toEqual([risk(1)]);
+  });
+
+  it("cut right after an array's opening bracket or a separating comma: the drop closes the array as written, never invents a value", () => {
+    const afterBracket = full.slice(0, full.indexOf(`"risks":[`) + `"risks":[`.length);
+    expect(salvageTruncatedJsonCandidates(afterBracket).map((c) => JSON.parse(c).risks)).toContainEqual([]);
+    const afterComma = full.slice(0, full.indexOf(`,{"title":"Risk 2"`) + 1);
+    const risksSeen = salvageTruncatedJsonCandidates(afterComma).map((c) => JSON.parse(c).risks);
+    expect(risksSeen).toContainEqual([risk(1)]);
+    for (const r of risksSeen) expect(r === undefined || r.length <= 1).toBe(true);
+  });
+
+  it("a complete document is the only candidate; non-JSON gives none", () => {
+    expect(salvageTruncatedJsonCandidates(full)).toEqual([full]);
+    expect(salvageTruncatedJsonCandidates("no json")).toEqual([]);
+    expect(salvageTruncatedJsonCandidates("")).toEqual([]);
   });
 });
