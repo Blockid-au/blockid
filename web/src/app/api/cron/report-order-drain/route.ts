@@ -41,7 +41,9 @@ import { refundFailedOrder } from "@/lib/paywall/report-refund";
 import {
   alertUnrefundedFailedOrders,
   reconcileStaleRefundClaims,
+  retryReleasedCreditRefunds,
   type ReconcileResult,
+  type RetryResult,
   type UnrefundedResult,
 } from "@/lib/paywall/report-refund-reconcile";
 import { mdEscape, sendTelegram } from "@/lib/telegram";
@@ -186,15 +188,22 @@ async function handle(request: Request): Promise<Response> {
 
   // ── G36 refund safety net (after the drain, so this tick's refunds have
   // settled): finish refund claims a dead process or an ambiguous Stripe
-  // answer left behind, then alert on paid FAILED orders nobody refunded.
-  // Both never throw out of the tick.
+  // answer left behind, retry credit refunds released on a transient
+  // nothing-moved failure, then alert on paid FAILED orders nobody refunded.
+  // None of them throws out of the tick.
   const alert = (text: string) => sendTelegram(mdEscape(text));
   let refundReconcile: ReconcileResult | null = null;
+  let refundRetry: RetryResult | null = null;
   let unrefunded: UnrefundedResult | null = null;
   try {
     refundReconcile = await reconcileStaleRefundClaims({ alert });
   } catch (err) {
     console.error("[blockid:report-order-drain] refund reconcile threw", err instanceof Error ? err.message : String(err));
+  }
+  try {
+    refundRetry = await retryReleasedCreditRefunds({ refund: refundFailedOrder });
+  } catch (err) {
+    console.error("[blockid:report-order-drain] refund retry threw", err instanceof Error ? err.message : String(err));
   }
   try {
     unrefunded = await alertUnrefundedFailedOrders({ alert });
@@ -239,10 +248,20 @@ async function handle(request: Request): Promise<Response> {
       operator: refundReconcile.operator,
     };
   }
+  if (refundRetry && refundRetry.retried.length > 0) {
+    body.refundRetry = { retried: refundRetry.retried, refunded: refundRetry.refunded, failed: refundRetry.failed };
+  }
   if (unrefunded && unrefunded.found.length > 0) {
     body.unrefundedFailed = { count: unrefunded.found.length, alerted: unrefunded.alerted };
   }
-  if (processed === 0 && remaining === 0 && reclaim.reclaimed.length === 0 && refundWork === 0 && !body.unrefundedFailed) {
+  if (
+    processed === 0 &&
+    remaining === 0 &&
+    reclaim.reclaimed.length === 0 &&
+    refundWork === 0 &&
+    !body.refundRetry &&
+    !body.unrefundedFailed
+  ) {
     body.noop = true;
   }
 

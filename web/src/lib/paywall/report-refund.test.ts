@@ -58,6 +58,9 @@ class FakeSelect implements RefundSelectBuilder {
   async maybeSingle(): Promise<{ data: Row | null; error: unknown }> {
     return { data: this.row, error: null };
   }
+  async limit(): Promise<{ data: unknown; error: unknown }> {
+    return { data: this.row ? [this.row] : [], error: null };
+  }
 }
 
 class FakeUpdate implements RefundUpdateBuilder {
@@ -733,7 +736,7 @@ describe("refundFailedOrder — ambiguous outcomes keep the claim", () => {
 
   it("charge_already_refunded → records the existing refund (read-only list) and finishes", async () => {
     const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
-    const list = vi.fn(async () => ({ data: [{ id: "re_earlier", status: "succeeded" }] }));
+    const list = vi.fn(async () => ({ data: [{ id: "re_earlier", status: "succeeded", amount: 4900, metadata: { bid_order_id: "order-a" } }] }));
     const stripe: RefundCapableStripe = {
       refunds: {
         create: () => Promise.reject(stripeError("StripeInvalidRequestError", 400, "Charge has already been refunded.", "charge_already_refunded")),
@@ -742,7 +745,7 @@ describe("refundFailedOrder — ambiguous outcomes keep the claim", () => {
     };
     const outcome = await refundFailedOrder({ orderId: "order-a", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe, now });
     expect(outcome).toEqual({ ok: true, path: "stripe", refundId: "re_earlier" });
-    expect(list).toHaveBeenCalledWith({ payment_intent: "pi_a", limit: 10 });
+    expect(list).toHaveBeenCalledWith({ payment_intent: "pi_a", limit: 100 });
     const refund = (db.row("report_orders", "order-a")?.metadata as Row).refund as Row;
     expect(refund).toMatchObject({ state: "done", stripe_refund_id: "re_earlier" });
   });
@@ -788,5 +791,166 @@ describe("refundFailedOrder — ambiguous outcomes keep the claim", () => {
     const retry = await refundFailedOrder({ orderId: "order-c", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe: null, now });
     expect(retry).toEqual({ ok: true, path: "already_refunded" });
     expect(db.rows("credit_balances")[0]?.balance).toBe(240);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. G36 round 3 — retry markers, refund checks, stable idempotent params
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("refundFailedOrder — round 3", () => {
+  const creditOrder = (meta: Row = {}): Row => ({
+    id: "order-r3",
+    user_id: "user-r3",
+    status: "FAILED",
+    amount_aud: 0,
+    credits_used: 200,
+    stripe_payment_intent_id: null,
+    failure_reason: "orchestration_failed",
+    metadata: meta,
+  });
+  const stripeOrder = (): Row => ({
+    id: "order-s3",
+    user_id: "user-s3",
+    status: "FAILED",
+    amount_aud: 4900,
+    credits_used: 0,
+    stripe_payment_intent_id: "pi_s3",
+    failure_reason: "orchestration_failed",
+    metadata: {},
+  });
+  /** credit_balances update fails with this Postgres error (nothing written). */
+  function balanceUpdateFails(db: PaygFakeDb, error: { code: string; message: string }) {
+    return {
+      from(table: string) {
+        const t = db.from(table);
+        if (table !== "credit_balances") return t;
+        return {
+          ...t,
+          update: () => {
+            const w = { eq: () => w, select: () => Promise.resolve({ data: null, error }) };
+            return w;
+          },
+        };
+      },
+    } as unknown as RefundSupabase;
+  }
+
+  it("item 3 + 9: a definite DB rejection (42501) on the credit write releases the claim WITH a refund_retry marker", async () => {
+    const db = new PaygFakeDb({ report_orders: [creditOrder({ sku: "full" })], credit_balances: [{ user_id: "user-r3", balance: 40, lifetime_spent: 260 }] });
+    const outcome = await refundFailedOrder(
+      { orderId: "order-r3", reason: "boom" },
+      { supabase: balanceUpdateFails(db, { code: "42501", message: "permission denied" }), stripe: null, now },
+    );
+    expect(outcome).toEqual({ ok: false, reason: "credit_reversal_failed: permission denied" });
+    const row = db.row("report_orders", "order-r3")!;
+    expect(row.status).toBe("FAILED");
+    expect(row.failure_reason).toBe("orchestration_failed");
+    expect(row.metadata).toEqual({
+      sku: "full",
+      refund_retry: { reason: "credit_reversal_failed: permission denied", at: FIXED_NOW.toISOString(), attempts: 1, exhausted: false },
+    });
+  });
+
+  it("item 3: the fifth transient release marks the retry exhausted", async () => {
+    const db = new PaygFakeDb({
+      report_orders: [creditOrder({ refund_retry: { reason: "x", at: "2026-07-30T00:00:00.000Z", attempts: 4, exhausted: false } })],
+      credit_balances: [{ user_id: "user-r3", balance: 40, lifetime_spent: 260 }],
+    });
+    await refundFailedOrder(
+      { orderId: "order-r3", reason: "boom" },
+      { supabase: balanceUpdateFails(db, { code: "23514", message: "check violation" }), stripe: null, now },
+    );
+    expect((db.row("report_orders", "order-r3")?.metadata as Row).refund_retry).toMatchObject({ attempts: 5, exhausted: true });
+  });
+
+  it("item 3: a definite Stripe rejection releases WITHOUT a retry marker (alert-only)", async () => {
+    const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+    await refundFailedOrder(
+      { orderId: "order-s3", reason: "boom" },
+      { supabase: db as unknown as RefundSupabase, stripe: makeStripe(() => Promise.reject(stripeError("StripeInvalidRequestError", 400, "No such payment_intent"))), now },
+    );
+    const row = db.row("report_orders", "order-s3")!;
+    expect(row.status).toBe("FAILED");
+    expect(row.metadata).toEqual({});
+  });
+
+  it("item 9: a network error (no SQLSTATE) on the credit write keeps the claim (`crediting`), no release", async () => {
+    const db = new PaygFakeDb({ report_orders: [creditOrder()], credit_balances: [{ user_id: "user-r3", balance: 40, lifetime_spent: 260 }] });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await refundFailedOrder(
+      { orderId: "order-r3", reason: "boom" },
+      { supabase: balanceUpdateFails(db, { code: "", message: "TypeError: fetch failed" }), stripe: null, now },
+    );
+    const row = db.row("report_orders", "order-r3")!;
+    expect(row.status).toBe("REFUNDED");
+    expect(((row.metadata as Row).refund as Row).state).toBe("crediting");
+    expect((row.metadata as Row).refund_retry).toBeUndefined();
+  });
+
+  function alreadyRefundedStripe(data: Array<{ id: string; status: string; amount: number; metadata?: Record<string, string> }>) {
+    const list = vi.fn(async () => ({ data }));
+    const stripe: RefundCapableStripe = {
+      refunds: {
+        create: () => Promise.reject(stripeError("StripeInvalidRequestError", 400, "Charge has already been refunded.", "charge_already_refunded")),
+        list,
+      },
+    };
+    return { stripe, list };
+  }
+
+  it("item 4: charge_already_refunded prefers the refund carrying this order's bid_order_id", async () => {
+    const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+    const { stripe } = alreadyRefundedStripe([
+      { id: "re_manual", status: "succeeded", amount: 1000 },
+      { id: "re_ours", status: "succeeded", amount: 3900, metadata: { bid_order_id: "order-s3" } },
+      { id: "re_failed", status: "failed", amount: 4900, metadata: { bid_order_id: "order-s3" } },
+    ]);
+    const outcome = await refundFailedOrder({ orderId: "order-s3", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe, now });
+    expect(outcome).toEqual({ ok: true, path: "stripe", refundId: "re_ours" });
+  });
+
+  it("item 4: live refunds short of the order amount → needs_operator, not done", async () => {
+    const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+    const { stripe } = alreadyRefundedStripe([
+      { id: "re_partial", status: "succeeded", amount: 1000 },
+      { id: "re_failed", status: "failed", amount: 4900 },
+    ]);
+    const outcome = await refundFailedOrder({ orderId: "order-s3", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe, now });
+    expect(outcome.ok).toBe(false);
+    const refund = (db.row("report_orders", "order-s3")?.metadata as Row).refund as Row;
+    expect(refund.state).toBe("needs_operator");
+    expect(String(refund.last_error)).toMatch(/live refunds total 1000 < 4900/);
+    expect(refund.stripe_refund_id).toBeUndefined();
+  });
+
+  it("item 8: the Stripe request params do not depend on the failure reason (stable under the idempotency key)", async () => {
+    const calls: unknown[] = [];
+    for (const reason of ["orchestration_failed: AI timeout", "support_refund"]) {
+      const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+      const { stripe, create } = makeStripeSpy();
+      create.mockResolvedValue({ id: "re_x", status: "succeeded" });
+      await refundFailedOrder({ orderId: "order-s3", reason }, { supabase: db as unknown as RefundSupabase, stripe, now });
+      calls.push(create.mock.calls[0]);
+    }
+    expect(calls[0]).toEqual(calls[1]);
+    expect((calls[0] as unknown[])[0]).toEqual({
+      payment_intent: "pi_s3",
+      reason: "requested_by_customer",
+      metadata: { bid_scope: "report_order", bid_order_id: "order-s3" },
+    });
+  });
+
+  it("item 8: StripeIdempotencyError is not ambiguous — needs_operator, no release", async () => {
+    const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+    const stripe = makeStripe(() =>
+      Promise.reject(stripeError("StripeIdempotencyError", 400, "Keys for idempotent requests can only be used with the same parameters")),
+    );
+    const outcome = await refundFailedOrder({ orderId: "order-s3", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe, now });
+    expect(outcome.ok).toBe(false);
+    const row = db.row("report_orders", "order-s3")!;
+    expect(row.status).toBe("REFUNDED");
+    expect(((row.metadata as Row).refund as Row)).toMatchObject({ state: "needs_operator" });
+    expect(String(((row.metadata as Row).refund as Row).last_error)).toMatch(/^stripe_idempotency_conflict/);
   });
 });
