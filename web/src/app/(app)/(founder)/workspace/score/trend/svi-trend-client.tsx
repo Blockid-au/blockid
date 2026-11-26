@@ -112,16 +112,19 @@ export function SviTrendClient({ projectId }: Props) {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <p className="text-sm text-ink-500">Loading SVI history…</p>
+      <div className="p-6 max-w-6xl mx-auto space-y-2" aria-busy="true">
+        {/* G36: every state carries the page h1 (live page sweep, 26/11) */}
+        <h1 className="text-lg font-bold text-ink-800">SVI trend</h1>
+        <p className="text-sm text-ink-500" role="status">Loading SVI history…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <div className="rounded-xl border border-red-200 bg-red-50/60 p-6 text-sm text-red-800">
+      <div className="p-6 max-w-6xl mx-auto space-y-2">
+        <h1 className="text-lg font-bold text-ink-800">SVI trend</h1>
+        <div className="rounded-xl border border-red-200 bg-red-50/60 p-6 text-sm text-red-800" role="alert">
           Couldn&apos;t load your SVI history. Please refresh.
         </div>
       </div>
@@ -157,9 +160,9 @@ export function SviTrendClient({ projectId }: Props) {
       {/* ── Hero ────────────────────────────────────────────────────────── */}
       <div className="rounded-xl border border-ink-200 bg-white p-5 md:p-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-ink-500">
+          <h1 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-ink-500">
             Your SVI trend — last {snapshots.length} snapshot{snapshots.length === 1 ? "" : "s"}
-          </p>
+          </h1>
           <div className="mt-1 flex items-baseline gap-3 flex-wrap">
             <span className="text-4xl md:text-5xl font-bold text-ink-900 tabular-nums">
               {current?.overallScore ?? "—"}
