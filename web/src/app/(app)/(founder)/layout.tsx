@@ -22,7 +22,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getFounderNavContext } from "@/lib/nav/founder-phase";
 import { FounderNavContextProvider } from "@/components/workspace/founder-nav-context";
 import { resolveFounderLayoutRedirect } from "@/lib/nav/founder-layout-redirects";
-import { loadPersonaRow } from "@/lib/nav/persona-server";
+import { loadPersonaRow, navSeatFor } from "@/lib/nav/persona-server";
 
 export const dynamic = "force-dynamic";
 
@@ -51,13 +51,16 @@ export default async function FounderLayout({ children }: { children: ReactNode 
   // G36 — the seat's persona inputs ride along with the nav phase so the
   // server-rendered sidebar is already the persona's (an evaluator's first
   // paint used to be the founder's 4-group menu until /api/entitlement/me
-  // answered). `loaded: false` → no seat → the client keeps the old default.
+  // answered). `loadPersonaRow` is a per-request memo, so on /dashboard this
+  // reuses the row the redirect above already read. `navSeatFor` applies the
+  // /api/entitlement/me fallbacks (plan ?? "free", segment ?? "founder") so
+  // the client snapshot never flips the persona; no row → no seat → the
+  // client keeps the old default.
   const [nav, row] = await Promise.all([
     getFounderNavContext(user),
     user ? loadPersonaRow(user.id) : Promise.resolve(null),
   ]);
-  const value = row?.loaded
-    ? { ...nav, seat: { accountType: row.accountType, segment: row.segment, plan: user?.plan ?? null } }
-    : nav;
+  const seat = navSeatFor(user, row);
+  const value = seat ? { ...nav, seat } : nav;
   return <FounderNavContextProvider value={value}>{children}</FounderNavContextProvider>;
 }
