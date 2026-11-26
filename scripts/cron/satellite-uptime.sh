@@ -150,14 +150,19 @@ SQL
 VMQ
 )
   vm_rc=$?
+  # A probe that can never run (expired ssh key, container renamed, IAM change)
+  # must not go silent again: 3 failed runs in a row (30 min) alert too.
+  if [ "$vm_rc" -eq 0 ]; then
+    track vm-ops-ssh ok "hr/eth VM ops-check probe" "gcloud ssh + query work again."
+  else
+    track vm-ops-ssh fail "hr/eth VM ops-check probe broken" "gcloud ssh / docker exec / psql to the VM failed (rc=${vm_rc}); critical ops checks on the VM are not being watched. Check: gcloud compute ssh ${VM_NAME} --zone ${VM_ZONE} --project ${VM_PROJECT}; container blockid-app-postgres-1."
+  fi
   if [ "$vm_rc" -eq 0 ]; then
     if [ -z "$vm_out" ]; then
       track vm-ops-checks ok "hr/eth VM ops checks" "No critical checks on the VM."
     else
       track vm-ops-checks fail "hr/eth VM critical ops checks" "$(printf '%s' "$vm_out" | tr '\n' ';' | cut -c1-600) — runbook: eth-blockid docs/RUNBOOK-INCIDENTS.md"
     fi
-  else
-    log "vm-ops-checks: ssh/query failed rc=$vm_rc (not counted)"
   fi
 fi
 
