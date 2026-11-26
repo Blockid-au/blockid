@@ -11,7 +11,10 @@
  *      REFUNDED, Stripe never touched.
  *   3. Idempotency  — an already-REFUNDED row is a no-op.
  *   4. Illegal state — READY cannot be refunded through this path.
- *   5. Stripe failure leaves the order FAILED (no silent status flip).
+ *   5. Stripe failure leaves the order FAILED (claim released).
+ *   6. G36 claim first — the order moves to REFUNDED with a guarded update
+ *      before any money moves: concurrent attempts refund once, a failed
+ *      write after the refund cannot cause a second refund on retry.
  *
  * Both Supabase and Stripe are hand-rolled doubles injected through
  * `RefundDeps`, so the test never touches a database, a network, or the
@@ -66,6 +69,13 @@ class FakeUpdate implements RefundUpdateBuilder {
   eq(col: string, val: unknown): RefundUpdateBuilder {
     this.call.filters.push({ col, val });
     return this;
+  }
+
+  /** RETURNING — this stateless double always "matches" the one seeded row. */
+  select(): PromiseLike<{ data: unknown; error: { message?: string } | null }> {
+    return Promise.resolve(
+      this.error ? { data: null, error: this.error } : { data: [{ id: "row" }], error: null },
+    );
   }
 
   then<T1 = { error: { message?: string } | null }, T2 = never>(
@@ -170,21 +180,34 @@ describe("refundFailedOrder — Stripe path", () => {
     expect(params?.payment_intent).toBe("pi_test_123");
     expect(params).not.toHaveProperty("amount");
 
-    // Order lands on REFUNDED with the failure recorded.
+    // G36: a repeat of the Stripe call is deduped by Stripe too.
+    expect(create.mock.calls[0]?.[1]).toEqual({ idempotencyKey: "report-order-refund:order-1" });
+
+    // Claim first: the order moves FAILED → REFUNDED (guarded on the status
+    // read) BEFORE Stripe is called, with the failure recorded.
     const orderUpdates = db.updatesFor("report_orders");
-    expect(orderUpdates).toHaveLength(1);
+    expect(orderUpdates).toHaveLength(2);
     expect(orderUpdates[0]?.patch.status).toBe("REFUNDED");
     expect(orderUpdates[0]?.patch.failure_reason).toBe(
       "orchestration_failed: AI timeout",
     );
-    expect(orderUpdates[0]?.filters).toEqual([{ col: "id", val: "order-1" }]);
+    expect(orderUpdates[0]?.filters).toEqual([
+      { col: "id", val: "order-1" },
+      { col: "status", val: "FAILED" },
+    ]);
 
-    // Refund trail preserved alongside the original metadata.
-    const meta = orderUpdates[0]?.patch.metadata as Row;
+    // Then the refund trail lands, preserved alongside the original metadata.
+    expect(orderUpdates[1]?.patch).not.toHaveProperty("status");
+    expect(orderUpdates[1]?.filters).toEqual([
+      { col: "id", val: "order-1" },
+      { col: "status", val: "REFUNDED" },
+    ]);
+    const meta = orderUpdates[1]?.patch.metadata as Row;
     expect(meta.sku).toBe("sku_trust_report_5aud");
     const refundMeta = meta.refund as Row;
     expect(refundMeta.stripe_refund_id).toBe("re_test_1");
     expect(refundMeta.refunded_at).toBe(FIXED_NOW.toISOString());
+    expect(refundMeta.state).toBe("done");
 
     // Credit balance untouched on the Stripe path.
     expect(db.updatesFor("credit_balances")).toHaveLength(0);
@@ -220,9 +243,16 @@ describe("refundFailedOrder — Stripe path", () => {
       ok: false,
       reason: "stripe_refund_failed: charge already refunded",
     });
-    // Critically: no status flip. A REFUNDED row with no refund behind it
-    // would be exactly the lie this module exists to prevent.
-    expect(db.updatesFor("report_orders")).toHaveLength(0);
+    // Critically: the claim is released. A REFUNDED row with no refund
+    // behind it would be exactly the lie this module exists to prevent.
+    const orderUpdates = db.updatesFor("report_orders");
+    expect(orderUpdates).toHaveLength(2);
+    expect(orderUpdates[0]?.patch.status).toBe("REFUNDED");
+    expect(orderUpdates[1]?.patch).toMatchObject({ status: "FAILED", metadata: {} });
+    expect(orderUpdates[1]?.filters).toEqual([
+      { col: "id", val: "order-1" },
+      { col: "status", val: "REFUNDED" },
+    ]);
   });
 
   it("refuses when the paid order has no payment intent stored", async () => {
@@ -328,9 +358,12 @@ describe("refundFailedOrder — credit path", () => {
     expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 240, lifetime_spent: 60 });
 
     const orders = orderPatches(db);
-    expect(orders).toHaveLength(1);
+    expect(orders).toHaveLength(2); // claim, then refund detail
     expect(orders[0]?.status).toBe("REFUNDED");
-    const refundMeta = (orders[0]?.metadata as Row).refund as Row;
+    const final = db.row("report_orders", "order-2")!;
+    expect(final.status).toBe("REFUNDED");
+    expect((final.metadata as Row).payment_path).toBe("credits");
+    const refundMeta = (final.metadata as Row).refund as Row;
     expect(refundMeta.credits_reversed).toBe(200);
     expect(refundMeta.credit_balance_after).toBe(240);
   });
@@ -370,7 +403,7 @@ describe("refundFailedOrder — credit path", () => {
 
     expect(outcome).toEqual({ ok: true, path: "credits" });
     expect(db.rows("credit_balances")[0]?.balance).toBe(210);
-    const refundMeta = (orderPatches(db)[0]?.metadata as Row).refund as Row;
+    const refundMeta = (db.row("report_orders", "order-6")?.metadata as Row).refund as Row;
     expect(refundMeta.credit_balance_after).toBe(210);
   });
 
@@ -386,8 +419,8 @@ describe("refundFailedOrder — credit path", () => {
     expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 200, lifetime_spent: 0 });
   });
 
-  it("does not flip the order when the balance write fails", async () => {
-    const db = creditDb({ balance: 10, lifetime_spent: 210 }, failedCreditOrder("order-4", "user-4", 200), {
+  it("hands the order back to FAILED when the balance write fails (retryable)", async () => {
+    const db = creditDb({ balance: 10, lifetime_spent: 210 }, failedCreditOrder("order-4", "user-4", 200, { sku: "x" }), {
       failing: ["credit_balances"],
     });
 
@@ -400,7 +433,130 @@ describe("refundFailedOrder — credit path", () => {
       ok: false,
       reason: "credit_reversal_failed: credit_balances unavailable",
     });
-    expect(orderPatches(db)).toHaveLength(0);
+    // Claimed, then released: the row ends exactly as it started.
+    expect(db.row("report_orders", "order-4")).toMatchObject({ status: "FAILED", metadata: { sku: "x" } });
+    expect((db.row("report_orders", "order-4")?.metadata as Row).refund).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2b. G36 — claim first: one refund per order, even on retry / concurrency
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("refundFailedOrder — claim first (G36)", () => {
+  const seedCredit = () =>
+    new PaygFakeDb(
+      {
+        report_orders: [
+          { id: "order-r", user_id: "user-r", status: "FAILED", amount_aud: 0, credits_used: 200, stripe_payment_intent_id: null, failure_reason: null, metadata: {} },
+        ],
+        credit_balances: [{ user_id: "user-r", balance: 40, lifetime_spent: 260 }],
+      },
+      { unique: { credit_balances: [["user_id"]] } },
+    );
+
+  /**
+   * Make one report_orders update fail like a dropped connection: the first
+   * one ("first"), or the first one after the credit balance was written
+   * ("after_money" — the write that recorded the refund in the old code).
+   */
+  function failOrderUpdate(db: PaygFakeDb, which: "first" | "after_money") {
+    let moneyMoved = false;
+    let failed = false;
+    return {
+      from(table: string) {
+        const t = db.from(table);
+        if (table === "credit_balances") {
+          return { ...t, update: (patch: Row) => ((moneyMoved = true), t.update(patch)) };
+        }
+        if (table !== "report_orders") return t;
+        return {
+          ...t,
+          update: (patch: Row) => {
+            if (failed || (which === "after_money" && !moneyMoved)) return t.update(patch);
+            failed = true;
+            const err = { error: { message: "connection reset" } };
+            const failing = {
+              eq: () => failing,
+              select: () => Promise.resolve({ data: null, ...err }),
+              then: (ok: (v: typeof err) => unknown, ko?: (e: unknown) => unknown) => Promise.resolve(err).then(ok, ko),
+            };
+            return failing;
+          },
+        };
+      },
+    } as unknown as RefundSupabase;
+  }
+
+  it("two concurrent refunds of the same order credit the user once", async () => {
+    // Old code: both attempts read status=FAILED, both reversed +200.
+    const db = seedCredit();
+    const deps = { supabase: db as unknown as RefundSupabase, stripe: null, now };
+    const [a, b] = await Promise.all([
+      refundFailedOrder({ orderId: "order-r", reason: "boom" }, deps),
+      refundFailedOrder({ orderId: "order-r", reason: "boom" }, deps),
+    ]);
+    expect([a, b]).toEqual(expect.arrayContaining([{ ok: true, path: "credits" }, { ok: true, path: "already_refunded" }]));
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 240, lifetime_spent: 60 });
+    expect(db.row("report_orders", "order-r")?.status).toBe("REFUNDED");
+  });
+
+  it("a failed write after the credits moved does not refund again on retry", async () => {
+    // Old code: credits reversed, then the status write failed → order stayed
+    // FAILED → the drain retry reversed another +200.
+    const db = seedCredit();
+    const first = await refundFailedOrder(
+      { orderId: "order-r", reason: "boom" },
+      { supabase: failOrderUpdate(db, "after_money"), stripe: null, now },
+    );
+    expect(first).toEqual({ ok: true, path: "credits" });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(240);
+    expect(db.row("report_orders", "order-r")?.status).toBe("REFUNDED");
+
+    const retry = await refundFailedOrder(
+      { orderId: "order-r", reason: "boom" },
+      { supabase: db as unknown as RefundSupabase, stripe: null, now },
+    );
+    expect(retry).toEqual({ ok: true, path: "already_refunded" });
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 240, lifetime_spent: 60 });
+  });
+
+  it("a failed claim moves no money and leaves the order retryable", async () => {
+    const db = seedCredit();
+    const first = await refundFailedOrder(
+      { orderId: "order-r", reason: "boom" },
+      { supabase: failOrderUpdate(db, "first"), stripe: null, now },
+    );
+    expect(first).toEqual({ ok: false, reason: "refund_claim_failed: connection reset" });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(40);
+    expect(db.row("report_orders", "order-r")?.status).toBe("FAILED");
+
+    const retry = await refundFailedOrder(
+      { orderId: "order-r", reason: "boom" },
+      { supabase: db as unknown as RefundSupabase, stripe: null, now },
+    );
+    expect(retry).toEqual({ ok: true, path: "credits" });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(240);
+  });
+
+  it("two concurrent Stripe refunds call Stripe once", async () => {
+    const db = new PaygFakeDb({
+      report_orders: [
+        { id: "order-s", user_id: "user-s", status: "FAILED", amount_aud: 4900, credits_used: 0, stripe_payment_intent_id: "pi_s", failure_reason: null, metadata: {} },
+      ],
+    });
+    const { stripe, create } = makeStripeSpy();
+    create.mockResolvedValue({ id: "re_s", status: "succeeded" });
+    const deps = { supabase: db as unknown as RefundSupabase, stripe, now };
+    const [a, b] = await Promise.all([
+      refundFailedOrder({ orderId: "order-s", reason: "boom" }, deps),
+      refundFailedOrder({ orderId: "order-s", reason: "boom" }, deps),
+    ]);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect([a, b]).toEqual(
+      expect.arrayContaining([{ ok: true, path: "stripe", refundId: "re_s" }, { ok: true, path: "already_refunded" }]),
+    );
+    expect(((db.row("report_orders", "order-s")?.metadata as Row).refund as Row).stripe_refund_id).toBe("re_s");
   });
 });
 
