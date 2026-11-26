@@ -52,13 +52,32 @@ export type AdjustResult =
       balance: number;
       error?: string;
       /**
-       * true when the failing call was the balance WRITE (insert / update):
-       * the error may be a lost response for a write that committed, so the
-       * caller cannot assume the balance is unchanged. Absent / false means
-       * provably nothing was written (read error, contention, insufficient).
+       * true when the balance WRITE (insert / update) failed with a network /
+       * unknown error (see writeOutcomeUnknown): it may be a lost response
+       * for a write that committed, so the caller cannot assume the balance
+       * is unchanged. Absent / false means provably nothing was written (read
+       * error, contention, insufficient, or a definite Postgres / PostgREST
+       * rejection such as 23xxx / 42xxx).
        */
       maybeWritten?: boolean;
     };
+
+/**
+ * Could a write that returned this error have committed anyway?
+ *
+ * A Postgres SQLSTATE in a class where the statement is rejected and rolled
+ * back (22 data exception, 23 integrity violation, 40 transaction rollback,
+ * 42 syntax / access rule) or a PostgREST request error (PGRST…) means
+ * nothing was written. Anything else — no code (fetch failed, socket reset,
+ * timeout), a gateway error, an unknown code — is a lost response that may
+ * hide a committed write.
+ */
+export function writeOutcomeUnknown(error: { code?: string } | null | undefined): boolean {
+  const code = String(error?.code ?? "").trim().toUpperCase();
+  if (/^(22|23|40|42)[0-9A-Z]{3}$/.test(code)) return false;
+  if (/^PGRST\d+$/.test(code)) return false;
+  return true;
+}
 
 /** numeric(10,2) — keep JS float noise out of the stored value and the CAS comparison. */
 export function roundCredits(n: number): number {
@@ -94,7 +113,7 @@ export async function adjustCreditBalance(
       const ins = await db.from("credit_balances").insert(insertRow);
       if (!ins.error) return { ok: true, before: 0, balance: roundCredits(delta) };
       if (ins.error.code === "23505") continue; // a concurrent first write created the row — re-read
-      return { ok: false, reason: "db_error", balance: 0, error: ins.error.message, maybeWritten: true };
+      return { ok: false, reason: "db_error", balance: 0, error: ins.error.message, maybeWritten: writeOutcomeUnknown(ins.error) };
     }
 
     const before = Number(row.balance ?? 0);
@@ -111,7 +130,7 @@ export async function adjustCreditBalance(
       .eq("user_id", userId)
       .eq("balance", row.balance ?? 0)
       .select("balance");
-    if (upd.error) return { ok: false, reason: "db_error", balance: before, error: upd.error.message, maybeWritten: true };
+    if (upd.error) return { ok: false, reason: "db_error", balance: before, error: upd.error.message, maybeWritten: writeOutcomeUnknown(upd.error) };
     if (Array.isArray(upd.data) && upd.data.length > 0) return { ok: true, before, balance: next };
     // Zero rows: another writer moved the balance since our read — retry on the fresh value.
   }

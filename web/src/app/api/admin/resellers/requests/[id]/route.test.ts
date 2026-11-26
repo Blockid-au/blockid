@@ -228,4 +228,27 @@ describe("PATCH /api/admin/resellers/requests/[id] — ambiguous write errors (G
     expect((await approve()).status).toBe(409);
     expect(db.rows("credit_balances")[0]?.balance).toBe(35);
   });
+
+  it("G36 round 3 (item 9): a definite Postgres rejection (23514) on the balance write releases the claim — retryable", async () => {
+    const db = seed(10);
+    let failOnce = true;
+    overrideTable("credit_balances", (base) => ({
+      update: (patch: Record<string, unknown>) => {
+        if (!failOnce) return (base.update as (p: unknown) => unknown)(patch);
+        failOnce = false;
+        const w = { eq: () => w, select: () => Promise.resolve({ data: null, error: { code: "23514", message: "new row violates check constraint" } }) };
+        return w;
+      },
+    }));
+    const res = await approve();
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ reason: "balance_upsert_failed" });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(10);
+    expect(db.row("reseller_requests", "req-1")).toMatchObject({ status: "pending", decision_at: null });
+
+    const retry = await approve();
+    expect(retry.status).toBe(200);
+    expect(db.rows("credit_balances")[0]?.balance).toBe(35);
+    expect(db.rows("credit_transactions")).toHaveLength(1);
+  });
 });
