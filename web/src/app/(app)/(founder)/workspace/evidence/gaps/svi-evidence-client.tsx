@@ -152,7 +152,9 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" aria-busy="true">
+        {/* G36: the loading state carries the page h1 too (live page sweep h1_count_0) */}
+        <h1 className="text-xl font-bold text-ink-800">SVI Evidence Completeness</h1>
         <div className="flex items-center justify-between mb-6">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-6 w-20" />

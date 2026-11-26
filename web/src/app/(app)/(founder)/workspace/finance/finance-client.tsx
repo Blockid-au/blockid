@@ -363,8 +363,10 @@ export function FinanceDashboardClient({ userEmail, startupName }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-64 gap-3" role="status" aria-live="polite">
+        {/* G36: the loading state carries the page h1 too (live page sweep h1_count_0) */}
+        <h1 className="text-2xl font-bold">Finance Dashboard</h1>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading" />
       </div>
     );
   }

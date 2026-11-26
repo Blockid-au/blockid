@@ -88,7 +88,9 @@ export function ExitStrategyResultsClient({ scenarioId }: { scenarioId: string }
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" aria-busy="true">
+        {/* G36: the loading state carries the page h1 too (live page sweep h1_count_0) */}
+        <h1 className="sr-only">Exit strategy results</h1>
         <Skeleton className="h-8 w-64" />
         <div className="grid grid-cols-3 gap-4">
           <Skeleton className="h-28" />

@@ -272,10 +272,14 @@ export function RoundClient({ roundId }: { roundId: string }) {
 
   if (loading) {
     return (
-      <p className="flex items-center gap-2 text-sm text-ink-600" role="status" aria-live="polite">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        Loading the round…
-      </p>
+      <div>
+        {/* G36: the loading state carries the page h1 too (live page sweep h1_count_0) */}
+        <h1 className="sr-only">Funding round</h1>
+        <p className="flex items-center gap-2 text-sm text-ink-600" role="status" aria-live="polite">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Loading the round…
+        </p>
+      </div>
     );
   }
 

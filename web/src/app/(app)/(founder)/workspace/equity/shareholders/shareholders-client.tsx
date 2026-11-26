@@ -730,10 +730,13 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20 gap-3" role="status" aria-live="polite">
+        {/* G36: the loading state carries the page h1 too (live page sweep h1_count_0) */}
+        <h1 className="text-xl font-bold text-ink-800">Shareholder Directory</h1>
         <Loader2
           strokeWidth={1.75}
           className="h-6 w-6 text-muted animate-spin"
+          aria-label="Loading"
         />
       </div>
     );

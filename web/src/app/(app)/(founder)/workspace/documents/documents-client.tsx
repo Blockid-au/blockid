@@ -298,8 +298,10 @@ export function DocumentsClient() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 text-brand-600 animate-spin" />
+      <div className="flex flex-col items-center justify-center py-20 gap-3" role="status" aria-live="polite">
+        {/* G36: the loading state carries the page h1 too (live page sweep h1_count_0) */}
+        <h1 className="text-xl font-bold text-ink-800">Source Documents</h1>
+        <Loader2 className="h-6 w-6 text-brand-600 animate-spin" aria-label="Loading" />
       </div>
     );
   }
