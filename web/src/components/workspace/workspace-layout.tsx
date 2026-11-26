@@ -8,7 +8,7 @@ import {
   BookOpen, ChevronDown, ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Settings2,
 } from "lucide-react";
 import { useNavCollapse } from "@/lib/nav/nav-collapse-store";
-import { useResolvedNavPhase } from "@/components/workspace/founder-nav-context";
+import { useFounderNavContext, useResolvedNavPhase } from "@/components/workspace/founder-nav-context";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
@@ -292,16 +292,23 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
 
   const entitlement = useEntitlement();
   const planId = entitlement.user?.plan ?? "free";
-  const segment = (entitlement.user?.segment as Segment | undefined) ?? null;
-  const accountType = (entitlement.user as { accountType?: string } | null | undefined)?.accountType ?? null;
+  // G36 — until /api/entitlement/me answers (server render, first paint) the
+  // persona inputs come from the seat the (founder) layout read server-side,
+  // so an evaluator never sees the founder's 4-group sidebar first. Once the
+  // client snapshot lands it wins (plan changes / focus refreshes).
+  const seat = useFounderNavContext()?.seat ?? null;
+  const liveUser = entitlement.user;
+  const segment = ((liveUser ? liveUser.segment : seat?.segment) as Segment | null | undefined) ?? null;
+  const accountType = (liveUser ? (liveUser as { accountType?: string | null }).accountType : seat?.accountType) ?? null;
+  const personaPlan = (liveUser ? liveUser.plan : seat?.plan) ?? null;
 
   // Persona → sidebar groups (D5). `navGroupsForIds` keeps the persona's
   // declared order; the reseller preset swaps in the console groups.
   // G29-C: `personaFor` reads the PLAN too — a founder-typed seat on a Scout /
   // Firm / Program / Cohort plan is an evaluator and never gets founder chrome.
   const personaKey = React.useMemo(
-    () => personaFor({ role: user.role ?? null, accountType, segment, plan: entitlement.user?.plan ?? null }),
-    [user.role, accountType, segment, entitlement.user?.plan],
+    () => personaFor({ role: user.role ?? null, accountType, segment, plan: personaPlan }),
+    [user.role, accountType, segment, personaPlan],
   );
   const persona = PERSONAS[personaKey];
   const chrome = chromeFor(personaKey);
