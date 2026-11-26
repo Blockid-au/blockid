@@ -19,7 +19,7 @@ vi.mock("@/lib/stripe", () => ({ getStripe: () => null }));
 
 import { PATCH } from "./route";
 
-function seed(balance: number, onBalanceRead?: (db: PaygFakeDb) => void) {
+function seed(balance: number, onBalanceRead?: (db: PaygFakeDb) => void, failing?: string[]) {
   const db = new PaygFakeDb(
     {
       reseller_requests: [
@@ -34,7 +34,7 @@ function seed(balance: number, onBalanceRead?: (db: PaygFakeDb) => void) {
       ],
       credit_balances: [{ user_id: "cust-1", balance, lifetime_earned: 40, lifetime_spent: 0 }],
     },
-    { unique: { credit_balances: [["user_id"]] } },
+    { unique: { credit_balances: [["user_id"]] }, failing },
   );
   h.client = casTestClient(db, onBalanceRead);
   return db;
@@ -74,5 +74,67 @@ describe("PATCH /api/admin/resellers/requests/[id] — over_budget_approval gran
     expect(res.status).toBe(200);
     expect(db.rows("credit_balances")[0]?.balance).toBe(27);
     expect(db.rows("credit_transactions")[0]).toMatchObject({ balance_after: 27 });
+  });
+});
+
+describe("PATCH /api/admin/resellers/requests/[id] — concurrent approval (G36 claim-first)", () => {
+  beforeEach(() => {
+    h.client = null;
+  });
+
+  it("two admins approving the same request at once grant exactly once; the loser gets 409", async () => {
+    // Old code: both calls read status=pending, both granted (+25 twice → 60,
+    // two ledger rows); only the final status flip was guarded.
+    const db = seed(10);
+    const [a, b] = await Promise.all([approve(), approve()]);
+    expect([a.status, b.status].sort()).toEqual([200, 409]);
+    const loser = a.status === 409 ? a : b;
+    expect(await loser.json()).toMatchObject({ ok: false, reason: "already_decided" });
+
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 35, lifetime_earned: 65 });
+    expect(db.rows("credit_transactions")).toHaveLength(1);
+    expect(db.rows("reseller_credit_grants")).toHaveLength(1);
+    const tx = db.rows("credit_transactions")[0]!;
+    expect(db.row("reseller_requests", "req-1")).toMatchObject({
+      status: "approved",
+      decision_by: "admin-1",
+      linked_credit_transaction_id: tx.id,
+    });
+  });
+
+  it("a second approval after the first finished is a 409 no-op", async () => {
+    const db = seed(10);
+    expect((await approve()).status).toBe(200);
+    expect((await approve()).status).toBe(409);
+    expect(db.rows("credit_balances")[0]?.balance).toBe(35);
+    expect(db.rows("credit_transactions")).toHaveLength(1);
+  });
+
+  it("a failed ledger insert reverses the grant and releases the claim, so a retry grants once", async () => {
+    const failing = ["credit_transactions"];
+    const db = seed(10, undefined, failing);
+    const res = await approve();
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ reason: "transaction_insert_failed" });
+    // Neither approved-without-credits nor credits-without-a-ledger: back to the start.
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 10, lifetime_earned: 40 });
+    expect(db.row("reseller_requests", "req-1")).toMatchObject({ status: "pending", decision_by: null, decision_at: null });
+
+    // Ledger recovers → the retry succeeds and grants exactly once.
+    failing.length = 0;
+    const retry = await approve();
+    expect(retry.status).toBe(200);
+    expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 35, lifetime_earned: 65 });
+    expect(db.rows("credit_transactions")).toHaveLength(1);
+    expect(db.row("reseller_requests", "req-1")).toMatchObject({ status: "approved" });
+  });
+
+  it("a failed balance write releases the claim (request stays retryable)", async () => {
+    const db = seed(10, undefined, ["credit_balances"]);
+    const res = await approve();
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ reason: "balance_upsert_failed" });
+    expect(db.row("reseller_requests", "req-1")).toMatchObject({ status: "pending" });
+    expect(db.rows("credit_transactions")).toHaveLength(0);
   });
 });

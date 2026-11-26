@@ -4,10 +4,12 @@
 // decision_reason?: string}.
 //
 // Approval side-effects, per request_type:
-//   - over_budget_approval → bump credit_balances + insert credit_transactions
+//   - over_budget_approval → CLAIM the row first (pending → approved, G36:
+//     a concurrent second approval gets 409 instead of a second grant), then
+//     bump credit_balances + insert credit_transactions
 //     (reason='reseller_grant_over_budget') + insert reseller_credit_grants
-//     (kind=grant, over_budget=true). linked_credit_transaction_id is stamped
-//     on the request row before it flips to status=approved.
+//     (kind=grant, over_budget=true), then stamp linked_credit_transaction_id.
+//     A failed grant releases the claim back to pending so it can be retried.
 //   - code_request → mint Stripe coupon (tier > 0) + promotion_code, then
 //     INSERT into reseller_promotion_codes and stamp
 //     linked_promotion_code_id on the request row. Tier 0 skips Stripe per
@@ -100,6 +102,7 @@ async function PATCH_handler(
   const now = new Date().toISOString();
   let linkedCreditTransactionId: string | null = null;
   let linkedPromotionCodeId: string | null = null;
+  let claimedEarly = false;
 
   if (decision.status === "approved" && current.request_type === "code_request") {
     const payload = current.payload as {
@@ -220,14 +223,62 @@ async function PATCH_handler(
         { status: 422 },
       );
     }
+    const targetUserId = payload.target_user_id;
+    const amount = payload.requested_amount;
+
+    // G36: claim the request BEFORE moving credits. Two admins (or a
+    // double-click) approving the same request both passed the "pending"
+    // read above and both granted; only the final status flip was guarded.
+    // The conditional pending → approved update lets exactly one caller in.
+    const { data: claimedRows, error: claimErr } = await supabase
+      .from("reseller_requests")
+      .update({
+        status: "approved",
+        decision_by: user.id,
+        decision_at: now,
+        decision_reason: decision.decision_reason,
+      })
+      .eq("id", current.id)
+      .eq("status", "pending")
+      .select("id");
+    if (claimErr) {
+      return NextResponse.json(
+        { ok: false, reason: "claim_failed", error: claimErr.message },
+        { status: 500 },
+      );
+    }
+    if (!Array.isArray(claimedRows) || claimedRows.length !== 1) {
+      return NextResponse.json({ ok: false, reason: "already_decided" }, { status: 409 });
+    }
+    claimedEarly = true;
+
+    // Put the request back to pending so it can be approved again — only
+    // while nothing was granted (or the grant was reversed). Pinned to this
+    // caller's claim (decision_at) so it never undoes another decision.
+    const releaseClaim = async (why: string) => {
+      const { error: releaseErr } = await supabase
+        .from("reseller_requests")
+        .update({ status: "pending", decision_by: null, decision_at: null, decision_reason: null })
+        .eq("id", current.id)
+        .eq("status", "approved")
+        .eq("decision_at", now);
+      if (releaseErr) {
+        console.error("[admin.reseller.requests.PATCH] claim release failed — request approved without a grant", {
+          requestId: current.id,
+          why,
+          error: releaseErr.message,
+        });
+      }
+    };
 
     // G36-B: compare-and-set (+amount), not read → upsert(absolute). The old
     // upsert wrote `read + amount` over any spend or grant that landed between
     // the read and the write (a racing debit vanished; two grants lost one).
-    const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, payload.target_user_id, payload.requested_amount, {
-      lifetime: { column: "lifetime_earned", delta: payload.requested_amount },
+    const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, targetUserId, amount, {
+      lifetime: { column: "lifetime_earned", delta: amount },
     });
     if (!adjusted.ok) {
+      await releaseClaim("balance_upsert_failed");
       return NextResponse.json(
         { ok: false, reason: "balance_upsert_failed", error: adjusted.error ?? adjusted.reason },
         { status: 500 },
@@ -238,8 +289,8 @@ async function PATCH_handler(
     const { data: txRow, error: txErr } = await supabase
       .from("credit_transactions")
       .insert({
-        user_id: payload.target_user_id,
-        amount: payload.requested_amount,
+        user_id: targetUserId,
+        amount,
         balance_after: newBalance,
         reason: "reseller_grant_over_budget",
         granted_by_reseller_id: current.reseller_id,
@@ -253,6 +304,23 @@ async function PATCH_handler(
       .select("id")
       .single();
     if (txErr || !txRow) {
+      // No ledger row → take the grant back (CAS) and release the claim so
+      // the approval can be retried cleanly. If the reversal itself fails the
+      // credits stay granted and the request stays approved (never granted
+      // twice); the log line is the reconcile trail.
+      const reversed = await adjustCreditBalance(supabase as unknown as CasDb, targetUserId, -amount, {
+        lifetime: { column: "lifetime_earned", delta: -amount },
+      });
+      if (reversed.ok) {
+        await releaseClaim("transaction_insert_failed");
+      } else {
+        console.error("[admin.reseller.requests.PATCH] ledger insert failed and grant reversal failed — reconcile", {
+          requestId: current.id,
+          targetUserId,
+          amount,
+          error: reversed.error ?? reversed.reason,
+        });
+      }
       return NextResponse.json(
         { ok: false, reason: "transaction_insert_failed", error: txErr?.message ?? "no_row" },
         { status: 500 },
@@ -264,9 +332,9 @@ async function PATCH_handler(
       .from("reseller_credit_grants")
       .insert({
         reseller_id: current.reseller_id,
-        target_user_id: payload.target_user_id,
+        target_user_id: targetUserId,
         kind: "grant",
-        amount: payload.requested_amount,
+        amount,
         credit_transaction_id: txRow.id,
         month_key: monthKey(new Date()),
         over_budget: true,
@@ -278,6 +346,19 @@ async function PATCH_handler(
         },
       });
     if (mirrorErr) {
+      // Credits + ledger are booked: keep the request approved (a retry must
+      // not grant again) and link the ledger row; only the reseller-side
+      // mirror is missing.
+      await supabase
+        .from("reseller_requests")
+        .update({ linked_credit_transaction_id: linkedCreditTransactionId })
+        .eq("id", current.id)
+        .eq("status", "approved");
+      console.error("[admin.reseller.requests.PATCH] reseller_credit_grants mirror insert failed after grant", {
+        requestId: current.id,
+        creditTransactionId: linkedCreditTransactionId,
+        error: mirrorErr.message,
+      });
       return NextResponse.json(
         { ok: false, reason: "mirror_insert_failed", error: mirrorErr.message },
         { status: 500 },
@@ -285,32 +366,42 @@ async function PATCH_handler(
     }
   }
 
-  const { data: updated, error: updateErr } = await supabase
-    .from("reseller_requests")
-    .update({
-      status: decision.status,
-      decision_by: user.id,
-      decision_at: now,
-      decision_reason: decision.decision_reason,
-      linked_credit_transaction_id: linkedCreditTransactionId,
-      linked_promotion_code_id: linkedPromotionCodeId,
-    })
-    .eq("id", current.id)
-    .eq("status", "pending")
-    .select(
-      "id, status, decision_at, decision_reason, linked_credit_transaction_id, linked_promotion_code_id",
-    )
-    .single();
+  // Over-budget approvals already hold the row (claimed above): stamp the
+  // ledger link. Everything else flips pending → decision here; the loser of
+  // a concurrent decision matches zero rows → 409.
+  const RETURNING =
+    "id, status, decision_at, decision_reason, linked_credit_transaction_id, linked_promotion_code_id";
+  const { data: updated, error: updateErr } = claimedEarly
+    ? await supabase
+        .from("reseller_requests")
+        .update({ linked_credit_transaction_id: linkedCreditTransactionId })
+        .eq("id", current.id)
+        .eq("status", "approved")
+        .select(RETURNING)
+        .maybeSingle()
+    : await supabase
+        .from("reseller_requests")
+        .update({
+          status: decision.status,
+          decision_by: user.id,
+          decision_at: now,
+          decision_reason: decision.decision_reason,
+          linked_credit_transaction_id: linkedCreditTransactionId,
+          linked_promotion_code_id: linkedPromotionCodeId,
+        })
+        .eq("id", current.id)
+        .eq("status", "pending")
+        .select(RETURNING)
+        .maybeSingle();
 
-  if (updateErr || !updated) {
+  if (updateErr) {
     return NextResponse.json(
-      {
-        ok: false,
-        reason: "update_failed",
-        error: updateErr?.message ?? "no_row",
-      },
+      { ok: false, reason: "update_failed", error: updateErr.message },
       { status: 500 },
     );
+  }
+  if (!updated) {
+    return NextResponse.json({ ok: false, reason: "already_decided" }, { status: 409 });
   }
 
   // Observability record for the sensitive admin transition. Non-fatal:
