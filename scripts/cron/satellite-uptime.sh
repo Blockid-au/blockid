@@ -97,6 +97,70 @@ for host in $HOSTS; do
   fi
 done
 
+# ── Liveness beyond HTTP (G36 tick 5, 26/11) ────────────────────────────────
+# 05/11 → 26/11 the VM's chain (evmd) stopped producing blocks and both AI
+# workers were dead after the disk-full incident, while every page and API
+# above answered 200. The VM's own ops monitor flagged both as critical but
+# its SMTP is not configured, so nobody was told for three weeks.
+#   1. every run: newest block on scan.blockid.au must be < CHAIN_STALE_S old;
+#   2. every VM_CHECK_EVERY_S: read the VM's own critical ops checks over
+#      gcloud ssh (read-only SELECT) and alert on them here.
+# Same 3-strike / one-alert-per-incident rule as the HTTP probes.
+CHAIN_STALE_S="${CHAIN_STALE_S:-600}"
+VM_CHECK_EVERY_S="${VM_CHECK_EVERY_S:-600}"
+
+track() { # $1 key, $2 ok|fail, $3 alert title, $4 detail
+  local sf="${STATE_DIR}/${1}" fails
+  fails=$(cat "$sf" 2>/dev/null || echo 0); fails=${fails:-0}
+  if [ "$2" = ok ]; then
+    if [ "$fails" -ge "$ALERT_AFTER" ]; then
+      log "RECOVER $1 after $fails fails"
+      ops_alert "✅ ${3} recovered" "${4}" P2
+    fi
+    echo 0 > "$sf"; return
+  fi
+  fails=$((fails + 1)); echo "$fails" > "$sf"
+  log "FAIL $1 fails=$fails $4"
+  [ "$fails" -eq "$ALERT_AFTER" ] && ops_alert "🔴 ${3}" "${4} (satellite-uptime, checked ${ALERT_AFTER}× in a row)" P1
+}
+
+chain_age=$(curl -s --max-time 15 "https://scan.blockid.au/api/v2/blocks?type=block" | python3 -c '
+import sys, json, datetime
+i = json.load(sys.stdin)["items"][0]
+t = datetime.datetime.fromisoformat(i["timestamp"].replace("Z", "+00:00")).timestamp()
+print(int(datetime.datetime.now(datetime.timezone.utc).timestamp() - t), i["height"])' 2>/dev/null)
+if [ -n "$chain_age" ] && [ "${chain_age%% *}" -lt "$CHAIN_STALE_S" ]; then
+  track chain-blocks ok "BlockID Chain" "Newest block ${chain_age#* } is ${chain_age%% *} s old."
+elif [ -n "$chain_age" ]; then
+  track chain-blocks fail "BlockID Chain halted" "Newest block ${chain_age#* } on scan.blockid.au is ${chain_age%% *} s old (limit ${CHAIN_STALE_S} s). Runbook eth-blockid docs/RUNBOOK-INCIDENTS.md#chain-halted: snapshot /mnt/app-data/evmd, then \$DC restart evmd."
+fi # empty = scan API down, already covered by the scan.blockid.au probe
+
+vm_stamp="${STATE_DIR}/vm-checks.last"
+if command -v gcloud >/dev/null 2>&1 && [ $(( $(date +%s) - $(cat "$vm_stamp" 2>/dev/null || echo 0) )) -ge "$VM_CHECK_EVERY_S" ]; then
+  date +%s > "$vm_stamp"
+  # One read-only query; prints "check_id|status|detail" for each critical check,
+  # plus "__monitor|stale|<age> s" when the VM's monitor itself stopped writing.
+  vm_out=$(timeout 90 gcloud compute ssh "$VM_NAME" --project "$VM_PROJECT" --zone "$VM_ZONE" --quiet --command 'bash -s' 2>/dev/null <<'VMQ'
+sudo docker exec -i blockid-app-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -v ON_ERROR_STOP=1' <<'SQL'
+select check_id, status, left(detail, 160) from studio.ops_checks_state
+ where status = 'critical' and check_id not like '\_%';
+select '__monitor', 'stale', extract(epoch from now() - max(updated_at))::int || ' s'
+  from studio.ops_checks_state having max(updated_at) < now() - interval '15 minutes';
+SQL
+VMQ
+)
+  vm_rc=$?
+  if [ "$vm_rc" -eq 0 ]; then
+    if [ -z "$vm_out" ]; then
+      track vm-ops-checks ok "hr/eth VM ops checks" "No critical checks on the VM."
+    else
+      track vm-ops-checks fail "hr/eth VM critical ops checks" "$(printf '%s' "$vm_out" | tr '\n' ';' | cut -c1-600) — runbook: eth-blockid docs/RUNBOOK-INCIDENTS.md"
+    fi
+  else
+    log "vm-ops-checks: ssh/query failed rc=$vm_rc (not counted)"
+  fi
+fi
+
 # VM self-heal: only when every VM host is failing (a single-site fault is an
 # app problem on the VM, not a stopped VM).
 vm_hosts_n=$(echo $VM_HOSTS | wc -w)
