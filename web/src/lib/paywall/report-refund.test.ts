@@ -110,6 +110,9 @@ class FakeDb {
               db.opts.updateErrors?.[table] ?? null,
             );
           },
+          insert(): PromiseLike<{ error: { message?: string } | null }> {
+            return Promise.resolve({ error: null });
+          },
         };
       },
     };
@@ -134,6 +137,11 @@ function makeStripeSpy(): {
 } {
   const create = vi.fn<StripeRefundCreate>();
   return { stripe: makeStripe(create), create };
+}
+
+/** Shape of a stripe-node error (type = class name, statusCode, code). */
+function stripeError(type: string, statusCode: number | undefined, message: string, code?: string): Error {
+  return Object.assign(new Error(message), { type, statusCode, code });
 }
 
 const FIXED_NOW = new Date("2026-07-31T02:00:00.000Z");
@@ -201,6 +209,7 @@ describe("refundFailedOrder — Stripe path", () => {
     expect(orderUpdates[1]?.filters).toEqual([
       { col: "id", val: "order-1" },
       { col: "status", val: "REFUNDED" },
+      { col: "metadata->refund->>state", val: "claimed" },
     ]);
     const meta = orderUpdates[1]?.patch.metadata as Row;
     expect(meta.sku).toBe("sku_trust_report_5aud");
@@ -213,7 +222,7 @@ describe("refundFailedOrder — Stripe path", () => {
     expect(db.updatesFor("credit_balances")).toHaveLength(0);
   });
 
-  it("leaves the order FAILED when Stripe rejects the refund", async () => {
+  it("leaves the order FAILED when Stripe definitely rejects the refund (4xx invalid request)", async () => {
     const db = new FakeDb({
       rows: {
         report_orders: {
@@ -233,7 +242,7 @@ describe("refundFailedOrder — Stripe path", () => {
       {
         supabase: db.client(),
         stripe: makeStripe(() =>
-          Promise.reject(new Error("charge already refunded")),
+          Promise.reject(stripeError("StripeInvalidRequestError", 400, "No such payment_intent: 'pi_test_123'")),
         ),
         now,
       },
@@ -241,7 +250,7 @@ describe("refundFailedOrder — Stripe path", () => {
 
     expect(outcome).toEqual({
       ok: false,
-      reason: "stripe_refund_failed: charge already refunded",
+      reason: "stripe_refund_failed: No such payment_intent: 'pi_test_123'",
     });
     // Critically: the claim is released. A REFUNDED row with no refund
     // behind it would be exactly the lie this module exists to prevent.
@@ -358,7 +367,10 @@ describe("refundFailedOrder — credit path", () => {
     expect(db.rows("credit_balances")[0]).toMatchObject({ balance: 240, lifetime_spent: 60 });
 
     const orders = orderPatches(db);
-    expect(orders).toHaveLength(2); // claim, then refund detail
+    expect(orders).toHaveLength(3); // claim, crediting, done
+    expect(db.rows("credit_transactions")).toEqual([
+      expect.objectContaining({ user_id: "user-2", amount: 200, balance_after: 240, reason: "refund_report_order", metadata: { report_order_id: "order-2" } }),
+    ]);
     expect(orders[0]?.status).toBe("REFUNDED");
     const final = db.row("report_orders", "order-2")!;
     expect(final.status).toBe("REFUNDED");
@@ -679,5 +691,102 @@ describe("refundFailedOrder — guards", () => {
       { supabase: null, stripe: null, now },
     );
     expect(outcome).toEqual({ ok: false, reason: "supabase_not_configured" });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. G36 review — ambiguous outcomes keep the claim (reconcile finishes it)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("refundFailedOrder — ambiguous outcomes keep the claim", () => {
+  const stripeOrder = (): Row => ({
+    id: "order-a",
+    user_id: "user-a",
+    status: "FAILED",
+    amount_aud: 4900,
+    credits_used: 0,
+    stripe_payment_intent_id: "pi_a",
+    failure_reason: "orchestration_failed",
+    metadata: { sku: "full" },
+  });
+
+  it.each([
+    ["timeout (StripeConnectionError, no status)", stripeError("StripeConnectionError", undefined, "Request timed out")],
+    ["connection reset (plain network error)", Object.assign(new Error("socket hang up"), { code: "ECONNRESET" })],
+    ["5xx StripeAPIError", stripeError("StripeAPIError", 500, "An unknown error occurred")],
+    ["rate limit 429", stripeError("StripeRateLimitError", 429, "Too many requests")],
+  ])("%s → order stays REFUNDED/claimed with last_error, no release", async (_label, err) => {
+    const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+    const outcome = await refundFailedOrder(
+      { orderId: "order-a", reason: "boom" },
+      { supabase: db as unknown as RefundSupabase, stripe: makeStripe(() => Promise.reject(err)), now },
+    );
+    expect(outcome.ok).toBe(false);
+    expect((outcome as { reason: string }).reason).toMatch(/^stripe_refund_unconfirmed: /);
+    const row = db.row("report_orders", "order-a")!;
+    expect(row.status).toBe("REFUNDED");
+    const refund = (row.metadata as Row).refund as Row;
+    expect(refund).toMatchObject({ state: "claimed", previous_status: "FAILED", previous_failure_reason: "orchestration_failed" });
+    expect(String(refund.last_error)).toContain((err as Error).message);
+    expect((row.metadata as Row).sku).toBe("full");
+  });
+
+  it("charge_already_refunded → records the existing refund (read-only list) and finishes", async () => {
+    const db = new PaygFakeDb({ report_orders: [stripeOrder()] });
+    const list = vi.fn(async () => ({ data: [{ id: "re_earlier", status: "succeeded" }] }));
+    const stripe: RefundCapableStripe = {
+      refunds: {
+        create: () => Promise.reject(stripeError("StripeInvalidRequestError", 400, "Charge has already been refunded.", "charge_already_refunded")),
+        list,
+      },
+    };
+    const outcome = await refundFailedOrder({ orderId: "order-a", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe, now });
+    expect(outcome).toEqual({ ok: true, path: "stripe", refundId: "re_earlier" });
+    expect(list).toHaveBeenCalledWith({ payment_intent: "pi_a", limit: 10 });
+    const refund = (db.row("report_orders", "order-a")?.metadata as Row).refund as Row;
+    expect(refund).toMatchObject({ state: "done", stripe_refund_id: "re_earlier" });
+  });
+
+  it("a credit write that may have committed stays `crediting` (no release, no second credit)", async () => {
+    const db = new PaygFakeDb(
+      {
+        report_orders: [{ id: "order-c", user_id: "user-c", status: "FAILED", amount_aud: 0, credits_used: 200, stripe_payment_intent_id: null, failure_reason: null, metadata: {} }],
+        credit_balances: [{ user_id: "user-c", balance: 40, lifetime_spent: 260 }],
+      },
+      { unique: { credit_balances: [["user_id"]] } },
+    );
+    // The CAS update commits but its response is lost.
+    const client = {
+      from(table: string) {
+        const t = db.from(table);
+        if (table !== "credit_balances") return t;
+        return {
+          ...t,
+          update: (patch: Row) => {
+            const q = t.update(patch);
+            const w = {
+              eq: (c: string, v: unknown) => (q.eq(c, v), w),
+              select: () => {
+                void q.select().then(() => undefined);
+                return Promise.resolve({ data: null, error: { message: "connection reset" } });
+              },
+            };
+            return w;
+          },
+        };
+      },
+    } as unknown as RefundSupabase;
+
+    const outcome = await refundFailedOrder({ orderId: "order-c", reason: "boom" }, { supabase: client, stripe: null, now });
+    expect(outcome).toEqual({ ok: false, reason: "credit_reversal_failed: connection reset" });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(240); // it DID land
+    const row = db.row("report_orders", "order-c")!;
+    expect(row.status).toBe("REFUNDED");
+    expect(((row.metadata as Row).refund as Row).state).toBe("crediting");
+
+    // Retry: the claim holds → no second credit.
+    const retry = await refundFailedOrder({ orderId: "order-c", reason: "boom" }, { supabase: db as unknown as RefundSupabase, stripe: null, now });
+    expect(retry).toEqual({ ok: true, path: "already_refunded" });
+    expect(db.rows("credit_balances")[0]?.balance).toBe(240);
   });
 });

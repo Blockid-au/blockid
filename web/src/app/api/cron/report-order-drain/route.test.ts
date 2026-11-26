@@ -31,6 +31,19 @@ vi.mock("@/lib/paywall/report-generator", () => ({
 vi.mock("@/lib/paywall/report-refund", () => ({
   refundFailedOrder: (...args: unknown[]) => h.refund(...args),
 }));
+const sweeps = vi.hoisted(() => ({
+  reconcile: vi.fn(),
+  unrefunded: vi.fn(),
+  telegram: vi.fn(),
+}));
+vi.mock("@/lib/paywall/report-refund-reconcile", () => ({
+  reconcileStaleRefundClaims: (...args: unknown[]) => sweeps.reconcile(...args),
+  alertUnrefundedFailedOrders: (...args: unknown[]) => sweeps.unrefunded(...args),
+}));
+vi.mock("@/lib/telegram", () => ({
+  sendTelegram: (...args: unknown[]) => sweeps.telegram(...args),
+  mdEscape: (s: string) => s,
+}));
 vi.mock("@/lib/ops/origin-activity", () => ({
   trackOriginWork: (_k: string, fn: () => unknown) => fn(),
 }));
@@ -74,6 +87,9 @@ beforeEach(() => {
   h.authorised = true;
   h.generate.mockReset().mockResolvedValue({ ok: true, reportId: "rpt-new" });
   h.refund.mockReset().mockResolvedValue({ ok: true, path: "stripe", refundId: "re_1" });
+  sweeps.reconcile.mockReset().mockResolvedValue({ checked: 0, completed: [], kept: [], released: [], operator: [], alerted: false });
+  sweeps.unrefunded.mockReset().mockResolvedValue({ found: [], alerted: false });
+  sweeps.telegram.mockReset().mockResolvedValue(true);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
@@ -110,6 +126,28 @@ describe("cron/report-order-drain", () => {
     const { status, body } = await call("POST");
     expect(status).toBe(200);
     expect(body).toMatchObject({ ok: true, processed: 0, remaining: 0, reclaimed: [], noop: true });
+    // G36: the refund safety net runs every tick, alerting through Telegram.
+    expect(sweeps.reconcile).toHaveBeenCalledTimes(1);
+    expect(sweeps.unrefunded).toHaveBeenCalledTimes(1);
+    const { alert } = sweeps.reconcile.mock.calls[0]![0] as { alert: (t: string) => Promise<boolean> };
+    await alert("[P1] report refund needs an operator: 1 order(s)");
+    expect(sweeps.telegram).toHaveBeenCalledWith("[P1] report refund needs an operator: 1 order(s)");
+  });
+
+  it("G36: reports refund-reconcile and unrefunded-order work (not a noop); a throwing sweep never fails the tick", async () => {
+    useDb([]);
+    sweeps.reconcile.mockResolvedValue({ checked: 1, completed: ["o-1"], kept: [], released: [], operator: [], alerted: false });
+    sweeps.unrefunded.mockRejectedValue(new Error("db down"));
+    const first = await call();
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ refundReconcile: { completed: ["o-1"] } });
+    expect(first.body.noop).toBeUndefined();
+
+    sweeps.reconcile.mockRejectedValue(new Error("boom"));
+    sweeps.unrefunded.mockResolvedValue({ found: ["o-2"], alerted: true });
+    const second = await call();
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({ unrefundedFailed: { count: 1, alerted: true } });
   });
 
   it("reclaims a dead worker's lease and re-drains the order in the same tick", async () => {

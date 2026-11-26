@@ -38,6 +38,13 @@ import {
 } from "@/lib/paywall/report-order-worker";
 import { generateTrustReportForOrder } from "@/lib/paywall/report-generator";
 import { refundFailedOrder } from "@/lib/paywall/report-refund";
+import {
+  alertUnrefundedFailedOrders,
+  reconcileStaleRefundClaims,
+  type ReconcileResult,
+  type UnrefundedResult,
+} from "@/lib/paywall/report-refund-reconcile";
+import { mdEscape, sendTelegram } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import type { SettledOrder } from "@/lib/paywall/report-order-worker";
 import { readBalanceFlags } from "@/lib/ai/balance-flags";
@@ -177,6 +184,24 @@ async function handle(request: Request): Promise<Response> {
     });
   }
 
+  // ── G36 refund safety net (after the drain, so this tick's refunds have
+  // settled): finish refund claims a dead process or an ambiguous Stripe
+  // answer left behind, then alert on paid FAILED orders nobody refunded.
+  // Both never throw out of the tick.
+  const alert = (text: string) => sendTelegram(mdEscape(text));
+  let refundReconcile: ReconcileResult | null = null;
+  let unrefunded: UnrefundedResult | null = null;
+  try {
+    refundReconcile = await reconcileStaleRefundClaims({ alert });
+  } catch (err) {
+    console.error("[blockid:report-order-drain] refund reconcile threw", err instanceof Error ? err.message : String(err));
+  }
+  try {
+    unrefunded = await alertUnrefundedFailedOrders({ alert });
+  } catch (err) {
+    console.error("[blockid:report-order-drain] unrefunded sweep threw", err instanceof Error ? err.message : String(err));
+  }
+
   // Cheap "remaining" probe so the ops dashboard can graph backlog.
   let remaining = 0;
   try {
@@ -205,7 +230,19 @@ async function handle(request: Request): Promise<Response> {
   };
   if (reclaim.skipped) body.reclaimSkipped = reclaim.skipped;
   if (paused) body.paused = paused;
-  if (processed === 0 && remaining === 0 && reclaim.reclaimed.length === 0) {
+  const refundWork = refundReconcile ? refundReconcile.checked + refundReconcile.operator.length : 0;
+  if (refundWork > 0 && refundReconcile) {
+    body.refundReconcile = {
+      completed: refundReconcile.completed,
+      kept: refundReconcile.kept,
+      released: refundReconcile.released,
+      operator: refundReconcile.operator,
+    };
+  }
+  if (unrefunded && unrefunded.found.length > 0) {
+    body.unrefundedFailed = { count: unrefunded.found.length, alerted: unrefunded.alerted };
+  }
+  if (processed === 0 && remaining === 0 && reclaim.reclaimed.length === 0 && refundWork === 0 && !body.unrefundedFailed) {
     body.noop = true;
   }
 

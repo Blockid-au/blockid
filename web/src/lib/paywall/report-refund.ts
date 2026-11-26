@@ -15,23 +15,39 @@
  *   * Credits (credits_used > 0) → add the debit back onto
  *     credit_balances and wind lifetime_spent back down, mirroring the
  *     compensating write in /api/reports/redeem's order-insert error
- *     branch. The worker never debits credits itself (redeem already
- *     did), so this is a pure reversal — no double-credit.
+ *     branch, and book a `refund_report_order` credit_transactions row
+ *     carrying metadata.report_order_id. The worker never debits credits
+ *     itself (redeem already did), so this is a pure reversal.
  *
  * Either way the order lands on REFUNDED with failure_reason recorded,
  * and the transition goes through `nextState()` so an out-of-order call
  * (e.g. the order is already REFUNDED, or still PAID and being retried)
  * cannot corrupt the row.
  *
- * Idempotency (G36 — claim first): the order is moved to REFUNDED with a
- * conditional update (`.eq("status", <status read>)`) BEFORE any money
- * moves, and only the caller whose update matched a row refunds. The old
- * order — refund, then write the status — refunded twice when the status
- * write failed and the drain cron retried, and two concurrent attempts both
- * passed the "not yet REFUNDED" read. A row already in REFUNDED (or claimed
- * by a concurrent attempt) short-circuits with
- * `{ ok: true, path: "already_refunded" }`. If the money cannot move, the
- * claim is released back to the previous status so a later tick retries.
+ * Idempotency (G36 — claim first). `metadata.refund.state` tracks the
+ * money:
+ *
+ *   claimed   → the order was moved to REFUNDED with a conditional update
+ *               (`.eq("status", <status read>)`) BEFORE any money moved.
+ *               Only the caller whose update matched a row refunds; a
+ *               concurrent or retried attempt sees REFUNDED and stops.
+ *               Stripe may or may not have been called (an ambiguous
+ *               Stripe error keeps this state + `last_error`); credits
+ *               have provably NOT been touched.
+ *   crediting → written (guarded on `claimed`) right before the credit
+ *               compare-and-set. From here only the refund ledger row can
+ *               prove whether the credits landed.
+ *   done      → money moved and recorded.
+ *   needs_operator → the reconcile sweep could not prove the outcome; an
+ *               ops alert was raised. Never touched automatically again.
+ *
+ * A DEFINITE failure before any money moved (Stripe rejected the request
+ * with a 4xx invalid-request / card error, the credit write provably did
+ * not happen) releases the claim back to the previous status. Anything
+ * ambiguous keeps the claim; `reconcileStaleRefundClaims()`
+ * (report-refund-reconcile.ts, run by the drain cron) finishes it — the
+ * Stripe leg with the same idempotency key, the credit leg only when it is
+ * provably missing.
  */
 
 import "server-only";
@@ -50,6 +66,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Row = Record<string, unknown>;
+type DbError = { message?: string } | null;
 
 export interface RefundSelectBuilder {
   eq(col: string, val: unknown): RefundSelectBuilder;
@@ -57,24 +74,25 @@ export interface RefundSelectBuilder {
 }
 
 export interface RefundUpdateBuilder
-  extends PromiseLike<{ error: { message?: string } | null }> {
+  extends PromiseLike<{ error: DbError }> {
   eq(col: string, val: unknown): RefundUpdateBuilder;
-  /** RETURNING — the claim needs to know whether its guarded update matched a row. */
-  select(cols: string): PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+  /** RETURNING — guarded updates need to know whether they matched a row. */
+  select(cols: string): PromiseLike<{ data: unknown; error: DbError }>;
 }
 
 export interface RefundSupabase {
   from(table: string): {
     select(cols: string): RefundSelectBuilder;
     update(patch: Row): RefundUpdateBuilder;
+    insert(row: Row): PromiseLike<{ error: DbError }>;
   };
 }
 
 /**
- * The slice of the Stripe SDK we need. Declared as a method (not a
- * property holding a function type) so the real `Stripe` client — whose
- * `refunds.create` takes an extra optional RequestOptions argument —
- * stays structurally assignable.
+ * The slice of the Stripe SDK we need. Declared as methods (not
+ * properties holding function types) so the real `Stripe` client — whose
+ * methods take an extra optional RequestOptions argument — stays
+ * structurally assignable.
  */
 export interface RefundCapableStripe {
   refunds: {
@@ -86,6 +104,10 @@ export interface RefundCapableStripe {
       },
       options?: { idempotencyKey?: string },
     ): Promise<{ id: string; status?: string | null }>;
+    /** Read-only lookup used when Stripe answers "charge already refunded". */
+    list?(params: { payment_intent: string; limit?: number }): PromiseLike<{
+      data: Array<{ id: string; status?: string | null }>;
+    }>;
   };
 }
 
@@ -107,6 +129,309 @@ export type RefundOutcome =
   | { ok: true; path: RefundPath; refundId?: string }
   | { ok: false; reason: string };
 
+/** credit_transactions.reason of the credit-refund ledger row (metadata.report_order_id = order id). */
+export const REPORT_REFUND_LEDGER_REASON = "refund_report_order";
+
+export type RefundState = "claimed" | "crediting" | "done" | "needs_operator";
+
+/** Stripe idempotency key — the reconcile sweep re-sends the SAME request. */
+export function stripeRefundIdempotencyKey(orderId: string): string {
+  return `report-order-refund:${orderId}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stripe error classification
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Error types where Stripe definitely did NOT create a refund. */
+const DEFINITE_STRIPE_TYPES = new Set([
+  "StripeInvalidRequestError",
+  "StripeCardError",
+  "invalid_request_error",
+  "card_error",
+]);
+
+/**
+ * true only for a definite rejection: an invalid-request / card error with a
+ * 4xx status. Network errors, timeouts, 5xx, StripeConnectionError,
+ * StripeAPIError, rate limits and idempotency conflicts are ambiguous — Stripe
+ * may have refunded — so the caller must keep the claim.
+ */
+export function isDefiniteStripeRejection(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { type?: unknown; rawType?: unknown; statusCode?: unknown };
+  const typed = DEFINITE_STRIPE_TYPES.has(String(e.type)) || DEFINITE_STRIPE_TYPES.has(String(e.rawType));
+  const status = typeof e.statusCode === "number" ? e.statusCode : NaN;
+  return typed && status >= 400 && status < 500;
+}
+
+function stripeErrorCode(err: unknown): string {
+  return err && typeof err === "object" && "code" in err ? String((err as { code?: unknown }).code ?? "") : "";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Claimed-refund completion (shared by refundFailedOrder + the reconcile sweep)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A REFUNDED order holding a refund claim, as the completion step needs it. */
+export interface ClaimedOrder {
+  id: string;
+  userId: string;
+  amountCents: number;
+  creditsUsed: number;
+  paymentIntentId: string;
+  /** The order's metadata WITHOUT the `refund` key. */
+  baseMeta: Row;
+  /** metadata.refund as currently stored (state claimed | crediting). */
+  refund: Row;
+}
+
+export type CompleteOutcome =
+  | { ok: true; path: RefundPath; refundId?: string }
+  | {
+      ok: false;
+      reason: string;
+      /** released = claim handed back (nothing moved); kept = still claimed for reconcile; operator = needs_operator. */
+      disposition: "released" | "kept" | "operator";
+    };
+
+type StripeStep =
+  | { kind: "refunded"; id: string; status: string | null }
+  | { kind: "rejected"; error: string }
+  | { kind: "ambiguous"; error: string };
+
+async function stripeRefundStep(stripe: RefundCapableStripe, order: ClaimedOrder): Promise<StripeStep> {
+  const reasonText = String(order.refund.refund_reason ?? "");
+  try {
+    const refund = await stripe.refunds.create(
+      {
+        payment_intent: order.paymentIntentId,
+        reason: "requested_by_customer",
+        metadata: {
+          bid_scope: "report_order",
+          bid_order_id: order.id,
+          bid_failure_reason: reasonText.slice(0, 400),
+        },
+      },
+      { idempotencyKey: stripeRefundIdempotencyKey(order.id) },
+    );
+    return { kind: "refunded", id: refund.id, status: refund.status ?? null };
+  } catch (err) {
+    if (stripeErrorCode(err) === "charge_already_refunded") {
+      // Refunded by an earlier attempt whose response was lost (or by hand):
+      // record the refund that exists instead of failing.
+      try {
+        const listed = stripe.refunds.list
+          ? await stripe.refunds.list({ payment_intent: order.paymentIntentId, limit: 10 })
+          : null;
+        const hit = listed?.data.find((r) => r.status !== "failed" && r.status !== "canceled");
+        if (hit) return { kind: "refunded", id: hit.id, status: hit.status ?? null };
+      } catch (listErr) {
+        return { kind: "ambiguous", error: `already_refunded_lookup_failed: ${msg(listErr)}` };
+      }
+      return { kind: "ambiguous", error: "charge_already_refunded_but_no_refund_listed" };
+    }
+    return isDefiniteStripeRejection(err)
+      ? { kind: "rejected", error: msg(err) }
+      : { kind: "ambiguous", error: msg(err) };
+  }
+}
+
+/** Guarded metadata write on the claimed order. Returns matched-row count (-1 on error). */
+async function writeRefundMeta(
+  db: RefundSupabase,
+  order: ClaimedOrder,
+  refund: Row,
+  guardState?: RefundState,
+): Promise<{ matched: number; error?: string }> {
+  let q = db
+    .from("report_orders")
+    .update({ metadata: { ...order.baseMeta, refund } })
+    .eq("id", order.id)
+    .eq("status", "REFUNDED");
+  if (guardState) q = q.eq("metadata->refund->>state", guardState);
+  const res = await q.select("id");
+  if (res.error) return { matched: -1, error: msg(res.error) };
+  return { matched: Array.isArray(res.data) ? res.data.length : 0 };
+}
+
+/** Nothing moved — hand the order back to the status it had before the claim. */
+async function releaseClaim(db: RefundSupabase, order: ClaimedOrder, why: string): Promise<void> {
+  const { error } = await db
+    .from("report_orders")
+    .update({
+      status: String(order.refund.previous_status ?? "FAILED"),
+      failure_reason: (order.refund.previous_failure_reason as string | null | undefined) ?? null,
+      metadata: order.baseMeta,
+    })
+    .eq("id", order.id)
+    .eq("status", "REFUNDED");
+  if (error) {
+    console.error(
+      "[blockid:report-refund] claim release failed — order REFUNDED without a refund; reconcile",
+      { orderId: order.id, why, error: msg(error) },
+    );
+  }
+}
+
+/** The credit-refund ledger row for this order, if one was booked. */
+export async function findRefundLedgerRow(
+  db: RefundSupabase,
+  order: Pick<ClaimedOrder, "id" | "userId">,
+): Promise<{ row: Row | null; error?: string }> {
+  const res = await db
+    .from("credit_transactions")
+    .select("id, balance_after")
+    .eq("user_id", order.userId)
+    .eq("reason", REPORT_REFUND_LEDGER_REASON)
+    .eq("metadata->>report_order_id", order.id)
+    .maybeSingle();
+  if (res.error) return { row: null, error: msg(res.error) };
+  return { row: res.data };
+}
+
+/**
+ * Move the money for an order that holds a refund claim, then mark it done.
+ * Never throws. `now` stamps last_attempt_at.
+ */
+export async function completeClaimedRefund(
+  db: RefundSupabase,
+  stripe: RefundCapableStripe | null,
+  order: ClaimedOrder,
+  now: () => Date,
+): Promise<CompleteOutcome> {
+  const refund: Row = { ...order.refund };
+  let path: RefundPath = "nothing_to_refund";
+  let refundId: string | undefined;
+  const keep = async (reason: string): Promise<CompleteOutcome> => {
+    refund.last_error = reason.slice(0, 500);
+    refund.last_attempt_at = now().toISOString();
+    // Guarded on the state this attempt holds, so a stale copy never
+    // overwrites a concurrent attempt's newer state.
+    const w = await writeRefundMeta(db, order, refund, refund.state as RefundState);
+    if (w.error) console.error("[blockid:report-refund] could not record last_error", { orderId: order.id, error: w.error });
+    return { ok: false, reason, disposition: "kept" };
+  };
+
+  // ── Path A: Stripe ───────────────────────────────────────────────────
+  if (order.amountCents > 0) {
+    if (typeof refund.stripe_refund_id === "string" && refund.stripe_refund_id) {
+      refundId = refund.stripe_refund_id;
+      path = "stripe";
+    } else {
+      if (!stripe) return keep("stripe_not_configured");
+      const step = await stripeRefundStep(stripe, order);
+      if (step.kind === "rejected") {
+        // Definite: Stripe refused, nothing moved.
+        await releaseClaim(db, order, "stripe_refund_rejected");
+        return { ok: false, reason: `stripe_refund_failed: ${step.error}`, disposition: "released" };
+      }
+      if (step.kind === "ambiguous") {
+        // Stripe may have refunded — keep the claim; the reconcile sweep
+        // re-sends the same request (same idempotency key).
+        return keep(`stripe_refund_unconfirmed: ${step.error}`);
+      }
+      refundId = step.id;
+      refund.stripe_refund_id = step.id;
+      refund.stripe_refund_status = step.status;
+      path = "stripe";
+    }
+  }
+
+  // ── Path B: credits ──────────────────────────────────────────────────
+  if (order.creditsUsed > 0) {
+    if (refund.state === "crediting") {
+      // A previous attempt may have credited. Only the ledger can prove it.
+      const led = await findRefundLedgerRow(db, order);
+      if (led.error) return { ok: false, reason: `refund_ledger_lookup_failed: ${led.error}`, disposition: "kept" };
+      if (!led.row) {
+        refund.state = "needs_operator";
+        refund.last_error = "credit_refund_unverifiable: crediting started, no ledger row";
+        refund.last_attempt_at = now().toISOString();
+        await writeRefundMeta(db, order, refund, "crediting");
+        return { ok: false, reason: "credit_refund_unverifiable", disposition: "operator" };
+      }
+      refund.credits_reversed = order.creditsUsed;
+      refund.credit_balance_after = led.row.balance_after ?? null;
+      refund.credit_ledger_id = led.row.id ?? null;
+    } else {
+      // claimed → crediting, guarded: exactly one attempt runs the CAS.
+      const mark = await writeRefundMeta(db, order, { ...refund, state: "crediting" }, "claimed");
+      if (mark.matched < 0) {
+        if (path !== "stripe") await releaseClaim(db, order, "credit_mark_failed");
+        return { ok: false, reason: `credit_mark_failed: ${mark.error}`, disposition: path !== "stripe" ? "released" : "kept" };
+      }
+      if (mark.matched === 0) {
+        return { ok: false, reason: "refund_in_progress_elsewhere", disposition: "kept" };
+      }
+      refund.state = "crediting";
+
+      // G36-B: compare-and-set (+creditsUsed), not read → update(absolute).
+      // The real supabase-js client satisfies CasDb; RefundSupabase only
+      // narrows what the order reads need.
+      const adjusted = await adjustCreditBalance(db as unknown as CasDb, order.userId, order.creditsUsed, {
+        lifetime: { column: "lifetime_spent", delta: -order.creditsUsed },
+      });
+      if (!adjusted.ok) {
+        const reason = `credit_reversal_failed: ${adjusted.error ?? adjusted.reason}`;
+        if (!adjusted.maybeWritten && path !== "stripe") {
+          // Provably nothing written (read error / contention) → retryable.
+          await releaseClaim(db, order, "credit_reversal_failed");
+          return { ok: false, reason, disposition: "released" };
+        }
+        // The write may have committed: stay `crediting`; the reconcile
+        // sweep checks the ledger and escalates to an operator.
+        console.error("[blockid:report-refund] credit write outcome unknown — left for reconcile", {
+          orderId: order.id,
+          error: adjusted.error ?? adjusted.reason,
+        });
+        return keep(reason);
+      }
+
+      // Ledger row = the proof the reconcile sweep looks for.
+      const { error: ledErr } = await db.from("credit_transactions").insert({
+        user_id: order.userId,
+        amount: order.creditsUsed,
+        balance_after: adjusted.balance,
+        reason: REPORT_REFUND_LEDGER_REASON,
+        metadata: { report_order_id: order.id },
+      });
+      if (ledErr) {
+        console.error("[blockid:report-refund] credits refunded but ledger row insert failed", {
+          orderId: order.id,
+          error: msg(ledErr),
+        });
+      }
+      refund.credits_reversed = order.creditsUsed;
+      refund.credit_balance_after = adjusted.balance;
+    }
+    // A mixed order (both paths) is not currently reachable, but if it
+    // ever is the Stripe leg is the headline.
+    if (path !== "stripe") path = "credits";
+  }
+
+  // ── Done ─────────────────────────────────────────────────────────────
+  const heldState = refund.state as RefundState;
+  refund.state = "done";
+  delete refund.last_error;
+  const fin = await writeRefundMeta(db, order, refund, heldState);
+  if (fin.matched === 0) {
+    console.warn("[blockid:report-refund] refund state moved under us; done marker not written", { orderId: order.id, heldState });
+  }
+  if (fin.error) {
+    // Money moved; the order is REFUNDED. Only the `done` marker is missing,
+    // so the reconcile sweep will re-check (Stripe: same idempotency key;
+    // credits: the ledger row proves it).
+    console.error("[blockid:report-refund] refund executed but refund detail write failed", {
+      orderId: order.id,
+      path,
+      refundId,
+      error: fin.error,
+    });
+  }
+  return refundId ? { ok: true, path, refundId } : { ok: true, path };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // refundFailedOrder
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,9 +440,9 @@ export type RefundOutcome =
  * Reverse the payment for a report order and move it to REFUNDED.
  *
  * Never throws — the caller (the drain cron) logs the outcome and moves
- * on. A `{ ok: false }` result leaves the order in its previous status
- * (FAILED / PAID) so the next drain tick, or an operator, can retry the
- * reversal.
+ * on. A `{ ok: false }` result either leaves the order in its previous
+ * status (definite failure, nothing moved) or keeps the refund claim for
+ * the reconcile sweep (ambiguous outcome).
  */
 export async function refundFailedOrder(
   input: { orderId: string; reason: string },
@@ -126,7 +451,7 @@ export async function refundFailedOrder(
   const supabase =
     deps.supabase !== undefined
       ? deps.supabase
-      : ((getSupabaseAdmin() as SupabaseClient | null) as RefundSupabase | null);
+      : ((getSupabaseAdmin() as SupabaseClient | null) as unknown as RefundSupabase | null);
   if (!supabase) return { ok: false, reason: "supabase_not_configured" };
 
   const now = deps.now ?? (() => new Date());
@@ -150,7 +475,7 @@ export async function refundFailedOrder(
   }
   const status: ReportOrderState = parsedStatus.data;
 
-  // Idempotent re-entry — the previous attempt already moved the money.
+  // Idempotent re-entry — a previous attempt holds (or finished) the refund.
   if (status === "REFUNDED") {
     return { ok: true, path: "already_refunded" };
   }
@@ -187,14 +512,14 @@ export async function refundFailedOrder(
   const userId = String(order.user_id ?? "");
   if (creditsUsed > 0 && !userId) return { ok: false, reason: "order_missing_user" };
 
-  const existingMeta =
-    order.metadata && typeof order.metadata === "object"
-      ? (order.metadata as Row)
-      : {};
+  const baseMeta: Row = { ...(order.metadata && typeof order.metadata === "object" ? (order.metadata as Row) : {}) };
+  delete baseMeta.refund;
   const refundMeta: Row = {
+    state: "claimed" satisfies RefundState,
     refunded_at: now().toISOString(),
     refund_reason: input.reason.slice(0, 500),
-    state: "claimed",
+    previous_status: status,
+    previous_failure_reason: (order.failure_reason as string | null | undefined) ?? null,
   };
 
   // ── Claim: previous status → REFUNDED, before any money moves ─────────
@@ -206,7 +531,7 @@ export async function refundFailedOrder(
     .update({
       status: target,
       failure_reason: input.reason.slice(0, 500),
-      metadata: { ...existingMeta, refund: refundMeta },
+      metadata: { ...baseMeta, refund: refundMeta },
     })
     .eq("id", input.orderId)
     .eq("status", status)
@@ -224,113 +549,25 @@ export async function refundFailedOrder(
     return { ok: false, reason: `refund_claim_lost: ${String(again?.status ?? "unknown")}` };
   }
 
-  /** Nothing moved — hand the order back to its previous status for a retry. */
-  const releaseClaim = async (why: string) => {
-    const { error } = await supabase
-      .from("report_orders")
-      .update({
-        status,
-        failure_reason: (order.failure_reason as string | null | undefined) ?? null,
-        metadata: existingMeta,
-      })
-      .eq("id", input.orderId)
-      .eq("status", target);
-    if (error) {
-      console.error(
-        "[blockid:report-refund] claim release failed — order REFUNDED without a refund; reconcile",
-        { orderId: input.orderId, why, error: msg(error) },
-      );
-    }
-  };
-
-  let path: RefundPath = "nothing_to_refund";
-  let refundId: string | undefined;
-
-  // ── Path A: Stripe ───────────────────────────────────────────────────
-  if (amountCents > 0 && stripe) {
-    try {
-      const refund = await stripe.refunds.create(
-        {
-          payment_intent: paymentIntentId,
-          reason: "requested_by_customer",
-          metadata: {
-            bid_scope: "report_order",
-            bid_order_id: String(order.id ?? input.orderId),
-            bid_failure_reason: input.reason.slice(0, 400),
-          },
-        },
-        // Belt and braces: Stripe dedupes a repeat of this call for 24 h.
-        { idempotencyKey: `report-order-refund:${String(order.id ?? input.orderId)}` },
-      );
-      refundId = refund.id;
-      refundMeta.stripe_refund_id = refund.id;
-      refundMeta.stripe_refund_status = refund.status ?? null;
-      path = "stripe";
-    } catch (err) {
-      // Nothing moved — put the order back so a later tick can retry.
-      await releaseClaim("stripe_refund_failed");
-      return { ok: false, reason: `stripe_refund_failed: ${msg(err)}` };
-    }
-  }
-
-  // ── Path B: credits ──────────────────────────────────────────────────
-  // Mirrors the compensating write in /api/reports/redeem: balance goes
-  // back up, lifetime_spent goes back down (floored at zero).
-  if (creditsUsed > 0) {
-    // G36-B: compare-and-set (+creditsUsed), not read → update(absolute).
-    // The old write set `balance = <read> + creditsUsed`, so a debit or grant
-    // landing between the read and the write was silently erased.
-    // The real supabase-js client satisfies CasDb; RefundSupabase only
-    // narrows what the order reads need.
-    const adjusted = await adjustCreditBalance(supabase as unknown as CasDb, userId, creditsUsed, {
-      lifetime: { column: "lifetime_spent", delta: -creditsUsed },
-    });
-    if (!adjusted.ok) {
-      if (path === "stripe") {
-        // Mixed order (not currently reachable): the Stripe leg already
-        // moved, so keep the claim — a retry must not refund Stripe again.
-        console.error(
-          "[blockid:report-refund] Stripe refunded but credit reversal failed — reconcile",
-          { orderId: input.orderId, refundId, error: adjusted.error ?? adjusted.reason },
-        );
-      } else {
-        await releaseClaim("credit_reversal_failed");
-      }
-      return {
-        ok: false,
-        reason: `credit_reversal_failed: ${adjusted.error ?? adjusted.reason}`,
-      };
-    }
-
-    refundMeta.credits_reversed = creditsUsed;
-    refundMeta.credit_balance_after = adjusted.balance;
-    // A mixed order (both paths) is not currently reachable, but if it
-    // ever is the Stripe leg is the headline.
-    if (path !== "stripe") path = "credits";
-  }
-
-  // ── Record the refund detail on the (already REFUNDED) order ─────────
-  refundMeta.state = "done";
-  const { error: updErr } = await supabase
-    .from("report_orders")
-    .update({ metadata: { ...existingMeta, refund: refundMeta } })
-    .eq("id", input.orderId)
-    .eq("status", target);
-
-  if (updErr) {
-    // The money moved and the order is already REFUNDED (the claim), so a
-    // retry is a no-op — only the refund detail (refund id, balance after)
-    // is missing from metadata. Log it for the operator; do not fail.
-    console.error(
-      "[blockid:report-refund] refund executed but refund detail write failed",
-      { orderId: input.orderId, path, refundId, error: msg(updErr) },
-    );
-  }
-
-  return refundId ? { ok: true, path, refundId } : { ok: true, path };
+  const outcome = await completeClaimedRefund(
+    supabase,
+    stripe,
+    {
+      id: String(order.id ?? input.orderId),
+      userId,
+      amountCents,
+      creditsUsed,
+      paymentIntentId,
+      baseMeta,
+      refund: refundMeta,
+    },
+    now,
+  );
+  if (!outcome.ok) return { ok: false, reason: outcome.reason };
+  return outcome;
 }
 
-function msg(err: unknown): string {
+export function msg(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (err && typeof err === "object" && "message" in err) {
     return String((err as { message?: unknown }).message ?? "unknown_error");

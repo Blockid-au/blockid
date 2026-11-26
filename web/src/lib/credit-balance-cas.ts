@@ -46,7 +46,19 @@ export interface AdjustOptions {
 
 export type AdjustResult =
   | { ok: true; before: number; balance: number }
-  | { ok: false; reason: "insufficient" | "contention" | "db_error"; balance: number; error?: string };
+  | {
+      ok: false;
+      reason: "insufficient" | "contention" | "db_error";
+      balance: number;
+      error?: string;
+      /**
+       * true when the failing call was the balance WRITE (insert / update):
+       * the error may be a lost response for a write that committed, so the
+       * caller cannot assume the balance is unchanged. Absent / false means
+       * provably nothing was written (read error, contention, insufficient).
+       */
+      maybeWritten?: boolean;
+    };
 
 /** numeric(10,2) — keep JS float noise out of the stored value and the CAS comparison. */
 export function roundCredits(n: number): number {
@@ -82,7 +94,7 @@ export async function adjustCreditBalance(
       const ins = await db.from("credit_balances").insert(insertRow);
       if (!ins.error) return { ok: true, before: 0, balance: roundCredits(delta) };
       if (ins.error.code === "23505") continue; // a concurrent first write created the row — re-read
-      return { ok: false, reason: "db_error", balance: 0, error: ins.error.message };
+      return { ok: false, reason: "db_error", balance: 0, error: ins.error.message, maybeWritten: true };
     }
 
     const before = Number(row.balance ?? 0);
@@ -99,7 +111,7 @@ export async function adjustCreditBalance(
       .eq("user_id", userId)
       .eq("balance", row.balance ?? 0)
       .select("balance");
-    if (upd.error) return { ok: false, reason: "db_error", balance: before, error: upd.error.message };
+    if (upd.error) return { ok: false, reason: "db_error", balance: before, error: upd.error.message, maybeWritten: true };
     if (Array.isArray(upd.data) && upd.data.length > 0) return { ok: true, before, balance: next };
     // Zero rows: another writer moved the balance since our read — retry on the fresh value.
   }
