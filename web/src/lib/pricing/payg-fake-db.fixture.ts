@@ -56,12 +56,21 @@ export class PaygFakeDb {
   /** @internal */
   exec(q: FakeQuery): Result {
     if (this.opts.failing?.includes(q.table)) return { data: null, error: { code: "XX000", message: `${q.table} unavailable` } };
+    // PostgREST JSON paths (`metadata->refund->>state`) walk into jsonb columns.
+    const read = (r: Row, col: string): unknown => {
+      if (!col.includes("->")) return r[col];
+      const [head, ...keys] = col.split(/->>?/);
+      let v: unknown = r[head!];
+      for (const k of keys) v = v && typeof v === "object" ? (v as Row)[k] : undefined;
+      return v;
+    };
     const match = (r: Row) =>
       q.filters.every((f) => {
-        if (f.op === "eq") return r[f.col] === f.val;
-        if (f.op === "neq") return r[f.col] !== f.val;
-        if (f.op === "in") return (f.val as unknown[]).includes(r[f.col]);
-        return r[f.col] === null || r[f.col] === undefined;
+        const v = read(r, f.col);
+        if (f.op === "eq") return v === f.val;
+        if (f.op === "neq") return v !== f.val;
+        if (f.op === "in") return (f.val as unknown[]).includes(v);
+        return v === null || v === undefined;
       });
 
     if (q.kind === "insert") {

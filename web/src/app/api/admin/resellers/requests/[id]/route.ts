@@ -278,15 +278,32 @@ async function PATCH_handler(
       lifetime: { column: "lifetime_earned", delta: amount },
     });
     if (!adjusted.ok) {
-      await releaseClaim("balance_upsert_failed");
+      if (!adjusted.maybeWritten) {
+        // Provably nothing written (read error / contention) → retryable.
+        await releaseClaim("balance_upsert_failed");
+        return NextResponse.json(
+          { ok: false, reason: "balance_upsert_failed", error: adjusted.error ?? adjusted.reason },
+          { status: 500 },
+        );
+      }
+      // The balance WRITE errored: it may have committed (lost response).
+      // There is no cheap proof — credit_balances carries no per-request
+      // marker and the ledger row is only written after this step — so keep
+      // the request approved (never grant twice) and hand it to an operator.
+      console.error("[admin.reseller.requests.PATCH] over-budget grant outcome unknown — request kept approved; check credit_balances", {
+        requestId: current.id,
+        targetUserId,
+        amount,
+        error: adjusted.error ?? adjusted.reason,
+      });
       return NextResponse.json(
-        { ok: false, reason: "balance_upsert_failed", error: adjusted.error ?? adjusted.reason },
+        { ok: false, reason: "grant_outcome_unknown", error: adjusted.error ?? adjusted.reason },
         { status: 500 },
       );
     }
     const newBalance = adjusted.balance;
 
-    const { data: txRow, error: txErr } = await supabase
+    const { data: insertedTx, error: txErr } = await supabase
       .from("credit_transactions")
       .insert({
         user_id: targetUserId,
@@ -303,11 +320,41 @@ async function PATCH_handler(
       })
       .select("id")
       .single();
+    let txRow: { id: string } | null = insertedTx ? { id: String(insertedTx.id) } : null;
     if (txErr || !txRow) {
-      // No ledger row → take the grant back (CAS) and release the claim so
-      // the approval can be retried cleanly. If the reversal itself fails the
-      // credits stay granted and the request stays approved (never granted
-      // twice); the log line is the reconcile trail.
+      // G36: an insert error may be a lost response for a row that committed.
+      // Look for this request's ledger row (metadata.reseller_request_id)
+      // before undoing anything.
+      const { data: booked, error: lookupErr } = await supabase
+        .from("credit_transactions")
+        .select("id")
+        .eq("user_id", targetUserId)
+        .eq("reason", "reseller_grant_over_budget")
+        .eq("metadata->>reseller_request_id", current.id)
+        .limit(1);
+      if (lookupErr) {
+        // Cannot tell — keep the grant and the approval (never twice).
+        console.error("[admin.reseller.requests.PATCH] ledger insert errored and lookup failed — request kept approved; reconcile", {
+          requestId: current.id,
+          targetUserId,
+          amount,
+          error: `${txErr?.message ?? "no_row"}; lookup: ${lookupErr.message}`,
+        });
+        return NextResponse.json(
+          { ok: false, reason: "grant_outcome_unknown", error: txErr?.message ?? "no_row" },
+          { status: 500 },
+        );
+      }
+      const bookedRow = Array.isArray(booked) ? (booked[0] as { id?: unknown } | undefined) : undefined;
+      if (bookedRow?.id) {
+        txRow = { id: String(bookedRow.id) }; // the insert landed — carry on
+      }
+    }
+    if (!txRow) {
+      // Provably no ledger row → take the grant back (CAS) and release the
+      // claim so the approval can be retried cleanly. If the reversal itself
+      // fails the credits stay granted and the request stays approved (never
+      // granted twice); the log line is the reconcile trail.
       const reversed = await adjustCreditBalance(supabase as unknown as CasDb, targetUserId, -amount, {
         lifetime: { column: "lifetime_earned", delta: -amount },
       });
