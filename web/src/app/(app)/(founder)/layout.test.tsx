@@ -11,6 +11,12 @@ const state = vi.hoisted(() => ({
   capTable: false,
   evaluationId: null as string | null,
   gate: null as string | null,
+  row: { accountType: "investor_angel", segment: "investor_angel", onboardingCompleted: true, loaded: true } as {
+    accountType: string | null;
+    segment: string | null;
+    onboardingCompleted: boolean;
+    loaded: boolean;
+  },
 }));
 
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-pathname": state.pathname }) }));
@@ -21,7 +27,10 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => state.user }));
 vi.mock("@/lib/nav/founder-phase", () => ({ getFounderNavContext: async () => ({ navPhase: 0, svi: null, growthPhaseId: null }) }));
-vi.mock("@/lib/nav/persona-server", () => ({ resolvePersonaForUser: async () => state.persona }));
+vi.mock("@/lib/nav/persona-server", () => ({
+  resolvePersonaForUser: async () => state.persona,
+  loadPersonaRow: async () => state.row,
+}));
 vi.mock("@/components/workspace/founder-nav-context", () => ({ FounderNavContextProvider: ({ children }: { children: unknown }) => children }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase", () => ({
@@ -45,7 +54,21 @@ describe("(founder) layout — persona redirect", () => {
     state.capTable = false;
     state.evaluationId = null;
     state.gate = null;
+    state.row = { accountType: "investor_angel", segment: "investor_angel", onboardingCompleted: true, loaded: true };
     delete process.env.PERSONA_LANDING;
+  });
+
+  // G36 — the seat's persona inputs ride the nav context so the server-rendered
+  // sidebar is already the persona's (qa:live lane 22 read the founder's 4
+  // groups for an investor_angel before /api/entitlement/me answered).
+  it("publishes the seat (account_type, segment, session plan) on the nav context; no seat when the row is unreadable", async () => {
+    state.pathname = "/workspace/investor";
+    state.user = { id: "u-1", role: "user", plan: "free" } as typeof state.user;
+    const el = (await FounderLayout({ children: null })) as { props: { value: { seat?: unknown } } };
+    expect(el.props.value.seat).toEqual({ accountType: "investor_angel", segment: "investor_angel", plan: "free" });
+    state.row = { accountType: null, segment: null, onboardingCompleted: false, loaded: false };
+    const bare = (await FounderLayout({ children: null })) as { props: { value: { seat?: unknown } } };
+    expect(bare.props.value.seat).toBeUndefined();
   });
 
   it("an evaluator persona on /dashboard is redirected to its landing before the shell streams", async () => {
