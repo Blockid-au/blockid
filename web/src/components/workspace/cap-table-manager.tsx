@@ -325,10 +325,23 @@ export function CapTableManager() {
   }
 
   // ---- Loading / Error ----
+  // G36 — the loading state is also the server render (the fetch runs in an
+  // effect), so it carries the page's one <h1>: the live page sweep read
+  // `h1_count_0` on /workspace/equity/cap-table whenever /api/cap-table was
+  // slower than its settle window, and no-JS readers never got a heading.
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-ink-800">Cap Table</h1>
+          <p className="text-sm text-ink-500 mt-0.5">
+            Manage share classes, shareholders, and ESOP pool
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-24" role="status" aria-live="polite">
+          <Loader2 className="h-6 w-6 animate-spin text-brand-600" aria-hidden="true" />
+          <span className="sr-only">Loading your cap table…</span>
+        </div>
       </div>
     );
   }

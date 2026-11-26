@@ -82,4 +82,10 @@ describe("InvestorsClient", () => {
     expect(html).toContain('role="status"');
     expect(html).toContain("Loading your investor pipeline");
   });
+
+  it("the loading / server-render state carries exactly one <h1> (G36 page sweep h1_count_0)", () => {
+    const html = renderToStaticMarkup(<InvestorsClient />);
+    expect(html.match(/<h1[\s>]/g) ?? []).toHaveLength(1);
+    expect(html).toContain(">Investor CRM</h1>");
+  });
 });

@@ -260,11 +260,18 @@ export function InvestorsClient() {
     }
   }
 
+  // G36 — the loading state is also the server render (the CRM is fetched in
+  // an effect), so it carries the page's one <h1>: the live page sweep read
+  // `h1_count_0` on /workspace/investors/pipeline whenever the CRM fetch was
+  // slower than its settle window, and no-JS readers never got a heading.
   if (loading) {
     return (
-      <p className="flex items-center gap-2 text-sm text-ink-600" role="status" aria-live="polite">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading your investor pipeline…
-      </p>
+      <div className="space-y-6">
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink-900">Investor CRM</h1>
+        <p className="flex items-center gap-2 text-sm text-ink-600" role="status" aria-live="polite">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading your investor pipeline…
+        </p>
+      </div>
     );
   }
 

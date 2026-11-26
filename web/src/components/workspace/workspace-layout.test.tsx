@@ -326,3 +326,61 @@ describe("hub tab chrome per persona (W2 review)", () => {
     expect(html).not.toContain("Founder profile");
   });
 });
+
+// G36 (live QA lane 22, 2026-11-25) — the investor sidebar must be the
+// evaluator's ≤ 3 groups on the SERVER render, not only after
+// /api/entitlement/me answers: the (founder) layout seeds the seat's persona
+// inputs into the nav context. Before the seed, `entitlement.user === null`
+// on first paint resolved the founder persona → Home · Prove · Money ·
+// Company (4 groups) and the lane read 4 when it sampled before the fetch.
+describe("server-seeded seat persona (G36)", () => {
+  const ANGEL_SEAT: FounderNavContextValue = {
+    navPhase: 5,
+    svi: null,
+    growthPhaseId: null,
+    seat: { accountType: "investor_angel", segment: "investor_angel", plan: "free" },
+  };
+  function renderSsr(ctx: FounderNavContextValue): string {
+    return renderToStaticMarkup(
+      <FounderNavContextProvider value={ctx}>
+        <WorkspaceLayout user={USER}>
+          <div />
+        </WorkspaceLayout>
+      </FounderNavContextProvider>,
+    );
+  }
+  const loading = () => {
+    (entitlementUser as { current: unknown }).current = null;
+  };
+  afterEach(() => {
+    entitlementUser.current = { id: "u-1", plan: "founder_growth", segment: "founder" };
+  });
+
+  it("entitlement still loading + investor_angel seat → evaluator persona, 1..3 groups, no founder group", () => {
+    loading();
+    const html = renderSsr(ANGEL_SEAT);
+    expect(html).toContain('data-persona="investor_angel"');
+    const groups = visibleGroups(html);
+    expect(groups.length).toBeGreaterThan(0);
+    expect(groups.length).toBeLessThanOrEqual(3);
+    for (const founderOnly of ["Prove", "Money", "Company"]) expect(groups).not.toContain(founderOnly);
+  });
+
+  it("a founder-typed seat on an evaluator plan is an evaluator on first paint too (G29-C)", () => {
+    loading();
+    const html = renderSsr({ ...ANGEL_SEAT, seat: { accountType: "founder", segment: "investor_angel", plan: "investor_angel" } });
+    expect(html).toContain('data-persona="investor_angel"');
+  });
+
+  it("no seat (row unreadable) keeps the founder default", () => {
+    loading();
+    const html = renderSsr({ navPhase: 5, svi: null, growthPhaseId: null });
+    expect(html).toContain('data-persona="founder"');
+    expect(visibleGroups(html)).toEqual(["Home", "Prove", "Money", "Company"]);
+  });
+
+  it("once the client snapshot lands it wins over the server seat", () => {
+    entitlementUser.current = { id: "u-1", plan: "founder_growth", segment: "founder", accountType: "founder" };
+    expect(renderSsr(ANGEL_SEAT)).toContain('data-persona="founder"');
+  });
+});

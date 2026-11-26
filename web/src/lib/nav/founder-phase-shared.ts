@@ -157,6 +157,24 @@ export interface FounderNavContextValue {
   /** Inputs, kept so pages can show "why" without re-querying. */
   svi: number | null;
   growthPhaseId: GrowthPhaseId | null;
+  /**
+   * G36 — the signed-in seat's persona inputs, read server-side by the
+   * `(founder)` layout (`loadPersonaRow` + the session plan). The sidebar and
+   * persona chrome seed from this until `/api/entitlement/me` answers, so the
+   * server render and first paint already show the right persona: before this
+   * an evaluator's SSR sidebar was the founder's (Home · Prove · Money ·
+   * Company, 4 groups) until the client fetch landed (live QA lane 22,
+   * 2026-11-25). Absent outside the founder route group or when the row could
+   * not be read — the layout then falls back to the founder default as before.
+   */
+  seat?: NavSeat | null;
+}
+
+/** Plain-data persona inputs for one seat (crosses the server → client boundary). */
+export interface NavSeat {
+  accountType: string | null;
+  segment: string | null;
+  plan: string | null;
 }
 
 export const EMPTY_FOUNDER_NAV_CONTEXT: FounderNavContextValue = Object.freeze({
