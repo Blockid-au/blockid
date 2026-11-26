@@ -5,6 +5,32 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 
 ---
 
+## Tick 5 — 2026-11-26 (13:05 → in progress UTC)
+
+**Outcome:** blockid.au signals were green on arrival, but **hr/eth had been down in the background for three weeks**: since the 05/11 disk-full, the chain had stopped and both AI workers were dead, while every page and API still answered 200. Restored, root-caused, and monitored now. blockid.au deploys **`af788d2ae` → `d837133d4` → `5550504bd`**, unit 44,610 / 0, typecheck 0. Full elevated qa:live on `d837133d4`: 306 / 1, the remaining h1 bug fixed in `34a9e535b`. On `5550504bd`: 304 / 3, re-run below.
+
+### P0 — hr / eth (VM)
+| Problem | Since | Fix | Status |
+|---|---|---|---|
+| BlockID Chain stopped at block 541,586 (evmd never restarted after the disk was cleaned on 25/11) | 05/11 20:26 | Runbook `chain-halted`: snapshot `/mnt/app-data/evmd.pre-g36-20261126T1316` (3.7 GB), `$DC restart evmd`. No app-hash/consensus error | **FIXED**: blocks advancing, `chain.blocks ok` |
+| Both AI workers dead (worker-1 crashed at start with `sqlite3: database or disk is full`, worker-2 wedged in the DB pool) → no HR team/person review could run | 05/11 20:29 | `$DC restart agents-worker` | **FIXED**: `worker.heartbeat ok`; live JD-parse AI call 200 in 15 s |
+| Nobody was alerted: the VM saw both as critical, but its SMTP is not configured, and our satellite probe only checked HTTP | — | `satellite-uptime.sh`: newest-block age via scan API every 2 min, the VM's critical ops checks (read-only SELECT over gcloud ssh) every 10 min, plus an alert when that probe itself keeps failing | **LIVE** `5077aa6b0`, `4a4487dc7` |
+
+hr.blockid.au full crawl (12 routes × desktop/375 px + 10 sample reports): all 200, 0 JS errors, 0 overflow, 0 5xx in nginx logs. One dead link: the 404 page offered "Businesses" → `/companies`, which the HR app does not have → now "Review a team" (eth-blockid `7453ca3`, web rebuilt on the VM, bundle `index-DnyJB7y0.js`; VM checkout now on branch `g36-stability-fixes`).
+
+### blockid.au
+| Sev | Fix | Commit |
+|---|---|---|
+| P1 link | 6 broken official links on /funding, open since 29/09–03/10. **capitalangels.com.au was hijacked** (redirects to spam) → archived site + `status_confidence=low`; Enterprize ×2, Something Fest, Swinburne Elevate corrected; BFF R3 → archive. Seed files + `0479` **applied live 15:33** (backup of the old values in `/data/backups/manual-pre-0479-20261126T1533.tsv`), funding cache revalidated, all 6 verified on the live pages | `5077aa6b0`, `75eca351c` |
+| P1 payment | Two concurrent over-budget reseller approvals granted twice → claim the request first | `34f53409b` |
+| P1 payment | A failed order-status write after a refund refunded twice on retry → claim the order first; Stripe idempotency key | `0b4d23559` |
+| P1 payment (review) | Stale-claim reconcile sweep in the drain cron; ambiguous Stripe/credit errors keep the claim; ambiguous reseller ledger write is no longer reversed; alert for unrefunded FAILED orders | `d2ee559b0`, `0faf052e0` |
+| P2 UX | Evaluator first paint showed the founder sidebar (persona seeded server-side); cap-table / investor CRM / SVI-trend loading states had no h1 | `91fa0fb24`, `23f3e316f`, `340dfecf5`, `34a9e535b` |
+
+Checked and OK: login (password 401 with a clear message, Google start → accounts.google.com, /auth/reset, /signup), Stripe service ok, webhook failures 0, report orders pending 0, 5/5 AI providers, 10/10 C-level agent tasks ok, internal links 0 broken (655 pages), sitemap 464/464, SVI site 0 broken. Prod has **0** FAILED/REFUNDED report orders, so the refund changes touch no existing customer.
+
+---
+
 ## Tick 4 — 2026-11-25 (20:25 → 22:20 UTC)
 
 **Outcome:** signals green on arrival; payment backlog shipped. blockid.au **`7652cfb66` → `af788d2ae`**, unit 44,566 / 0, typecheck 0. Full qa:live right after the deploy: 304 / 3 — all three re-ran green (12 / 0): two pages rendered without h1 and one 502 during old-origin retirement / release retention. The 502 was real: nginx `upstream prematurely closed connection` on a PATCH (4 such in 2 weeks) → upstream `keepalive_timeout 4s` (Node closes idle sockets at 5 s; nginx default 60 s), proxy switch updated to accept it.
