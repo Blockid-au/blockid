@@ -27,7 +27,9 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: async () => state.user }));
 vi.mock("@/lib/nav/founder-phase", () => ({ getFounderNavContext: async () => ({ navPhase: 0, svi: null, growthPhaseId: null }) }));
-vi.mock("@/lib/nav/persona-server", () => ({
+vi.mock("@/lib/nav/persona-server", async (importOriginal) => ({
+  // navSeatFor stays real — the fallbacks it applies are what this test pins.
+  ...(await importOriginal<typeof import("@/lib/nav/persona-server")>()),
   resolvePersonaForUser: async () => state.persona,
   loadPersonaRow: async () => state.row,
 }));
@@ -66,6 +68,14 @@ describe("(founder) layout — persona redirect", () => {
     state.user = { id: "u-1", role: "user", plan: "free" } as typeof state.user;
     const el = (await FounderLayout({ children: null })) as { props: { value: { seat?: unknown } } };
     expect(el.props.value.seat).toEqual({ accountType: "investor_angel", segment: "investor_angel", plan: "free" });
+    // Same fallbacks as /api/entitlement/me (plan ?? "free", segment ?? "founder") — no SSR → client flip.
+    state.user = { id: "u-1", role: "user", plan: "investor_angel" } as typeof state.user;
+    state.row = { accountType: "founder", segment: null, onboardingCompleted: true, loaded: true };
+    const fromPlan = (await FounderLayout({ children: null })) as { props: { value: { seat?: unknown } } };
+    expect(fromPlan.props.value.seat).toEqual({ accountType: "founder", segment: "founder", plan: "investor_angel" });
+    state.user = { id: "u-1", role: "user" };
+    const noPlan = (await FounderLayout({ children: null })) as { props: { value: { seat?: { plan: string } } } };
+    expect(noPlan.props.value.seat?.plan).toBe("free");
     state.row = { accountType: null, segment: null, onboardingCompleted: false, loaded: false };
     const bare = (await FounderLayout({ children: null })) as { props: { value: { seat?: unknown } } };
     expect(bare.props.value.seat).toBeUndefined();
