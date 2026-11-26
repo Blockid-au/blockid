@@ -10,7 +10,81 @@
  */
 
 export type Row = Record<string, unknown>;
-type Filter = { op: "eq" | "neq" | "in" | "is"; col: string; val: unknown };
+type Op = "eq" | "neq" | "in" | "is" | "lt" | "lte" | "gt" | "gte" | "like";
+type Filter =
+  | { op: Op; col: string; val: unknown; negate?: boolean }
+  | { op: "or"; col: ""; val: Filter[]; negate?: boolean };
+
+// PostgREST JSON paths (`metadata->refund->>state`) walk into jsonb columns.
+function readCol(r: Row, col: string): unknown {
+  if (!col.includes("->")) return r[col];
+  const [head, ...keys] = col.split(/->>?/);
+  let v: unknown = r[head!];
+  for (const k of keys) v = v && typeof v === "object" ? (v as Row)[k] : undefined;
+  // `->>` yields text in Postgres (true → 'true', 5 → '5').
+  if (/->>[^>]*$/.test(col) && v !== null && v !== undefined) return typeof v === "object" ? JSON.stringify(v) : String(v);
+  return v;
+}
+
+function cmp(a: unknown, b: unknown): number | null {
+  if (a === null || a === undefined || b === null || b === undefined) return null; // SQL NULL never compares
+  if (typeof a === "number" && typeof b !== "number") b = Number(b);
+  if (typeof a === "number") return a - (b as number);
+  const sa = String(a);
+  const sb = String(b);
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+}
+
+function evalFilter(r: Row, f: Filter): boolean {
+  let ok: boolean;
+  if (f.op === "or") {
+    ok = f.val.some((g) => evalFilter(r, g));
+  } else {
+    const v = readCol(r, f.col);
+    switch (f.op) {
+      case "eq": ok = v === f.val; break;
+      case "neq": ok = v !== f.val; break;
+      case "in": ok = (f.val as unknown[]).includes(v); break;
+      case "is": ok = v === null || v === undefined; break;
+      case "like": {
+        if (v === null || v === undefined) { ok = false; break; }
+        const re = new RegExp(`^${String(f.val).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/[*%]/g, ".*")}$`);
+        ok = re.test(String(v));
+        break;
+      }
+      default: {
+        const c = cmp(v, f.val);
+        if (c === null) { ok = false; break; }
+        ok = f.op === "lt" ? c < 0 : f.op === "lte" ? c <= 0 : f.op === "gt" ? c > 0 : c >= 0;
+      }
+    }
+    // NOT on a NULL comparison stays NULL (false), like SQL — except `not.is.null`.
+    if (f.negate && f.op !== "is" && (readCol(r, f.col) === null || readCol(r, f.col) === undefined)) return false;
+  }
+  return f.negate ? !ok : ok;
+}
+
+/** Parse a PostgREST `or=(...)` body: `col.op.value,col.not.op.value,…` (values may be "quoted"). */
+function parseOr(expr: string): Filter[] {
+  const parts: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (const ch of expr) {
+    if (ch === '"') quoted = !quoted;
+    if (ch === "," && !quoted) { parts.push(cur); cur = ""; } else cur += ch;
+  }
+  if (cur) parts.push(cur);
+  return parts.map((p) => {
+    const [col, ...rest] = p.split(".");
+    let negate = false;
+    if (rest[0] === "not") { negate = true; rest.shift(); }
+    const op = rest.shift() as Op;
+    let raw = rest.join(".");
+    if (raw.startsWith('"') && raw.endsWith('"')) raw = raw.slice(1, -1);
+    const val: unknown = op === "is" ? null : /^-?\d+(\.\d+)?$/.test(raw) ? Number(raw) : raw;
+    return { op, col: col!, val, negate };
+  });
+}
 type Result = { data: unknown; error: { code?: string; message?: string } | null; count?: number | null };
 
 export interface FakeDbOptions {
@@ -56,22 +130,7 @@ export class PaygFakeDb {
   /** @internal */
   exec(q: FakeQuery): Result {
     if (this.opts.failing?.includes(q.table)) return { data: null, error: { code: "XX000", message: `${q.table} unavailable` } };
-    // PostgREST JSON paths (`metadata->refund->>state`) walk into jsonb columns.
-    const read = (r: Row, col: string): unknown => {
-      if (!col.includes("->")) return r[col];
-      const [head, ...keys] = col.split(/->>?/);
-      let v: unknown = r[head!];
-      for (const k of keys) v = v && typeof v === "object" ? (v as Row)[k] : undefined;
-      return v;
-    };
-    const match = (r: Row) =>
-      q.filters.every((f) => {
-        const v = read(r, f.col);
-        if (f.op === "eq") return v === f.val;
-        if (f.op === "neq") return v !== f.val;
-        if (f.op === "in") return (f.val as unknown[]).includes(v);
-        return v === null || v === undefined;
-      });
+    const match = (r: Row) => q.filters.every((f) => evalFilter(r, f));
 
     if (q.kind === "insert") {
       const list = (Array.isArray(q.payload) ? q.payload : [q.payload]) as Row[];
@@ -106,9 +165,24 @@ export class PaygFakeDb {
     }
 
     let hit = this.rows(q.table).filter(match);
-    if (q.orderBy) {
-      const { col, ascending } = q.orderBy;
-      hit = [...hit].sort((a, b) => (String(a[col]) < String(b[col]) ? -1 : String(a[col]) > String(b[col]) ? 1 : 0) * (ascending ? 1 : -1));
+    if (q.orderBy.length > 0) {
+      hit = [...hit].sort((a, b) => {
+        for (const { col, ascending, nullsFirst } of q.orderBy) {
+          const va = readCol(a, col);
+          const vb = readCol(b, col);
+          const na = va === null || va === undefined;
+          const nb = vb === null || vb === undefined;
+          if (na || nb) {
+            if (na && nb) continue;
+            // Postgres default: NULLS LAST for ASC, NULLS FIRST for DESC.
+            const nullFirst = nullsFirst ?? !ascending;
+            return na === nullFirst ? -1 : 1;
+          }
+          const c = String(va) < String(vb) ? -1 : String(va) > String(vb) ? 1 : 0;
+          if (c !== 0) return ascending ? c : -c;
+        }
+        return 0;
+      });
     }
     if (q.limitN !== null) hit = hit.slice(0, q.limitN);
     if (q.selectOpts?.head) return { data: null, error: null, count: hit.length };
@@ -118,7 +192,7 @@ export class PaygFakeDb {
 
 class FakeQuery implements PromiseLike<Result> {
   filters: Filter[] = [];
-  orderBy: { col: string; ascending: boolean } | null = null;
+  orderBy: Array<{ col: string; ascending: boolean; nullsFirst?: boolean }> = [];
   limitN: number | null = null;
   returning = false;
 
@@ -146,17 +220,37 @@ class FakeQuery implements PromiseLike<Result> {
     this.filters.push({ op: "is", col, val: null });
     return this;
   }
-  lt() {
+  lt(col: string, val: unknown) {
+    this.filters.push({ op: "lt", col, val });
     return this;
   }
-  gte() {
+  lte(col: string, val: unknown) {
+    this.filters.push({ op: "lte", col, val });
+    return this;
+  }
+  gt(col: string, val: unknown) {
+    this.filters.push({ op: "gt", col, val });
+    return this;
+  }
+  gte(col: string, val: unknown) {
+    this.filters.push({ op: "gte", col, val });
+    return this;
+  }
+  /** `.not(col, "is", null)` and friends. */
+  not(col: string, op: Op, val: unknown) {
+    this.filters.push({ op, col, val: op === "is" ? null : val, negate: true });
+    return this;
+  }
+  /** PostgREST `or` filter string; several `.or()` calls are ANDed, like PostgREST. */
+  or(expr: string) {
+    this.filters.push({ op: "or", col: "", val: parseOr(expr) });
     return this;
   }
   contains() {
     return this;
   }
-  order(col: string, o: { ascending: boolean }) {
-    this.orderBy = { col, ascending: o.ascending };
+  order(col: string, o: { ascending: boolean; nullsFirst?: boolean }) {
+    this.orderBy.push({ col, ascending: o.ascending, nullsFirst: o.nullsFirst });
     return this;
   }
   limit(n: number) {

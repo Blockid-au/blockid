@@ -34,11 +34,13 @@ vi.mock("@/lib/paywall/report-refund", () => ({
 const sweeps = vi.hoisted(() => ({
   reconcile: vi.fn(),
   unrefunded: vi.fn(),
+  retry: vi.fn(),
   telegram: vi.fn(),
 }));
 vi.mock("@/lib/paywall/report-refund-reconcile", () => ({
   reconcileStaleRefundClaims: (...args: unknown[]) => sweeps.reconcile(...args),
   alertUnrefundedFailedOrders: (...args: unknown[]) => sweeps.unrefunded(...args),
+  retryReleasedCreditRefunds: (...args: unknown[]) => sweeps.retry(...args),
 }));
 vi.mock("@/lib/telegram", () => ({
   sendTelegram: (...args: unknown[]) => sweeps.telegram(...args),
@@ -89,6 +91,7 @@ beforeEach(() => {
   h.refund.mockReset().mockResolvedValue({ ok: true, path: "stripe", refundId: "re_1" });
   sweeps.reconcile.mockReset().mockResolvedValue({ checked: 0, completed: [], kept: [], released: [], operator: [], alerted: false });
   sweeps.unrefunded.mockReset().mockResolvedValue({ found: [], alerted: false });
+  sweeps.retry.mockReset().mockResolvedValue({ retried: [], refunded: [], failed: [] });
   sweeps.telegram.mockReset().mockResolvedValue(true);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -148,6 +151,21 @@ describe("cron/report-order-drain", () => {
     const second = await call();
     expect(second.status).toBe(200);
     expect(second.body).toMatchObject({ unrefundedFailed: { count: 1, alerted: true } });
+  });
+
+  it("G36 round 3: retries released credit refunds through refundFailedOrder each tick (not a noop when it did work)", async () => {
+    useDb([]);
+    sweeps.retry.mockResolvedValue({ retried: ["o-3"], refunded: ["o-3"], failed: [] });
+    const { body } = await call();
+    expect(sweeps.retry).toHaveBeenCalledTimes(1);
+    const { refund } = sweeps.retry.mock.calls[0]![0] as { refund: (i: { orderId: string; reason: string }) => Promise<unknown> };
+    await refund({ orderId: "o-3", reason: "boom" });
+    expect(h.refund).toHaveBeenCalledWith({ orderId: "o-3", reason: "boom" });
+    expect(body).toMatchObject({ refundRetry: { retried: ["o-3"], refunded: ["o-3"] } });
+    expect(body.noop).toBeUndefined();
+
+    sweeps.retry.mockRejectedValue(new Error("db down"));
+    expect((await call()).status).toBe(200);
   });
 
   it("reclaims a dead worker's lease and re-drains the order in the same tick", async () => {
