@@ -5,9 +5,9 @@ Procedure: `/g36-stability` skill (`.claude/skills/g36-stability/SKILL.md`). New
 
 ---
 
-## Tick 5 — 2026-11-26 (13:05 → in progress UTC)
+## Tick 5 — 2026-11-26 13:05 → 2026-11-27 00:05 UTC
 
-**Outcome:** blockid.au signals were green on arrival, but **hr/eth had been down in the background for three weeks**: since the 05/11 disk-full, the chain had stopped and both AI workers were dead, while every page and API still answered 200. Restored, root-caused, and monitored now. blockid.au deploys **`af788d2ae` → `d837133d4` → `5550504bd`**, unit 44,610 / 0, typecheck 0. Full elevated qa:live on `d837133d4`: 306 / 1, the remaining h1 bug fixed in `34a9e535b`. On `5550504bd`: 304 / 3, re-run below.
+**Outcome:** blockid.au signals were green on arrival, but **hr/eth had been down in the background for three weeks**: since the 05/11 disk-full, the chain had stopped and both AI workers were dead, while every page and API still answered 200. Restored, root-caused, and monitored now. blockid.au deploys **`af788d2ae` → `d837133d4` → `5550504bd` → `9d4647ab2`** (3 deploys, each followed by a full elevated qa:live and a `/code-review`), unit **44,649 / 0**, typecheck 0. qa:live: 306/1 on `d837133d4` (SVI-trend h1, fixed); 304/3 on `5550504bd`, re-run 306/1 (transient CSP race right after the funding revalidation, dossier TTFB under load, then the evidence-gaps h1); **final run on `9d4647ab2`: 307 / 0**.
 
 ### P0 — hr / eth (VM)
 | Problem | Since | Fix | Status |
@@ -26,8 +26,17 @@ hr.blockid.au full crawl (12 routes × desktop/375 px + 10 sample reports): all 
 | P1 payment | A failed order-status write after a refund refunded twice on retry → claim the order first; Stripe idempotency key | `0b4d23559` |
 | P1 payment (review) | Stale-claim reconcile sweep in the drain cron; ambiguous Stripe/credit errors keep the claim; ambiguous reseller ledger write is no longer reversed; alert for unrefunded FAILED orders | `d2ee559b0`, `0faf052e0` |
 | P2 UX | Evaluator first paint showed the founder sidebar (persona seeded server-side); cap-table / investor CRM / SVI-trend loading states had no h1 | `91fa0fb24`, `23f3e316f`, `340dfecf5`, `34a9e535b` |
+| P1 payment (review round 3) | Reconcile batches filtered + ordered in SQL; released transient credit refunds retried up to 5×; `charge_already_refunded` matched on `bid_order_id` and checked for coverage; stable Stripe idempotency params; CAS `maybeWritten` only for unknown write errors. Queries checked read-only against prod PostgREST before deploy; drain cron on live returns noop with 0 sweep errors | `fca54bcb2`, `b20103a2b` |
+| P2 a11y | Six more founder pages had no h1 while loading (finance, documents, shareholders, raise round, evidence gaps, exit strategy); one guard test over the server pass | `9355c5f54` |
 
 Checked and OK: login (password 401 with a clear message, Google start → accounts.google.com, /auth/reset, /signup), Stripe service ok, webhook failures 0, report orders pending 0, 5/5 AI providers, 10/10 C-level agent tasks ok, internal links 0 broken (655 pages), sitemap 464/464, SVI site 0 broken. Prod has **0** FAILED/REFUNDED report orders, so the refund changes touch no existing customer.
+
+
+Founder-only / open:
+- Report price policy expires **2026-12-24** (27 days left; renewal proposal in `web/content/reports/ai-price-policy-renewal.json`). Ask from 17/12.
+- hr/eth VM: `/etc/blockid/cloudflare.env` still missing (DNS can't follow an IP change), VM SMTP not configured (its own alerts are stored, not sent; our satellite probe now covers it). Telegram bot token still 401 → ops alerts use the e-mail fallback.
+- eth-blockid branch `g36-stability-fixes` (3 G36 commits) is what the VM runs now → merge it to `main` on GitHub.
+- Backlog: `/workspace/equity/on-chain` + `/workspace/esop/manage` keep their h1 inside the main client component (OK today); business-report "order pending/blocked" view has no h1; IP Australia link is a TLS false positive from this server.
 
 ---
 
