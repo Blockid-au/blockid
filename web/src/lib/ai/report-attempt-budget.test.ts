@@ -151,8 +151,8 @@ describe("report attempt budget (G33-T06)", () => {
 describe("report price policy expiry (W0, founder 2026-10-20)", () => {
   const EXPIRY = Date.parse(REPORT_PRICE_POLICY_EXPIRES_AT);
 
-  it("is extended to 2026-12-24 (founder 2026-11-25, G36) without changing the ledger-pinned policy id", () => {
-    expect(REPORT_PRICE_POLICY_EXPIRES_AT).toBe("2026-12-24T00:00:00Z");
+  it("is extended to 2027-11-27 (founder 2026-11-27, G36: one year) without changing the ledger-pinned policy id", () => {
+    expect(REPORT_PRICE_POLICY_EXPIRES_AT).toBe("2027-11-27T00:00:00Z");
     expect(REPORT_PRICE_POLICY).toBe("deepinfra-standard-2026-09-23");
   });
 
