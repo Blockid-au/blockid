@@ -33,7 +33,7 @@ Checked and OK: login (password 401 with a clear message, Google start → accou
 
 
 Founder-only / open:
-- Report price policy expires **2026-12-24** (27 days left; renewal proposal in `web/content/reports/ai-price-policy-renewal.json`). Ask from 17/12.
+- ~~Report price policy expires 2026-12-24~~ → **founder approved a one-year extension 27/11: now expires 2027-11-27** (`b41f643b2`, LIVE 00:56 UTC; price feed 26/11 unchanged; nightly price sync still alerts on any admitted price change). Other founder items: skipped by the founder 27/11.
 - hr/eth VM: `/etc/blockid/cloudflare.env` still missing (DNS can't follow an IP change), VM SMTP not configured (its own alerts are stored, not sent; our satellite probe now covers it). Telegram bot token still 401 → ops alerts use the e-mail fallback.
 - eth-blockid branch `g36-stability-fixes` (3 G36 commits) is what the VM runs now → merge it to `main` on GitHub.
 - Backlog: `/workspace/equity/on-chain` + `/workspace/esop/manage` keep their h1 inside the main client component (OK today); business-report "order pending/blocked" view has no h1; IP Australia link is a TLS false positive from this server.
